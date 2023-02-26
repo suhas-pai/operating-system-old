@@ -15,16 +15,26 @@ endef
 # It is highly recommended to use a custom built cross toolchain to build a kernel.
 # We are only using "cc" as a placeholder here. It may work by using
 # the host system's toolchain, but this is not guaranteed.
-$(eval $(call DEFAULT_VAR,CC,cc))
+$(eval $(call DEFAULT_VAR,CC,x86_64-elf-gcc))
+$(eval $(call DEFAULT_VAR,CXX,x86_64-elf-g++))
 
 # Same thing for "ld" (the linker).
-$(eval $(call DEFAULT_VAR,LD,ld))
+$(eval $(call DEFAULT_VAR,LD,x86_64-elf-ld))
+
+COMMON_FLAGS = -g -O2 -pipe -Wall -Wextra -Wno-attributes -Wcast-align       \
+			   -Wcast-qual -Wsign-conversion -Werror -Wfloat-equal           \
+			   -Wredundant-decls -Wshadow  -Wstrict-overflow=5 -Wundef       \
+			   -Wnull-dereference -funsigned-char -Werror=format-security    \
 
 # User controllable CFLAGS.
-CFLAGS ?= -g -O2 -pipe -Wall -Wextra
+CFLAGS ?= $(COMMON_FLAGS)
 
 # User controllable preprocessor flags. We set none by default.
-CPPFLAGS ?=
+CPPFLAGS ?= -std=c++20 $(COMMON_FLAGS)
+ifeq ($(shell uname -s),Darwin)
+	CPPFLAGS ?= $(CPPFLAGS) -isysroot \
+				$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
+endif
 
 # User controllable nasm flags.
 NASMFLAGS ?= -F dwarf -g
@@ -34,7 +44,6 @@ LDFLAGS ?=
 
 # Internal C flags that should not be changed by the user.
 override CFLAGS +=       \
-    -std=c11             \
     -ffreestanding       \
     -fno-stack-protector \
     -fno-stack-check     \
@@ -75,10 +84,11 @@ override NASMFLAGS += \
 
 # Use find to glob all *.c, *.S, and *.asm files in the directory and extract the object names.
 override CFILES := $(shell find . -type f -name '*.c')
+override CPPFILES := $(shell find . -type f -name '*.cpp')
 override ASFILES := $(shell find . -type f -name '*.S')
 override NASMFILES := $(shell find . -type f -name '*.asm')
-override OBJ := $(CFILES:.c=.o) $(ASFILES:.S=.o) $(NASMFILES:.asm=.o)
-override HEADER_DEPS := $(CFILES:.c=.d) $(ASFILES:.S=.d)
+override OBJ := $(CFILES:.c=.o) $(CPPFILES:.cpp=.cpp.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o)
+override HEADER_DEPS := $(CFILES:.c=.d) $(CPPFILES:.cpp=.cpp.d) $(ASFILES:.S=.d)
 
 # Default target.
 .PHONY: all
@@ -96,14 +106,17 @@ $(KERNEL): $(OBJ)
 
 # Compilation rules for *.c files.
 %.o: %.c limine.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+	$(CC) -std=gnu17 $(CFLAGS) -c $< -o $@
+
+%.cpp.o: %.cpp limine.h
+	$(CXX) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Compilation rules for *.S files.
-%.o: %.S limine.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+%.S.o: %.S limine.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Compilation rules for *.asm (nasm) files.
-%.o: %.asm
+%.asm.o: %.asm
 	nasm $(NASMFLAGS) $< -o $@
 
 # Remove object files and the final executable.

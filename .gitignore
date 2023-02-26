@@ -1,6 +1,10 @@
+.cache/
+compile_commands.json
 limine
 ovmf-x64
 kernel/limine.h
+**/.DS_Store
+**/._.DS_Store
 *.elf
 *.iso
 *.hdd
