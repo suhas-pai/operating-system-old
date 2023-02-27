@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 #include "limine.h"
+#include "gdt.h"
 
 // The Limine requests can be placed anywhere, but it is important that
 // the compiler does not optimise them away, so, usually, they should
@@ -35,5 +36,6 @@ void _start(void) {
     terminal_request.response->write(terminal, "Hello World", 11);
 
     // We're done, just hang...
+    gdt_load();
     done();
 }
