@@ -1,12 +1,17 @@
+# Nuke built-in rules and variables.
+override MAKEFLAGS += -rR
+
 .PHONY: all
 all: barebones.iso
 
 .PHONY: all-hdd
 all-hdd: barebones.hdd
 
+QEMU_ARGS = -d guest_errors -d unimp -d int -serial stdio -D ./log.txt -no-reboot
+
 .PHONY: run
 run: barebones.iso
-	qemu-system-x86_64 -M q35 -m 2G -cdrom barebones.iso -boot d
+	qemu-system-x86_64 -M q35 -m 2G -cdrom barebones.iso -boot d $(QEMU_ARGS)
 
 .PHONY: run-uefi
 run-uefi: ovmf-x64 barebones.iso
