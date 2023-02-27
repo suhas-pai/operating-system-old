@@ -5,6 +5,7 @@ ovmf-x64
 kernel/limine.h
 **/.DS_Store
 **/._.DS_Store
+log.txt
 *.elf
 *.iso
 *.hdd
