@@ -5,14 +5,11 @@
 
 #pragma once
 
-#include "lib/adt/range.h"
+#include "lib/adt/growable_buffer.h"
 #include "lib/adt/string_view.h"
-#include "lib/macros.h"
 
 struct string {
-    char *buffer;
-    uint32_t length;
-    uint32_t free;
+    struct growable_buffer gbuffer;
 };
 
 #define STRUCT_STRING(cstr) string_create_alloc(cstr, LEN_OF(cstr))
@@ -31,6 +28,7 @@ string_append(struct string *string, const struct string *append);
 
 char string_front(struct string string);
 char string_back(struct string string);
+uint64_t string_length(struct string string);
 
 struct string *string_remove_index(struct string *string, uint32_t index);
 struct string *string_remove_range(struct string *string, struct range range);

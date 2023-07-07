@@ -5,10 +5,7 @@
 
 #include <assert.h>
 
-#include "lib/parse_printf.h"
-#include "lib/macros.h"
 #include "lib/format.h"
-
 #include "common.h"
 
 #define test_format_to_buffer(buffer_len, expected, str, ...)                  \
@@ -30,7 +27,7 @@
                              &count);                                          \
                                                                                \
         check_strings(expected, buffer);                                       \
-        check_strings(string.buffer, buffer);                                  \
+        check_strings(string.gbuffer.begin, buffer);                           \
                                                                                \
         assert(length == LEN_OF(expected));                                    \
         assert(count == (int)LEN_OF(expected));                                \

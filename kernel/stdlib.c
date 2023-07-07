@@ -252,36 +252,3 @@ void *memset(void *const dst, const int val, const unsigned long n) {
 
     return dst;
 }
-
-void *memzero(void *dst, unsigned long n) {
-    void *const ret = dst;
-    while (n >= sizeof(uint64_t)) {
-        *(uint64_t *)dst = 0;
-
-        dst += sizeof(uint64_t);
-        n -= sizeof(uint64_t);
-    }
-
-    while (n >= sizeof(uint32_t)) {
-        *(uint32_t *)dst = 0;
-
-        dst += sizeof(uint32_t);
-        n -= sizeof(uint32_t);
-    }
-
-    while (n >= sizeof(uint16_t)) {
-        *(uint16_t *)dst = 0;
-
-        dst += sizeof(uint16_t);
-        n -= sizeof(uint16_t);
-    }
-
-    while (n >= sizeof(uint8_t)) {
-        *(uint8_t *)dst = 0;
-
-        dst += sizeof(uint8_t);
-        n -= sizeof(uint8_t);
-    }
-
-    return ret;
-}

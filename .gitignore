@@ -14,3 +14,5 @@ limine
 ovmf-x86_64
 ovmf-aarch64
 ovmf-riscv64
+
+tests/test
