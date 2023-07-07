@@ -76,9 +76,9 @@ void acpi_init(void) {
         info.rsdt = phys_to_virt(info.rsdp->rsdt_addr);
     }
 
-    printk(LOGLEVEL_INFO, "acpi: Revision: %" PRIu8 "\n", info.rsdp->revision);
-    printk(LOGLEVEL_INFO, "acpi: Uses XSDT? %s\n", has_xsdt() ? "yes" : "no");
-    printk(LOGLEVEL_INFO, "acpi: RSDT at %p\n", info.rsdt);
+    printk(LOGLEVEL_INFO, "acpi: revision: %" PRIu8 "\n", info.rsdp->revision);
+    printk(LOGLEVEL_INFO, "acpi: uses xsdt? %s\n", has_xsdt() ? "yes" : "no");
+    printk(LOGLEVEL_INFO, "acpi: rsdt at %p\n", info.rsdt);
 
     acpi_recurse(acpi_init_each_sdt);
 }

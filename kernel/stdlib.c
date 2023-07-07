@@ -73,19 +73,31 @@ char *strchr(const char *const str, const int ch) {
     static inline int                                                          \
     VAR_CONCAT(_memcmp_, type)(const void *left,                               \
                                const void *right,                              \
-                               const uint64_t len)                             \
+                               size_t len,                                     \
+                               const void **const left_out,                    \
+                               const void **const right_out,                   \
+                               size_t *const len_out)                          \
     {                                                                          \
-        for (uint64_t i = 0;                                                   \
-             i + sizeof(type) < len;                                           \
-             i += sizeof(type), left += sizeof(type), right += sizeof(type))   \
-        {                                                                      \
+        if (len < sizeof(type)) {                                              \
+            return 0;                                                          \
+        }                                                                      \
+                                                                               \
+        do {                                                                   \
             const int left_ch = (int)(*(const type *)left);                    \
             const int right_ch = (int)(*(const type *)right);                  \
                                                                                \
             if (left_ch != right_ch) {                                         \
                 return (left_ch - right_ch);                                   \
             }                                                                  \
-        }                                                                      \
+                                                                               \
+            left += sizeof(type);                                              \
+            right += sizeof(type);                                             \
+            len -= sizeof(type);                                               \
+        } while (len >= sizeof(type));                                         \
+                                                                               \
+        *left_out = left;                                                      \
+        *right_out = right;                                                    \
+        *len_out = len;                                                        \
                                                                                \
         return 0;                                                              \
     }
@@ -121,24 +133,24 @@ DECL_MEM_COPY_FUNC(uint64_t)
 int
 memcmp(const void *left,
        const void *right,
-       const size_t len)
+       size_t len)
 {
-    int res = _memcmp_uint64_t(left, right, len);
+    int res = _memcmp_uint64_t(left, right, len, &left, &right, &len);
     if (res != 0) {
         return res;
     }
 
-    res = _memcmp_uint32_t(left, right, len);
+    res = _memcmp_uint32_t(left, right, len, &left, &right, &len);
     if (res != 0) {
         return res;
     }
 
-    res = _memcmp_uint16_t(left, right, len);
+    res = _memcmp_uint16_t(left, right, len, &left, &right, &len);
     if (res != 0) {
         return res;
     }
 
-    res = _memcmp_uint8_t(left, right, len);
+    res = _memcmp_uint8_t(left, right, len, &left, &right, &len);
     return res;
 }
 

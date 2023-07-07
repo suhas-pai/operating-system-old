@@ -7,7 +7,6 @@
 #include "lib/align.h"
 #include "dev/printk.h"
 
-#include "lib/list.h"
 #include "mm/kmalloc.h"
 #include "mm/page.h"
 #include "mm/page_alloc.h"
@@ -136,7 +135,7 @@ __unused static uint64_t alloc_cont_pages(const uint32_t amount) {
     const uint64_t iter_end = iter_phys + (iter->count * PAGE_SIZE);
 
     struct list *prev = &iter->list_entry;
-    iter->count = free_page_index / PAGE_SIZE;
+    iter->count = PAGE_COUNT(free_page_index);
 
     if (iter->count == 0) {
         prev = iter->list_entry.prev;
@@ -147,7 +146,7 @@ __unused static uint64_t alloc_cont_pages(const uint32_t amount) {
         struct freepages_info *const new_info =
             (struct freepages_info *)((void *)iter + free_page_end_index);
 
-        new_info->count = (iter_end - free_page_end_index) / PAGE_SIZE;
+        new_info->count = PAGE_COUNT(iter_end - free_page_end_index);
         list_add(prev, &new_info->list_entry);
     }
 
@@ -269,7 +268,7 @@ static bool fill_out_to_pml1(struct pagemap_iter *const iter) {
 
 static void
 setup_pagestructs_table(const uint64_t root_page, uint64_t byte_count) {
-    const uint64_t structpage_count = byte_count / PAGE_SIZE;
+    const uint64_t structpage_count = PAGE_COUNT(byte_count);
     uint64_t structpage_table_size = structpage_count * STRUCTPAGE_SIZEOF;
 
     if (!align_up(structpage_table_size, PAGE_SIZE, &structpage_table_size)) {
@@ -339,81 +338,105 @@ setup_pagestructs_table(const uint64_t root_page, uint64_t byte_count) {
     }
 }
 
+static inline bool is_usable_memory(const uint64_t type) {
+    return type == LIMINE_MEMMAP_USABLE ||
+           type == LIMINE_MEMMAP_ACPI_RECLAIMABLE ||
+           type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE;
+}
+
 void mm_init() {
     assert(hhdm_request.response != NULL);
     assert(memmap_request.response != NULL);
     assert(paging_mode_request.response != NULL);
 
     printk(LOGLEVEL_INFO,
-           "mm: HHDM at %p\n",
+           "mm: hhdm at %p\n",
            (void *)hhdm_request.response->offset);
 
-    struct limine_memmap_response *const resp = memmap_request.response;
-    struct limine_memmap_entry **entries = resp->entries;
-    struct limine_memmap_entry **const end = entries + resp->entry_count;
+    const struct limine_memmap_response *const resp = memmap_request.response;
+    struct limine_memmap_entry *const *entries = resp->entries;
+    struct limine_memmap_entry *const *const end = entries + resp->entry_count;
 
-    uint64_t memmap_i = 1;
-    uint64_t total_bytes_repr_by_structpage_table = 0;
+    uint64_t memmap_index = 0;
+    uint64_t memmap_last_usable_index = 0;
 
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
-        struct limine_memmap_entry *const memmap = *memmap_iter;
+        const struct limine_memmap_entry *const memmap = *memmap_iter;
         const char *type_desc = "<unknown>";
+
+        // Don't yet claim pages in *Reclaimable memmaps, although we do map it
+        // in the structpage table.
+
         switch (memmap->type) {
             case LIMINE_MEMMAP_USABLE:
-                claim_pages(memmap->base, memmap->length / PAGE_SIZE);
-
-                total_bytes_repr_by_structpage_table += memmap->length;
-                type_desc = "Usable";
+                claim_pages(memmap->base, PAGE_COUNT(memmap->length));
+                type_desc = "usable";
 
                 break;
             case LIMINE_MEMMAP_RESERVED:
-                type_desc = "Reserved";
+                type_desc = "reserved";
                 break;
             case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
-                type_desc = "ACPI Reclaimable";
-                total_bytes_repr_by_structpage_table += memmap->length;
-
+                type_desc = "acpi reclaimable";
                 break;
             case LIMINE_MEMMAP_ACPI_NVS:
-                type_desc = "ACPI NVS";
-                total_bytes_repr_by_structpage_table += memmap->length;
-
+                type_desc = "acpi nvs";
                 break;
             case LIMINE_MEMMAP_BAD_MEMORY:
-                type_desc = "Bad Memory";
+                type_desc = "bad memory";
                 break;
             case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
-                type_desc = "Bootloader Reclaimable";
-                total_bytes_repr_by_structpage_table += memmap->length;
-
+                type_desc = "bootloader reclaimable";
                 break;
             case LIMINE_MEMMAP_KERNEL_AND_MODULES:
-                type_desc = "Kernel and Modules";
-                total_bytes_repr_by_structpage_table += memmap->length;
-
+                type_desc = "kernel and modules";
                 break;
             case LIMINE_MEMMAP_FRAMEBUFFER:
-                type_desc = "Framebuffer";
-                total_bytes_repr_by_structpage_table += memmap->length;
-
+                type_desc = "framebuffer";
                 break;
         }
 
+        if (is_usable_memory(memmap->type)) {
+            memmap_last_usable_index = memmap_index;
+        }
+
         printk(LOGLEVEL_INFO,
-               "mm: Memmap %" PRIu64 ": [%p-%p] %s\n",
-               memmap_i,
+               "mm: memmap %" PRIu64 ": [%p-%p] %s\n",
+               memmap_index + 1,
                (void *)memmap->base,
                (void *)(memmap->base + memmap->length),
                type_desc);
 
-        memmap_i++;
+        memmap_index++;
     }
 
     printk(LOGLEVEL_DEBUG,
            "mm: system has %" PRIu64 " usable pages\n",
            total_free_pages);
 
+    const struct limine_memmap_entry *const last_usable_memmap =
+        entries[memmap_last_usable_index];
+
+    const uint64_t total_bytes_repr_by_structpage_table =
+        (last_usable_memmap->base + last_usable_memmap->length) -
+        entries[0]->base;
+
     setup_pagestructs_table(read_cr3(), total_bytes_repr_by_structpage_table);
+    for (uint64_t i = 0; i != memmap_last_usable_index; i++) {
+        struct limine_memmap_entry *const memmap = entries[i];
+        if (is_usable_memory(memmap->type)) {
+            continue;
+        }
+
+        struct page *page = phys_to_page(memmap->base);
+        for (uint64_t j = 0; j != PAGE_COUNT(memmap->length); j++, page++) {
+            // Avoid using `set_page_bit()` because we don't need atomic ops
+            // this early.
+
+            page->flags |= PAGE_NOT_USABLE;
+        }
+    }
+
     pagezones_init();
 
     struct freepages_info *iter = NULL;
@@ -429,5 +452,5 @@ void mm_init() {
     }
 
     kmalloc_init();
-    printk(LOGLEVEL_DEBUG, "mm: Finished setting up\n");
+    printk(LOGLEVEL_DEBUG, "mm: finished setting up\n");
 }

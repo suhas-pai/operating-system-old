@@ -53,7 +53,7 @@ struct page *buddy_of(struct page *const page, const uint8_t order) {
 }
 
 static struct page *
-alloc_page_from_zone(struct page_zone *const zone, const uint8_t order) {
+alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
     uint8_t alloced_order = 0;
 
     struct page *page = NULL;
@@ -104,7 +104,7 @@ struct page *alloc_pages(const uint8_t order, const uint64_t alloc_flags) {
 
     struct page *page = NULL;
     while (zone != NULL) {
-        page = alloc_page_from_zone(zone, order);
+        page = alloc_pages_from_zone(zone, order);
         if (page != NULL) {
             goto done;
         }
@@ -130,19 +130,19 @@ done:
 }
 
 void
-free_page_to_zone(struct page *page,
-                  struct page_zone *const zone,
-                  uint8_t order)
+free_pages_to_zone(struct page *page,
+                   struct page_zone *const zone,
+                   uint8_t order)
 {
     const int flag = spin_acquire_with_irq(&zone->lock);
-    while (true) {
-		if (order == MAX_ORDER - 1) {
-			break;
-        }
-
+    for (; order != MAX_ORDER - 1; order++) {
 		struct page *buddy = buddy_of(page, order);
 		if (zone != page_to_zone(buddy)) {
 			break;
+        }
+
+		if (has_page_bit(buddy, PAGE_NOT_USABLE)) {
+            continue;
         }
 
 		if (!has_page_bit(buddy, PAGE_IN_FREELIST)) {
@@ -157,8 +157,6 @@ free_page_to_zone(struct page *page,
 		if (page_to_pfn(buddy) < page_to_pfn(page)) {
 			swap(page, buddy);
         }
-
-		order++;
 	}
 
 	page->buddy.order = order;
@@ -174,5 +172,5 @@ void free_pages(struct page *const page, uint8_t order) {
     }
 
     struct page_zone *const zone = page_to_zone(page);
-    free_page_to_zone(page, zone, order);
+    free_pages_to_zone(page, zone, order);
 }

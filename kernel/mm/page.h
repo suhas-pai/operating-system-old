@@ -3,7 +3,6 @@
  */
 
 #pragma once
-#include <stdatomic.h>
 
 #include "arch/x86_64/mm/page.h"
 #include "lib/refcount.h"
@@ -42,10 +41,13 @@ _Static_assert(sizeof(struct page) == STRUCTPAGE_SIZEOF, "");
 enum struct_page_flags {
     PAGE_IN_FREELIST = 1 << 0,
     PAGE_SLAB_HEAD = 1 << 1,
+    PAGE_NOT_USABLE = 1 << 2
 };
 
 #define PAGE_SIZE (1ull << PAGE_SHIFT)
 #define LARGEPAGE_SIZE(index) (1ull << LARGEPAGE_SHIFTS[index])
+
+#define PAGE_COUNT(size) (((uint64_t)(size) / PAGE_SIZE))
 
 #define phys_to_pfn(phys) ((uint64_t)(phys) >> PAGE_SHIFT)
 #define pfn_to_phys(pfn) ((uint64_t)(pfn) << PAGE_SHIFT)
