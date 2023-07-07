@@ -18,7 +18,7 @@ override DEFAULT_HOST_CC := cc
 $(eval $(call DEFAULT_VAR,HOST_CC,$(DEFAULT_HOST_CC)))
 
 # Target architecture to build for. Default to x86_64.
-override DEFAULT_ARCH := aarch64
+override DEFAULT_ARCH := x86_64
 $(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 
 EXTRA_QEMU_ARGS=-d guest_errors -d unimp -d int -D ./log.txt
