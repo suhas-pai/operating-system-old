@@ -3,8 +3,9 @@
  * © suhas pai
  */
 
-#include "../overflow.h"
-#include "../util.h"
+#include "lib/assert.h"
+#include "lib/overflow.h"
+#include "lib/util.h"
 
 #include "range.h"
 
@@ -17,7 +18,7 @@ bool range_has_loc(const struct range range, const uint64_t loc) {
 }
 
 bool range_get_end(const struct range range, uint64_t *const end_out) {
-    return !ck_add_overflow(range.front, range.size, end_out);
+    return !chk_add_overflow(range.front, range.size, end_out);
 }
 
 struct range

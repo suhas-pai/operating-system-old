@@ -4,7 +4,7 @@
  */
 
 #include <stdint.h>
-#include "../lib/macros.h"
+#include "lib/macros.h"
 
 struct gdt_descriptor {
     uint16_t limit;
@@ -55,7 +55,7 @@ _Static_assert(ACC_USER_DATA == 0b01110010, "ACC_DATA_CODE isn't correct");
 #define GRAN_LONG (1 << 5)
 #define GRAN_32_BIT_SEG (1 << 6)
 
-#define GRAN_64 ((uint8_t)(GRAN_LONG))
+#define GRAN_64 ((uint8_t)GRAN_LONG)
 #define GRAN_32 ((uint8_t)(GRAN_32_BIT_SEG | GRAN_LIMIT_HIGH))
 
 _Static_assert(GRAN_32 == 0b11001111, "GRAN_32 isn't correct");
@@ -138,7 +138,7 @@ static struct gdt g_gdt = {
             .base_low16 = 0,
             .base_mid8 = 0,
             .access = ACC_USER_CODE | ACC_PRESENT,
-            .granularity = 0,
+            .granularity = GRAN_64,
             .base_high8 = 0
         },
         // User Data 64
@@ -171,6 +171,10 @@ static struct gdt_register g_gdt_reg = {
     .gdt_size_minus_one = sizeof(g_gdt) - 1,
     .gdt = &g_gdt
 };
+
+uint16_t gdt_get_kernel_code_segment() {
+    return 0x28;
+}
 
 void gdt_load() {
     asm volatile (

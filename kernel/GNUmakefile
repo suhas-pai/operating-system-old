@@ -5,92 +5,166 @@ override MAKEFLAGS += -rR
 # Change as needed.
 override KERNEL := kernel.elf
 
-# Convenience macro to reliably declare overridable command variables.
+# Convenience macro to reliably declare user overridable variables.
 define DEFAULT_VAR =
-    ifeq ($(origin $1),default)
-        override $(1) := $(2)
-    endif
-    ifeq ($(origin $1),undefined)
-        override $(1) := $(2)
-    endif
+	ifeq ($(origin $1),default)
+		override $(1) := $(2)
+	endif
+	ifeq ($(origin $1),undefined)
+		override $(1) := $(2)
+	endif
 endef
+
+# Target architecture to build for. Default to x86_64.
+override DEFAULT_ARCH := x86_64
+$(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 
 # It is highly recommended to use a custom built cross toolchain to build a kernel.
 # We are only using "cc" as a placeholder here. It may work by using
 # the host system's toolchain, but this is not guaranteed.
-$(eval $(call DEFAULT_VAR,CC,x86_64-elf-gcc))
-$(eval $(call DEFAULT_VAR,CXX,x86_64-elf-g++))
+override DEFAULT_CC := $(ARCH)-elf-gcc
+$(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
+
+override CC_IS_CLANG := no
+ifeq ($(shell $(CC) --version 2>&1 | grep -i 'clang' >/dev/null 2>&1 && echo 1),1)
+	override CC_IS_CLANG := yes
+endif
+
+override DEFAULT_CXX := $(ARCH)-elf-g++
+$(eval $(call DEFAULT_VAR,CXX,$(DEFAULT_CXX)))
 
 # Same thing for "ld" (the linker).
-$(eval $(call DEFAULT_VAR,LD,x86_64-elf-ld))
+override DEFAULT_LD := $(ARCH)-elf-ld
+$(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
-COMMON_FLAGS = -g -O2 -pipe -Wall -Wextra -Wno-attributes -Wcast-align       \
-			   -Wcast-qual -Wsign-conversion -Werror -Wfloat-equal           \
-			   -Wredundant-decls -Wshadow  -Wstrict-overflow=5 -Wundef       \
-			   -Wnull-dereference -funsigned-char -Werror=format-security    \
+COMMON_FLAGS = -g3 -pipe -Wno-attributes -Wcast-align -Wcast-qual \
+			   -Wsign-conversion -Werror -Wfloat-equal -Wredundant-decls \
+			   -Wshadow -Wstrict-overflow=5 -Wundef -Wnull-dereference \
+			   -funsigned-char -Werror=format-security -I. -I../ \
+			   -Iarch/$(ARCH) -DBUILD_KERNEL -Wno-address-of-packed-member
 
-# User controllable CFLAGS.
-CFLAGS ?= $(COMMON_FLAGS)
+# User controllable C flags.
+override DEFAULT_CFLAGS := $(COMMON_FLAGS)
+$(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
 
-# User controllable preprocessor flags. We set none by default.
+# User controllable C preprocessor flags. We set none by default.
+override DEFAULT_CPPFLAGS :=
+$(eval $(call DEFAULT_VAR,CPPFLAGS,$(DEFAULT_CPPFLAGS)))
+
+ifeq ($(ARCH), x86_64)
+# User controllable nasm flags.
+override DEFAULT_NASMFLAGS := -F dwarf -g
+$(eval $(call DEFAULT_VAR,NASMFLAGS,$(DEFAULT_NASMFLAGS)))
+endif
+
+# User controllable linker flags. We set none by default.
+override DEFAULT_LDFLAGS :=
+$(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
+
+# User controllable C preprocessor flags. We set none by default.
 CPPFLAGS ?= -std=c++20 $(COMMON_FLAGS)
 ifeq ($(shell uname -s),Darwin)
 	CPPFLAGS ?= $(CPPFLAGS) -isysroot \
 				$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
 endif
 
-# User controllable nasm flags.
-NASMFLAGS ?= -F dwarf -g
-
 # User controllable linker flags. We set none by default.
-LDFLAGS ?=
+override DEFAULT_LDFLAGS :=
+$(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
 
 # Internal C flags that should not be changed by the user.
-override CFLAGS +=       \
-    -ffreestanding       \
-    -fno-stack-protector \
-    -fno-stack-check     \
-    -fno-lto             \
-    -fno-pie             \
-    -fno-pic             \
-    -m64                 \
-    -march=x86-64        \
-    -mabi=sysv           \
-    -mno-80387           \
-    -mno-mmx             \
-    -mno-sse             \
-    -mno-sse2            \
-    -mno-red-zone        \
-    -mcmodel=kernel
+override CFLAGS += \
+	-Wall \
+	-Wextra \
+	-std=gnu11 \
+	-ffreestanding \
+	-fno-stack-protector \
+	-fno-stack-check \
+	-fno-lto \
+	-fPIE
 
+# Internal C preprocessor flags that should not be changed by the user.
 override CPPFLAGS := \
-    -I.              \
-    $(CPPFLAGS)      \
-    -MMD
+	-I.              \
+	$(CPPFLAGS)      \
+	-MMD             \
+	-MP
 
-# Internal linker flags that should not be changed by the user.
-override LDFLAGS +=         \
-    -nostdlib               \
-    -static                 \
-    -m elf_x86_64           \
-    -z max-page-size=0x1000 \
-    -T linker.ld
-
-# Check if the linker supports -no-pie and enable it if it does.
-ifeq ($(shell $(LD) --help 2>&1 | grep 'no-pie' >/dev/null 2>&1; echo $$?),0)
-    override LDFLAGS += -no-pie
+ifeq ($(ARCH),x86_64)
+	# Internal nasm flags that should not be changed by the user.
+	override NASMFLAGS += \
+		-Wall
 endif
 
-# Internal nasm flags that should not be changed by the user.
-override NASMFLAGS += \
-    -f elf64
+# Architecture specific internal flags.
+ifeq ($(ARCH),x86_64)
+	override CFLAGS += \
+		-m64 \
+		-march=x86-64 \
+		-mabi=sysv \
+		-mno-80387 \
+		-mno-mmx \
+		-mno-sse \
+		-mno-sse2 \
+		-mno-red-zone
+	override LDFLAGS += \
+		-m elf_x86_64
+	override NASMFLAGS += \
+		-f elf64
+else ifeq ($(ARCH),aarch64)
+	override CFLAGS += \
+		-mgeneral-regs-only -mno-outline-atomics
+	override LDFLAGS += \
+		-m aarch64elf
+else ifeq ($(ARCH),riscv64)
+	ifeq ($(CC_IS_CLANG),yes)
+		override CFLAGS += \
+			-march=rv64imac
+	else
+		override CFLAGS += \
+			-march=rv64imac_zicsr_zifencei
+	endif
+	override CFLAGS += \
+		-mabi=lp64
+	override LDFLAGS += \
+		-m elf64lriscv
+else
+	$(error Architecture $(ARCH) not supported)
+endif
 
-# Use find to glob all *.c, *.S, and *.asm files in the directory and extract the object names.
-override CFILES := $(shell find . -type f -name '*.c')
-override CPPFILES := $(shell find . -type f -name '*.cpp')
-override ASFILES := $(shell find . -type f -name '*.S')
-override NASMFILES := $(shell find . -type f -name '*.asm')
-override OBJ := $(CFILES:.c=.o) $(CPPFILES:.cpp=.cpp.o) $(ASFILES:.S=.S.o) $(NASMFILES:.asm=.asm.o)
+# Internal linker flags that should not be changed by the user.
+override LDFLAGS += \
+	-nostdlib \
+	-static \
+	-pie \
+	--no-dynamic-linker \
+	-z text \
+	-z max-page-size=0x1000 \
+	-T arch/$(ARCH)/linker.ld
+
+define FIND_FILES
+	override $(1) += $(shell find . -type f -name $(2) -not -path "./arch/*")
+	override $(1) += $(shell find arch/$(ARCH) -type f -name $(2))
+endef
+
+# Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
+# object and header dependency file names.
+$(eval $(call FIND_FILES,CFILES, "*.c"))
+$(eval $(call FIND_FILES,CPPFILES, "*.cpp"))
+$(eval $(call FIND_FILES,ASFILES, "*.S"))
+$(eval $(call FIND_FILES,NASMFILES, "*.asm"))
+
+LIBFILES += \
+	../lib/convert.c ../lib/ctype.c ../lib/parse_printf.c ../lib/align.c \
+	../lib/format.c ../lib/adt/string_view.c ../lib/adt/range.c ../lib/util.c \
+	../lib/refcount.c ../lib/adt/string.c
+
+override OBJ := $(foreach obj, $(CFILES:./%=%), obj/$(basename $(obj)).o) \
+				$(foreach obj, $(CPPFILES:./%=%), obj/$(basename $(obj)).cpp.o) \
+				$(foreach obj, $(ASFILES:./%=%), obj/$(basename $(obj)).S.o) \
+				$(foreach obj, $(NASMFILES:./%=%), obj/$(basename $(obj)).asm.o) \
+				$(foreach obj, $(LIBFILES:../lib/%=lib/%), obj/$(basename $(obj)).c.o)
+
 override HEADER_DEPS := $(CFILES:.c=.d) $(CPPFILES:.cpp=.cpp.d) $(ASFILES:.S=.d)
 
 # Default target.
@@ -98,7 +172,7 @@ override HEADER_DEPS := $(CFILES:.c=.d) $(CPPFILES:.cpp=.cpp.d) $(ASFILES:.S=.d)
 all: $(KERNEL)
 
 limine.h:
-	curl https://raw.githubusercontent.com/limine-bootloader/limine/trunk/limine.h -o $@
+	curl -Lo $@ https://github.com/limine-bootloader/limine/raw/trunk/limine.h
 
 # Link rules for the final kernel executable.
 $(KERNEL): $(OBJ)
@@ -108,25 +182,37 @@ $(KERNEL): $(OBJ)
 -include $(HEADER_DEPS)
 
 # Compilation rules for *.c files.
-%.o: %.c limine.h
+obj/%.o: %.c limine.h
+	@mkdir -p $(dir $@)
 	$(CC) -std=gnu17 $(CFLAGS) -c $< -o $@
 
-%.cpp.o: %.cpp limine.h
+obj/lib/%.c.o: ../lib/%.c
+	@mkdir -p $(dir $@)
+	$(CC) -std=gnu17 $(CFLAGS) -c $< -o $@
+
+obj/%.cpp.o: %.cpp limine.h
+	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Compilation rules for *.S files.
-%.S.o: %.S limine.h
+obj/%.S.o: %.S limine.h
+	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Compilation rules for *.asm (nasm) files.
-%.asm.o: %.asm
+obj/%.asm.o: %.asm
+	@mkdir -p $(dir $@)
 	nasm $(NASMFLAGS) $< -o $@
 
 # Remove object files and the final executable.
 .PHONY: clean
 clean:
-	rm -rf $(KERNEL) $(OBJ) $(HEADER_DEPS)
+	rm -rf $(KERNEL) $(HEADER_DEPS)
+	rm -rf obj
 
 .PHONY: distclean
 distclean: clean
 	rm -f limine.h
+
+printv:
+	@echo $(OBJ)

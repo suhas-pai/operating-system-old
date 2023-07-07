@@ -1,0 +1,81 @@
+/*
+ * kernel/dev/printk.c
+ * © suhas pai
+ */
+
+#include <stdarg.h>
+#include <stdatomic.h>
+#include <stdint.h>
+
+#include "lib/format.h"
+#include "lib/parse_printf.h"
+
+#include "cpu/spinlock.h"
+#include "printk.h"
+
+static struct console *_Atomic g_first_console = NULL;
+void printk_add_console(struct console *const console) {
+    atomic_store(&console->next, g_first_console);
+    atomic_store(&g_first_console, console);
+}
+
+void printk(const enum log_level loglevel, const char *const string, ...) {
+    va_list list;
+    (void)loglevel;
+
+    va_start(list, string);
+    vprintk(loglevel, string, list);
+    va_end(list);
+}
+
+// FIXME: Allocate a formatted-string over this approach
+static uint64_t
+write_char(__unused struct printf_spec_info *const spec_info,
+           __unused void *const cb_info,
+           const char ch,
+           const uint64_t amount,
+           __unused bool *const cont_out)
+{
+    for (struct console *console = atomic_load(&g_first_console);
+         console != NULL;
+         console = atomic_load(&console->next))
+    {
+        console->emit_ch(console, ch, amount);
+    }
+
+    return amount;
+}
+
+static uint64_t
+write_sv(__unused struct printf_spec_info *const spec_info,
+         __unused void *const cb_info,
+         const struct string_view sv,
+         __unused bool *const cont_out)
+{
+    for (struct console *console = atomic_load(&g_first_console);
+         console != NULL;
+         console = atomic_load(&console->next))
+    {
+        console->emit_sv(console, sv);
+    }
+
+    return sv.length;
+}
+
+void
+vprintk(__unused const enum log_level loglevel,
+        const char *const string,
+        va_list list)
+{
+    static struct spinlock lock = {};
+    const int flag = spin_acquire_with_irq(&lock);
+
+    parse_printf(string,
+                write_char,
+                /*char_cb_info=*/NULL,
+                write_sv,
+                /*sv_cb_info=*/NULL,
+                list);
+
+    spin_release_with_irq(&lock, flag);
+}

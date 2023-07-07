@@ -4,18 +4,11 @@
  */
 
 #pragma once
+#include "adt/range.h"
 
-#include <stdbool.h>
-#include <stdint.h>
+bool index_in_bounds(uint64_t index, uint64_t bounds);
+bool ordinal_in_bounds(uint64_t ordinal, uint64_t bounds);
+bool index_range_in_bounds(struct range range, uint64_t bounds);
 
-#include "macros.h"
-
-__unused static inline
-bool index_in_bounds(const uint64_t index, const uint64_t bounds) {
-    return index < bounds;
-}
-
-__unused static inline
-bool ordinal_in_bounds(const uint64_t ordinal, const uint64_t bounds) {
-    return ordinal != 0 && ordinal <= bounds;
-}
+const char *get_alphanumeric_upper_string();
+const char *get_alphanumeric_lower_string();

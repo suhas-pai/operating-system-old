@@ -1,0 +1,4 @@
+imine.h
+*.elf
+*.o
+*.d

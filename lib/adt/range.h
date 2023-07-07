@@ -13,14 +13,15 @@ struct range {
     uint64_t size;
 };
 
-bool range_has_index(struct range range, uint64_t index);
-bool range_has_loc(struct range range, uint64_t loc);
-bool range_get_end(struct range range, uint64_t *end_out);
+bool range_has_index(const struct range range, const uint64_t index);
+bool range_has_loc(const struct range range, const uint64_t loc);
+bool range_get_end(const struct range range, uint64_t *const end_out);
 
-struct range subrange_from_index(struct range range, uint64_t index);
+struct range
+subrange_from_index(const struct range range, const uint64_t index);
 
-uint64_t range_loc_for_index(struct range range, uint64_t index);
-uint64_t range_index_for_loc(struct range range, uint64_t loc);
+uint64_t range_loc_for_index(const struct range range, const uint64_t index);
+uint64_t range_index_for_loc(const struct range range, const uint64_t loc);
 
-bool range_has(struct range range, struct range other);
-bool range_overlaps(struct range range, struct range other);
+bool range_has(const struct range range, const struct range other);
+bool range_overlaps(const struct range range, const struct range other);
