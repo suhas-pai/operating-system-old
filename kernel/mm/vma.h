@@ -31,3 +31,5 @@ enum pg_flags {
     PG_WRITABLE = 1 << 1,
     PG_EXEC = 1 << 2
 };
+
+struct vm_area *vmap(struct pagemap *pagemap, uint64_t phys_addr);

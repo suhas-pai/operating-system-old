@@ -1,12 +1,14 @@
 /*
  * kernel/mm/page.h
+ * © suhas pai
  */
 
 #pragma once
 
-#include "arch/x86_64/mm/page.h"
 #include "lib/refcount.h"
 #include "mm/slab.h"
+
+#include "types.h"
 
 struct page {
     _Atomic uint32_t flags;
@@ -44,32 +46,8 @@ enum struct_page_flags {
     PAGE_NOT_USABLE = 1 << 2
 };
 
-#define PAGE_SIZE (1ull << PAGE_SHIFT)
-#define LARGEPAGE_SIZE(index) (1ull << LARGEPAGE_SHIFTS[index])
-
-#define PAGE_COUNT(size) (((uint64_t)(size) / PAGE_SIZE))
-
-#define phys_to_pfn(phys) ((uint64_t)(phys) >> PAGE_SHIFT)
-#define pfn_to_phys(pfn) ((uint64_t)(pfn) << PAGE_SHIFT)
-#define pfn_to_page(pfn) \
-    ((struct page *)(PAGE_OFFSET + (STRUCTPAGE_SIZEOF * (uint64_t)(pfn))))
-
-#define SECTION_SHIFT (sizeof(uint32_t) - sizeof(uint8_t))
-#define SECTION_MASK UINT8_MAX
-
-#define page_to_pfn(page) (((uint64_t)(page) - PAGE_OFFSET) / STRUCTPAGE_SIZEOF)
-
-#define page_to_phys(page) pfn_to_phys(page_to_pfn(page))
-#define phys_to_page(phys) pfn_to_page(phys_to_pfn(phys))
-#define virt_to_page(virt) phys_to_page(virt_to_phys(virt))
-#define page_to_virt(page) phys_to_virt(page_to_phys(page))
-
 void set_page_bit(struct page *page, enum struct_page_flags flag);
 bool has_page_bit(struct page *page, enum struct_page_flags flag);
 void clear_page_bit(struct page *page, enum struct_page_flags flag);
+
 uint8_t page_get_section(struct page *page);
-
-void *phys_to_virt(uint64_t phys);
-uint64_t virt_to_phys(const void *phys);
-
-void pagezones_init();

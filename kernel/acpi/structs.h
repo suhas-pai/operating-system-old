@@ -63,6 +63,12 @@ enum acpi_madt_entry_kind {
     ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT,
     ACPI_MADT_ENTRY_KIND_LOCAL_APIC_ADDR_OVERRIDE,
     ACPI_MADT_ENTRY_KIND_CPU_LOCAL_X2APIC,
+    ACPI_MADT_ENTRY_KIND_GIC_CPU_INTERFACE,
+    ACPI_MADT_ENTRY_KIND_GIC_DISTRIBUTOR,
+    ACPI_MADT_ENTRY_KIND_GIC_MSI_FRAME,
+    ACPI_MADT_ENTRY_KIND_GIC_REDISTRIBUTOR,
+    ACPI_MADT_ENTRY_KIND_GIC_INTR_TRANSLATE_SERVICE,
+    ACPI_MADT_ENTRY_KIND_MULTIPROCESSOR_WAKEUP_SERVICE,
 };
 
 struct acpi_madt_entry_header {
@@ -130,6 +136,62 @@ struct acpi_madt_entry_cpu_local_x2apic {
     uint32_t flags;
     uint32_t acpi_id;
 } __packed;
+
+enum acpi_madt_entry_gic_cpu_flags {
+    ACPI_MADT_ENTRY_GIC_CPU_ENABLED = 1 << 0,
+    ACPI_MADT_ENTRY_GIC_CPU_PERF_INTR_EDGE_TRIGGER = 1 << 1,
+    ACPI_MADT_ENTRY_GIC_CPU_VGIC_INTR_EDGE_TRIGGER = 1 << 2,
+};
+
+enum acpi_madt_entry_gic_cpu_mpidr_flags {
+    ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF0 = 0xff,
+    ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF1 = 0xff << 8,
+    ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF2 = 0xff << 16,
+    ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF3 = 0xffull << 32,
+};
+
+struct acpi_madt_entry_gic_cpu_interface {
+    struct acpi_madt_entry_header header;
+
+    // Must be 0
+    uint16_t reserved;
+
+    uint32_t cpu_interface_number;
+    uint32_t acpi_processor_id;
+    uint32_t flags;
+
+    uint32_t parking_protocol_version;
+    uint32_t perf_interrupt_gsiv;
+    uint64_t parked_address;
+    uint64_t phys_base_address;
+    uint64_t gic_virt_cpu_reg_address;
+    uint64_t gic_virt_ctrl_block_reg_address;
+
+    uint32_t vgic_maintenance_interrupt;
+    uint64_t gicr_phys_base_address;
+    uint64_t mpidr;
+
+    // Lower class -> higher efficiency.
+    uint8_t processor_power_efficiency_class;
+
+    // Must be 0
+    uint8_t reserved2;
+
+    // SPE = Statistical Profiling Extension.
+    // Statistical Profiling Extension buffer overflow GSIV. This interrupt is a
+    // level triggered PPI. Zero if SPE is not supported by this processor.
+
+    uint16_t spe_overflow_interrupt;
+} __packed;
+
+struct acpi_madt_entry_gic_distributor {
+    struct acpi_madt_entry_header header;
+
+    uint16_t reserved;
+    uint32_t gic_hardware_id;
+    uint64_t phys_base_address;
+} __packed;
+
 enum acpi_fadt_gas_addr_space_kind {
     ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_MEMORY,
     ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_IO,

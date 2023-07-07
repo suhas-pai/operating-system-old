@@ -5,6 +5,11 @@
 
 #include "driver.h"
 
+void uart_init_driver(struct uart_driver *const driver) {
+    driver->init(driver);
+    printk_add_console(&driver->console);
+}
+
 void
 uart_calculate_divisors(const struct uart_driver *const dev,
                         uint32_t *const fractional,

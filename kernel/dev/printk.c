@@ -3,11 +3,6 @@
  * © suhas pai
  */
 
-#include <stdarg.h>
-#include <stdatomic.h>
-#include <stdint.h>
-
-#include "lib/format.h"
 #include "lib/parse_printf.h"
 
 #include "cpu/spinlock.h"
@@ -71,11 +66,11 @@ vprintk(__unused const enum log_level loglevel,
     const int flag = spin_acquire_with_irq(&lock);
 
     parse_printf(string,
-                write_char,
-                /*char_cb_info=*/NULL,
-                write_sv,
-                /*sv_cb_info=*/NULL,
-                list);
+                 write_char,
+                 /*char_cb_info=*/NULL,
+                 write_sv,
+                 /*sv_cb_info=*/NULL,
+                 list);
 
     spin_release_with_irq(&lock, flag);
 }

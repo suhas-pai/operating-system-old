@@ -16,14 +16,9 @@ add_to_freelist(struct page_freelist *const freelist, struct page *const page) {
     freelist->count++;
 }
 
-static struct page *get_from_freelist(struct page_freelist *const freelist) {
-    if (list_empty(&freelist->pages)) {
-        return NULL;
-    }
-
-    struct page *page =
-        list_head(&freelist->pages, struct page, buddy.list);
-
+static struct page *
+take_off_freelist(struct page_freelist *const freelist, struct page *const page)
+{
     list_delete(&page->buddy.list);
     clear_page_bit(page, PAGE_IN_FREELIST);
 
@@ -31,20 +26,15 @@ static struct page *get_from_freelist(struct page_freelist *const freelist) {
     return page;
 }
 
-
-static struct page *
-take_off_freelist(struct page_freelist *const freelist,
-                  struct page *const page)
-{
+static struct page *get_from_freelist(struct page_freelist *const freelist) {
     if (list_empty(&freelist->pages)) {
         return NULL;
     }
 
-    list_delete(&page->buddy.list);
-    clear_page_bit(page, PAGE_IN_FREELIST);
+    struct page *const page =
+        list_head(&freelist->pages, struct page, buddy.list);
 
-    freelist->count--;
-    return page;
+    return take_off_freelist(freelist, page);
 }
 
 static inline
@@ -89,7 +79,7 @@ alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
     return NULL;
 }
 
-struct page *alloc_pages(const uint8_t order, const uint64_t alloc_flags) {
+struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
     if (order >= MAX_ORDER) {
         printk(LOGLEVEL_WARN, "alloc_pages(): got order >= MAX_ORDER");
         return NULL;
@@ -114,14 +104,14 @@ struct page *alloc_pages(const uint8_t order, const uint64_t alloc_flags) {
 
     return NULL;
 done:
-    if (alloc_flags & PG_ALLOC_ZERO) {
+    if (alloc_flags & __ALLOC_ZERO) {
         memzero(page_to_virt(page), PAGE_SIZE);
     }
 
-    if (alloc_flags & PG_ALLOC_PTE) {
+    if (alloc_flags & __ALLOC_TABLE) {
         refcount_init(&page->pte.refcount);
         list_init(&page->pte.delayed_free_list);
-    } else if (alloc_flags & PG_ALLOC_SLAB_HEAD) {
+    } else if (alloc_flags & __ALLOC_SLAB_HEAD) {
         set_page_bit(page, PAGE_SLAB_HEAD);
         list_init(&page->slab.head.slab_list);
     }

@@ -31,11 +31,11 @@ struct page_zone *page_zone_iternext(struct page_zone *const zone) {
 }
 
 struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
-	if (flags & PG_ALLOC_HIGHMEM) {
+	if (flags & __ALLOC_HIGHMEM) {
 		return &zone_highmem;
 	}
 
-	if (flags & PG_ALLOC_LOWMEM) {
+	if (flags & __ALLOC_LOWMEM) {
 		return &zone_lowmem;
 	}
 

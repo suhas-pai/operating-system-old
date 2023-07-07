@@ -4,7 +4,6 @@
  */
 
 #include "dev/printk.h"
-#include "lib/string.h"
 #include "mm/page.h"
 
 #include "api.h"
@@ -18,7 +17,6 @@ static volatile struct limine_rsdp_request rsdp_request = {
 };
 
 static struct acpi_info info = {};
-
 static inline bool has_xsdt() {
     return (info.rsdp->revision >= 2 && info.rsdp->v2.xsdt_addr != 0);
 }
@@ -48,6 +46,10 @@ static inline void acpi_recurse(void (*callback)(const struct acpi_sdt *)) {
 }
 
 static inline void acpi_init_each_sdt(const struct acpi_sdt *const sdt) {
+    printk(LOGLEVEL_INFO,
+           "acpi: found sdt \"" SV_FMT "\"\n",
+           SV_FMT_ARGS(sv_create_nocheck(sdt->signature, 4)));
+
     if (memcmp(sdt->signature, "APIC", 4) == 0) {
         info.madt = (const struct acpi_madt *)sdt;
         madt_init(info.madt);
@@ -108,7 +110,7 @@ struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {
         }
     }
 
-    printk(LOGLEVEL_DEBUG,
+    printk(LOGLEVEL_WARN,
            "acpi: Failed to find entry with signature \"" SV_FMT "\"\n",
            SV_FMT_ARGS(sv_create_nocheck(signature, 4)));
 

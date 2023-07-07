@@ -4,7 +4,6 @@
  */
 
 #pragma once
-
 #include "cpu/spinlock.h"
 
 struct resource {

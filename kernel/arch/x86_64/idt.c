@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#include "lib/macros.h"
+#include "asm/irqs.h"
 #include "pic.h"
 
 #include "gdt.h"
@@ -105,4 +105,5 @@ void idt_init() {
     }
 
     idt_load();
+    enable_interrupts();
 }

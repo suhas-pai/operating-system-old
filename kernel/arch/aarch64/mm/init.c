@@ -8,8 +8,6 @@
 #include "limine.h"
 #include "page.h"
 
-const uint64_t PAGE_OFFSET = 0xffffc00000000000;
-
 volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
     .revision = 0,

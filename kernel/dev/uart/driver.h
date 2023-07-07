@@ -32,6 +32,8 @@ struct uart_driver {
     void (*init)(struct uart_driver *);
 };
 
+void uart_init_driver(struct uart_driver *driver);
+
 void
 uart_calculate_divisors(const struct uart_driver *uart,
                         uint32_t *fraction,
