@@ -29,7 +29,7 @@ void madt_init(const struct acpi_madt *const madt) {
             case ACPI_MADT_ENTRY_KIND_CPU_LOCAL_APIC: {
                 if (iter->length != sizeof(struct acpi_madt_entry_cpu_lapic)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: Invalid local-apic madt entry at "
+                           "apic: invalid local-apic madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     goto done;
@@ -39,14 +39,11 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_cpu_lapic *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: Found madt-entry cpu local-apic\n");
+                       "apic: found madt-entry cpu local-apic\n");
 
+                printk(LOGLEVEL_INFO, "\tapic id: %" PRIu8 "\n", hdr->apic_id);
                 printk(LOGLEVEL_INFO,
-                       "\tAPIC ID: %" PRIu8 "\n",
-                       hdr->apic_id);
-
-                printk(LOGLEVEL_INFO,
-                       "\tProcessor ID: %" PRIu8 "\n",
+                       "\tprocessor id: %" PRIu8 "\n",
                        hdr->processor_id);
 
                 #if 0
@@ -97,7 +94,7 @@ void madt_init(const struct acpi_madt *const madt) {
             case ACPI_MADT_ENTRY_KIND_IO_APIC: {
                 if (iter->length != sizeof(struct acpi_madt_entry_ioapic)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: Invalid io-apic madt entry at "
+                           "apic: invalid io-apic madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     goto done;
@@ -106,15 +103,11 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_madt_entry_ioapic *const hdr =
                     (const struct acpi_madt_entry_ioapic *)iter;
 
-                printk(LOGLEVEL_INFO, "apic: Found madt-entry io-apic\n");
+                printk(LOGLEVEL_INFO, "apic: found madt-entry io-apic\n");
+                printk(LOGLEVEL_INFO, "\tapic id: %" PRIu8 "\n", hdr->apic_id);
+                printk(LOGLEVEL_INFO, "\tbase: 0x%" PRIx32 "\n", hdr->base);
                 printk(LOGLEVEL_INFO,
-                       "\tAPIC ID: %" PRIu8 "\n",
-                       hdr->apic_id);
-                printk(LOGLEVEL_INFO,
-                       "\tBase: 0x%" PRIx32 "\n",
-                       hdr->base);
-                printk(LOGLEVEL_INFO,
-                       "\tGlobal System Interrupt Base: 0x%" PRIx32 "\n",
+                       "\tglobal system interrupt base: 0x%" PRIx32 "\n",
                        hdr->gsib);
 
                 assert_msg(has_align(hdr->base, PAGE_SIZE),
@@ -163,7 +156,7 @@ void madt_init(const struct acpi_madt *const madt) {
             case ACPI_MADT_ENTRY_KIND_INT_SRC_OVERRIDE: {
                 if (iter->length != sizeof(struct acpi_madt_entry_iso)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: Invalid int-src override madt entry at "
+                           "apic: invalid int-src override madt entry at "
                            "index: %" PRIu32,
                            index);
                     goto done;
@@ -173,16 +166,16 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_iso *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: Found madt-entry interrupt source override\n");
+                       "apic: found madt-entry interrupt source override\n");
                 printk(LOGLEVEL_INFO,
-                       "\tBus Source: %" PRIu8 "\n",
+                       "\tbus source: %" PRIu8 "\n",
                        hdr->bus_source);
                 printk(LOGLEVEL_INFO,
-                       "\tIrq Source: %" PRIu8 "\n",
+                       "\tirq source: %" PRIu8 "\n",
                        hdr->irq_source);
 
                 printk(LOGLEVEL_INFO,
-                       "\tGlobal System Interrupt: %" PRIu8 "\n",
+                       "\tglobal system interrupt: %" PRIu8 "\n",
                        hdr->gsi);
 
                 printk(LOGLEVEL_INFO, "\tFlags: 0x%" PRIx16 "\n", hdr->flags);
@@ -207,7 +200,7 @@ void madt_init(const struct acpi_madt *const madt) {
             case ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT_SRC: {
                 if (iter->length == sizeof(struct acpi_madt_entry_nmi_src)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: Invalid nmi source madt entry at "
+                           "apic: invalid nmi source madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     goto done;
@@ -217,21 +210,21 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_nmi_src *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: Found madt-entry non-maskable interrupt "
+                       "apic: found madt-entry non-maskable interrupt "
                        "source\n");
 
-                printk(LOGLEVEL_INFO, "\tSource: %" PRIu8 "\n", hdr->source);
+                printk(LOGLEVEL_INFO, "\tsource: %" PRIu8 "\n", hdr->source);
                 printk(LOGLEVEL_INFO,
-                       "\tGlobal System Interrupt: %" PRIu32 "\n",
+                       "\tglobal system interrupt: %" PRIu32 "\n",
                        hdr->gsi);
 
-                printk(LOGLEVEL_INFO, "\tFlags: 0x%" PRIu16 "\n", hdr->flags);
+                printk(LOGLEVEL_INFO, "\tflags: 0x%" PRIu16 "\n", hdr->flags);
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT: {
                 if (iter->length != sizeof(struct acpi_madt_entry_nmi)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: Invalid nmi override madt entry at "
+                           "apic: invalid nmi override madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     goto done;
@@ -241,16 +234,13 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_nmi *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: Found madt-entry non-maskable interrupt\n");
+                       "apic: found madt-entry non-maskable interrupt\n");
                 printk(LOGLEVEL_INFO,
-                       "\tProcessor: %" PRIu8 "\n",
+                       "\tprocessor: %" PRIu8 "\n",
                        hdr->processor);
-                printk(LOGLEVEL_INFO,
-                       "\tFlags: %" PRIu16 "\n",
-                       hdr->flags);
-                printk(LOGLEVEL_INFO,
-                       "\tLint: %" PRIu8 "\n",
-                       hdr->lint);
+
+                printk(LOGLEVEL_INFO, "\tflags: %" PRIu16 "\n", hdr->flags);
+                printk(LOGLEVEL_INFO, "\tlint: %" PRIu8 "\n", hdr->lint);
 
                 //get_apic_info_mut()->nmi_lint = hdr->lint;
                 break;
@@ -260,7 +250,7 @@ void madt_init(const struct acpi_madt *const madt) {
                         sizeof(struct acpi_madt_entry_lapic_addr_override))
                 {
                     printk(LOGLEVEL_INFO,
-                           "apic: Invalid lapic addr override madt entry at "
+                           "apic: invalid lapic addr override madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     goto done;
@@ -270,9 +260,9 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_lapic_addr_override *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: Found madt-entry local-apic address override\n");
+                       "apic: found madt-entry local-apic address override\n");
 
-                printk(LOGLEVEL_INFO, "\tBase: 0x%" PRIx64 "\n", hdr->base);
+                printk(LOGLEVEL_INFO, "\tbase: 0x%" PRIx64 "\n", hdr->base);
                 local_apic_base = hdr->base;
 
                 break;
@@ -282,7 +272,7 @@ void madt_init(const struct acpi_madt *const madt) {
                         sizeof(struct acpi_madt_entry_cpu_local_x2apic))
                 {
                     printk(LOGLEVEL_INFO,
-                           "apic: Invalid local x2apic madt entry at "
+                           "apic: invalid local x2apic madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     goto done;
@@ -291,24 +281,19 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_madt_entry_cpu_local_x2apic *const hdr =
                     (const struct acpi_madt_entry_cpu_local_x2apic *)iter;
 
-                printk(LOGLEVEL_INFO,
-                       "apic: Found madt-entry local-x2apic\n");
+                printk(LOGLEVEL_INFO, "apic: found madt-entry local-x2apic\n");
+                printk(LOGLEVEL_INFO, "\tacpi id: %" PRIu32 "\n", hdr->acpi_id);
 
                 printk(LOGLEVEL_INFO,
-                       "\tACPI Id: %" PRIu32 "\n",
-                       hdr->acpi_id);
-                printk(LOGLEVEL_INFO,
-                       "\tx2ACPI Id: %" PRIu32 "\n",
+                       "\tx2acpi id: %" PRIu32 "\n",
                        hdr->x2apic_id);
-                printk(LOGLEVEL_INFO,
-                       "\tFlags: 0x%" PRIx32 "\n",
-                       hdr->flags);
 
+                printk(LOGLEVEL_INFO, "\tflags: 0x%" PRIx32 "\n", hdr->flags);
                 break;
             }
             default:
                 printk(LOGLEVEL_INFO,
-                       "apic: Found invalid madt-entry: %" PRIu32 "\n",
+                       "apic: found invalid madt-entry: %" PRIu32 "\n",
                        iter->kind);
                 continue;
         }

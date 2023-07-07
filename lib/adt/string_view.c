@@ -14,8 +14,16 @@ struct string_view sv_drop_front(const struct string_view sv) {
     return sv_create_empty();
 }
 
-bool sv_equals_c_str(const struct string_view sv, const char *const c_str) {
-    return strncmp(sv.begin, c_str, sv.length) == 0;
+char *sv_get_begin_mut(const struct string_view sv) {
+    return (char *)(uint64_t)sv.begin;
+}
+
+const char *sv_get_end(const struct string_view sv) {
+    return sv.begin + sv.length;
+}
+
+bool sv_compare_c_str(const struct string_view sv, const char *const c_str) {
+    return strncmp(sv.begin, c_str, sv.length);
 }
 
 int sv_compare(const struct string_view sv, const struct string_view sv2) {

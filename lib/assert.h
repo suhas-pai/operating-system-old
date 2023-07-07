@@ -17,7 +17,11 @@
 
 #if defined(BUILD_KERNEL)
 	#include "kernel/cpu/panic.h"
-	#define verify_not_reached(msg) panic(msg "\n")
+	#define verify_not_reached() panic("verify_not_reached()\n")
 #else
-	#define verify_not_reached(msg) assert(0 && (msg))
+	#define verify_not_reached() assert(0 && "verify_not_reached()")
 #endif
+
+#if !defined(BUILD_KERNEL)
+	#define panic(msg, ...) assert(0 && (msg))
+#endif /* !defined(BUILD_KERNEL) */

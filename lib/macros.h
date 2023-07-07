@@ -55,4 +55,9 @@
 	__a < __b ? __a : __b; \
 })
 
+#define get_to_within_size(x, size) ((x) % (size))
+#define distance(begin, end) ((uint64_t)(end) - (uint64_t)(begin))
+#define distance_inclusive(begin, end) distance(begin, end) + 1
+
+#define RAND_VAR_NAME() VAR_CONCAT(__random__, __LINE__)
 #define sizeof_bits(n) (sizeof(n) * 8)

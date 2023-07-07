@@ -40,6 +40,7 @@
 #define page_to_virt(page) phys_to_virt(page_to_phys(page))
 
 uint8_t pgt_get_top_level();
+
 bool pte_is_present(pte_t pte);
 bool pte_is_large(pte_t pte, uint8_t level);
 

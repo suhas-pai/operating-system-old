@@ -164,7 +164,6 @@ bool fill_out_to_level(struct pgt_walker *const walker, const uint8_t level) {
         return true;
     }
 
-    assert(level < walker->top_level);
     if (!fill_out_to_level(walker, level + 1)) {
         return false;
     }

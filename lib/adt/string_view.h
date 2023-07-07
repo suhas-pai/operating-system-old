@@ -55,5 +55,18 @@ sv_create_length(const char *const c_str, const uint64_t length) {
 
 struct string_view sv_drop_front(const struct string_view sv);
 
-bool sv_equals_c_str(const struct string_view sv, const char *const c_str);
+char *sv_get_begin_mut(const struct string_view sv);
+const char *sv_get_end(const struct string_view sv);
+
+bool sv_compare_c_str(struct string_view sv, const char *c_str);
 int sv_compare(struct string_view sv, struct string_view sv2);
+
+static inline
+bool sv_equals_c_str(const struct string_view sv, const char *const c_str) {
+    return sv_compare_c_str(sv, c_str) == 0;
+}
+
+static inline
+bool sv_equals(const struct string_view sv, const struct string_view sv2) {
+    return sv_compare(sv, sv2) == 0;
+}
