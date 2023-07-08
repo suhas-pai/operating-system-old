@@ -27,11 +27,11 @@ struct string_view {
 #define SV_FMT "%.*s"
 #define SV_FMT_ARGS(sv) (int)(sv).length, (sv).begin
 
-__unused static inline struct string_view sv_create_empty() {
+static inline struct string_view sv_create_empty() {
     return (struct string_view){ .begin = NULL, .length = 0 };
 }
 
-__unused static inline struct string_view
+static inline struct string_view
 sv_create_nocheck(const char *const c_str, const uint64_t length) {
     return (struct string_view){
         .begin = c_str,
@@ -39,13 +39,13 @@ sv_create_nocheck(const char *const c_str, const uint64_t length) {
     };
 }
 
-__unused static inline struct string_view
+static inline struct string_view
 sv_create_end(const char *const c_str, const char *const end) {
     assert(c_str <= end);
     return sv_create_nocheck(c_str, (uint64_t)(end - c_str));
 }
 
-__unused static inline struct string_view
+static inline struct string_view
 sv_create_length(const char *const c_str, const uint64_t length) {
     const char *end = NULL;
     assert(!chk_add_overflow((uint64_t)c_str, length, (uint64_t *)&end));

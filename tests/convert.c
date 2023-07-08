@@ -248,7 +248,7 @@ struct num_to_str_test {
     const char *const expected_signed_alphabetic;
 };
 
-__unused static const struct num_to_str_test num_to_str_test_list[] = {
+static const struct num_to_str_test num_to_str_test_list[] = {
     {
         .number = 0,
 

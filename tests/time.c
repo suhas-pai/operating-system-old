@@ -79,22 +79,22 @@ int test_time() {
     assert(!weekday_is_valid((enum weekday)(WEEKDAY_SUNDAY - 1)));
     assert(!weekday_is_valid(WEEKDAY_SATURDAY + 1));
 
-    assert(weekday_get_following_weekday(WEEKDAY_SUNDAY) == WEEKDAY_MONDAY);
-    assert(weekday_get_following_weekday(WEEKDAY_MONDAY) == WEEKDAY_TUESDAY);
-    assert(weekday_get_following_weekday(WEEKDAY_TUESDAY) == WEEKDAY_WEDNESDAY);
-    assert(weekday_get_following_weekday(WEEKDAY_WEDNESDAY) ==
+    assert(weekday_next(WEEKDAY_SUNDAY) == WEEKDAY_MONDAY);
+    assert(weekday_next(WEEKDAY_MONDAY) == WEEKDAY_TUESDAY);
+    assert(weekday_next(WEEKDAY_TUESDAY) == WEEKDAY_WEDNESDAY);
+    assert(weekday_next(WEEKDAY_WEDNESDAY) ==
            WEEKDAY_THURSDAY);
-    assert(weekday_get_following_weekday(WEEKDAY_THURSDAY) == WEEKDAY_FRIDAY);
-    assert(weekday_get_following_weekday(WEEKDAY_FRIDAY) == WEEKDAY_SATURDAY);
-    assert(weekday_get_following_weekday(WEEKDAY_SATURDAY) == WEEKDAY_SUNDAY);
+    assert(weekday_next(WEEKDAY_THURSDAY) == WEEKDAY_FRIDAY);
+    assert(weekday_next(WEEKDAY_FRIDAY) == WEEKDAY_SATURDAY);
+    assert(weekday_next(WEEKDAY_SATURDAY) == WEEKDAY_SUNDAY);
 
-    assert(weekday_get_previous_weekday(WEEKDAY_SUNDAY) == WEEKDAY_SATURDAY);
-    assert(weekday_get_previous_weekday(WEEKDAY_MONDAY) == WEEKDAY_SUNDAY);
-    assert(weekday_get_previous_weekday(WEEKDAY_TUESDAY) == WEEKDAY_MONDAY);
-    assert(weekday_get_previous_weekday(WEEKDAY_WEDNESDAY) == WEEKDAY_TUESDAY);
-    assert(weekday_get_previous_weekday(WEEKDAY_THURSDAY) == WEEKDAY_WEDNESDAY);
-    assert(weekday_get_previous_weekday(WEEKDAY_FRIDAY) == WEEKDAY_THURSDAY);
-    assert(weekday_get_previous_weekday(WEEKDAY_SATURDAY) == WEEKDAY_FRIDAY);
+    assert(weekday_prev(WEEKDAY_SUNDAY) == WEEKDAY_SATURDAY);
+    assert(weekday_prev(WEEKDAY_MONDAY) == WEEKDAY_SUNDAY);
+    assert(weekday_prev(WEEKDAY_TUESDAY) == WEEKDAY_MONDAY);
+    assert(weekday_prev(WEEKDAY_WEDNESDAY) == WEEKDAY_TUESDAY);
+    assert(weekday_prev(WEEKDAY_THURSDAY) == WEEKDAY_WEDNESDAY);
+    assert(weekday_prev(WEEKDAY_FRIDAY) == WEEKDAY_THURSDAY);
+    assert(weekday_prev(WEEKDAY_SATURDAY) == WEEKDAY_FRIDAY);
 
     test_match("%a");
     test_match("%A");

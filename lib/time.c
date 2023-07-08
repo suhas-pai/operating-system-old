@@ -4,6 +4,7 @@
  */
 
 #include <limits.h>
+#include "lib/assert.h"
 
 #include "macros.h"
 #include "time.h"
@@ -113,11 +114,11 @@ uint64_t tm_year_to_year(const int tm_year) {
     return (uint64_t)result;
 }
 
-enum weekday weekday_get_previous_weekday(const enum weekday weekday) {
+enum weekday weekday_prev(const enum weekday weekday) {
     return (weekday != WEEKDAY_SUNDAY) ? (weekday - 1) : WEEKDAY_SATURDAY;
 }
 
-enum weekday weekday_get_following_weekday(const enum weekday weekday) {
+enum weekday weekday_next(const enum weekday weekday) {
     return get_to_within_size((uint64_t)weekday + 1, WEEKDAY_COUNT);
 }
 
@@ -235,9 +236,10 @@ struct string_view weekday_to_sv_abbrev(const enum weekday day) {
 
 #undef WEEKDAY_CASE
         case WEEKDAY_INVALID:
-        default:
-            panic("Unrecognized weekday");
+            verify_not_reached();
     }
+
+    verify_not_reached();
 }
 
 struct string_view weekday_to_sv_abbrev_upper(const enum weekday day) {
@@ -515,8 +517,7 @@ iso_8601_get_week_number(const enum weekday weekday,
              * week number.
              */
 
-            const enum weekday dec_31_weekday =
-                weekday_get_previous_weekday(weekday);
+            const enum weekday dec_31_weekday = weekday_prev(weekday);
 
             /*
              * The count of days preceding december 31 is that year's day count

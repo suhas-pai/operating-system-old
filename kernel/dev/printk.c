@@ -25,12 +25,16 @@ void printk(const enum log_level loglevel, const char *const string, ...) {
 
 // FIXME: Allocate a formatted-string over this approach
 static uint64_t
-write_char(__unused struct printf_spec_info *const spec_info,
-           __unused void *const cb_info,
+write_char(struct printf_spec_info *const spec_info,
+           void *const cb_info,
            const char ch,
            const uint64_t amount,
-           __unused bool *const cont_out)
+           bool *const cont_out)
 {
+    (void)spec_info;
+    (void)cb_info;
+    (void)cont_out;
+
     for (struct console *console = atomic_load(&g_first_console);
          console != NULL;
          console = atomic_load(&console->next))
@@ -42,11 +46,15 @@ write_char(__unused struct printf_spec_info *const spec_info,
 }
 
 static uint64_t
-write_sv(__unused struct printf_spec_info *const spec_info,
-         __unused void *const cb_info,
+write_sv(struct printf_spec_info *const spec_info,
+         void *const cb_info,
          const struct string_view sv,
-         __unused bool *const cont_out)
+         bool *const cont_out)
 {
+    (void)spec_info;
+    (void)cb_info;
+    (void)cont_out;
+
     for (struct console *console = atomic_load(&g_first_console);
          console != NULL;
          console = atomic_load(&console->next))
@@ -58,10 +66,12 @@ write_sv(__unused struct printf_spec_info *const spec_info,
 }
 
 void
-vprintk(__unused const enum log_level loglevel,
+vprintk(const enum log_level loglevel,
         const char *const string,
         va_list list)
 {
+    (void)loglevel;
+
     static struct spinlock lock = {};
     const int flag = spin_acquire_with_irq(&lock);
 

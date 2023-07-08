@@ -657,11 +657,13 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
 
 static uint64_t
 time_format_to_string_sv_callback(
-    __unused const struct strftime_spec_info *const spec_info,
+    const struct strftime_spec_info *const spec_info,
     void *const info,
     const struct string_view sv,
     bool *const should_cont_out)
 {
+    (void)spec_info;
+
     struct mutable_buffer *const mbuffer = (struct mutable_buffer *)info;
     const uint64_t result = mbuffer_append_sv(mbuffer, sv);
 
@@ -697,11 +699,16 @@ time_format_to_string_buffer(char *const buffer_in,
 
 static uint64_t
 time_format_get_length_sv_callback(
-    __unused const struct strftime_spec_info *const spec_info,
-    __unused void *const info,
+    const struct strftime_spec_info *const spec_info,
+    void *const info,
     const struct string_view sv,
-    __unused bool *const should_continue_out)
+    bool *const should_continue_out)
 {
+    (void)spec_info;
+    (void)info;
+    (void)sv;
+    (void)should_continue_out;
+
     return sv.length;
 }
 

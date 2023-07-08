@@ -28,12 +28,14 @@ struct buffer_info {
 };
 
 static uint64_t
-buffer_char_callback(__unused struct printf_spec_info *const spec_info,
+buffer_char_callback(struct printf_spec_info *const spec_info,
                      void *const cb_info,
                      const char ch,
                      uint64_t amount,
                      bool *const cont_out)
 {
+    (void)spec_info;
+
     struct buffer_info *const info = cb_info;
     const uint64_t left = info->capacity - info->index;
 
@@ -49,11 +51,13 @@ buffer_char_callback(__unused struct printf_spec_info *const spec_info,
 }
 
 static uint64_t
-buffer_sv_callback(__unused struct printf_spec_info *const spec_info,
+buffer_sv_callback(struct printf_spec_info *const spec_info,
                    void *const cb_info,
                    const struct string_view sv,
                    bool *const cont_out)
 {
+    (void)spec_info;
+
     struct buffer_info *const info = cb_info;
     const uint64_t left = info->capacity - info->index;
 
@@ -105,12 +109,14 @@ format_to_string(struct string *const string,
 }
 
 uint64_t
-string_char_callback(__unused struct printf_spec_info *const spec_info,
+string_char_callback(struct printf_spec_info *const spec_info,
                      void *const cb_info,
                      const char ch,
                      uint64_t amount,
                      bool *const cont_out)
 {
+    (void)spec_info;
+
     struct string *const string = (struct string *)cb_info;
     if (!string_append_ch(string, ch, amount)) {
         *cont_out = false;
@@ -121,11 +127,13 @@ string_char_callback(__unused struct printf_spec_info *const spec_info,
 }
 
 uint64_t
-string_sv_callback(__unused struct printf_spec_info *const spec_info,
-                     void *const cb_info,
-                     const struct string_view sv,
-                     bool *const cont_out)
+string_sv_callback(struct printf_spec_info *const spec_info,
+                   void *const cb_info,
+                   const struct string_view sv,
+                   bool *const cont_out)
 {
+    (void)spec_info;
+
     struct string *const string = (struct string *)cb_info;
     if (!string_append_sv(string, sv)) {
         *cont_out = false;

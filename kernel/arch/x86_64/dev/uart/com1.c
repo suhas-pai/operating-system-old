@@ -21,10 +21,12 @@ static void com1_out(const char ch) {
 static struct spinlock g_spinlock = {};
 
 static void
-com1_write_char(__unused struct console *const console,
+com1_write_char(struct console *const console,
                 const char ch,
                 const uint32_t amount)
 {
+    (void)console;
+
     const int flag = spin_acquire_with_irq(&g_spinlock);
     for (uint64_t i = 0; i != amount; i++) {
         com1_out(ch);
@@ -33,19 +35,20 @@ com1_write_char(__unused struct console *const console,
     spin_release_with_irq(&g_spinlock, flag);
 }
 
-static void
-com1_write_sv(__unused struct console *const console,
-              const struct string_view sv)
-{
+static
+void com1_write_sv(struct console *const console, const struct string_view sv) {
+    (void)console;
+
     const int flag = spin_acquire_with_irq(&g_spinlock);
-    sv_foreach (sv, iter) {
+    sv_foreach(sv, iter) {
         com1_out(*iter);
     }
 
     spin_release_with_irq(&g_spinlock, flag);
 }
 
-static void com1_bust_locks(__unused struct console *const console) {
+static void com1_bust_locks(struct console *const console) {
+    (void)console;
     g_spinlock = (struct spinlock){};
 }
 

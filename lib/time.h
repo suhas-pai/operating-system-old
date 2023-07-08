@@ -273,8 +273,8 @@ uint16_t year_get_day_count(uint64_t year);
 int year_to_tm_year(uint64_t year);
 uint64_t tm_year_to_year(int tm_year);
 
-enum weekday weekday_get_previous_weekday(enum weekday weekday);
-enum weekday weekday_get_following_weekday(enum weekday weekday);
+enum weekday weekday_prev(enum weekday weekday);
+enum weekday weekday_next(enum weekday weekday);
 
 struct string_view weekday_to_sv(enum weekday day);
 struct string_view month_to_sv(enum month month);
