@@ -10,8 +10,8 @@
 
 static void
 add_to_freelist(struct page_freelist *const freelist, struct page *const page) {
-    set_page_bit(page, PAGE_IN_FREELIST);
-    list_add(&freelist->pages, &page->buddy.list);
+    page_set_bit(page, PAGE_IN_FREE_LIST);
+    list_add(&freelist->pages, &page->buddy.freelist);
 
     freelist->count++;
 }
@@ -19,8 +19,8 @@ add_to_freelist(struct page_freelist *const freelist, struct page *const page) {
 static struct page *
 take_off_freelist(struct page_freelist *const freelist, struct page *const page)
 {
-    list_delete(&page->buddy.list);
-    clear_page_bit(page, PAGE_IN_FREELIST);
+    list_delete(&page->buddy.freelist);
+    page_clear_bit(page, PAGE_IN_FREE_LIST);
 
     freelist->count--;
     return page;
@@ -32,7 +32,7 @@ static struct page *get_from_freelist(struct page_freelist *const freelist) {
     }
 
     struct page *const page =
-        list_head(&freelist->pages, struct page, buddy.list);
+        list_head(&freelist->pages, struct page, buddy.freelist);
 
     return take_off_freelist(freelist, page);
 }
@@ -109,10 +109,10 @@ done:
     }
 
     if (alloc_flags & __ALLOC_TABLE) {
-        refcount_init(&page->pte.refcount);
+        // Don't init refcount, we intend to have a refcount of 0.
         list_init(&page->pte.delayed_free_list);
     } else if (alloc_flags & __ALLOC_SLAB_HEAD) {
-        set_page_bit(page, PAGE_SLAB_HEAD);
+        page_set_bit(page, PAGE_IS_SLAB_HEAD);
         list_init(&page->slab.head.slab_list);
     }
 
@@ -131,11 +131,11 @@ free_pages_to_zone(struct page *page,
 			break;
         }
 
-		if (has_page_bit(buddy, PAGE_NOT_USABLE)) {
+		if (page_has_bit(buddy, PAGE_NOT_USABLE)) {
             continue;
         }
 
-		if (!has_page_bit(buddy, PAGE_IN_FREELIST)) {
+		if (!page_has_bit(buddy, PAGE_IN_FREE_LIST)) {
 			break;
         }
 
@@ -155,7 +155,7 @@ free_pages_to_zone(struct page *page,
 	spin_release_with_irq(&zone->lock, flag);
 }
 
-void free_pages(struct page *const page, uint8_t order) {
+void free_pages(struct page *const page, const uint8_t order) {
     if (order >= MAX_ORDER) {
         printk(LOGLEVEL_WARN, "free_pages(): got order >= MAX_ORDER");
         return;

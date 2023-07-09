@@ -104,7 +104,7 @@ string_append(struct string *const string, const struct string *const append) {
 }
 
 char string_front(const struct string string) {
-    if (!gbuffer_is_empty(string.gbuffer)) {
+    if (!gbuffer_empty(string.gbuffer)) {
         return ((uint8_t *)string.gbuffer.begin)[0];
     }
 
@@ -121,7 +121,7 @@ char string_back(const struct string string) {
 }
 
 uint64_t string_length(const struct string string) {
-    return gbuffer_get_used_size(string.gbuffer);
+    return gbuffer_used_size(string.gbuffer);
 }
 
 struct string *

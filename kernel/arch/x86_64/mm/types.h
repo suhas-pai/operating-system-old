@@ -37,25 +37,28 @@
 #define PML5(phys) (((phys) >> PML5_SHIFT) & PML5_MASK)
 
 typedef uint64_t pte_t;
-
-static const uint16_t PGT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
+static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
     { (1ull << 12) - 1, PML1_MASK, PML2_MASK, PML3_MASK, PML4_MASK, PML5_MASK };
 
 static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
     { PML1_SHIFT, PML2_SHIFT, PML3_SHIFT, PML4_SHIFT, PML5_SHIFT };
 
 static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
-enum page_flags {
-    __PG_PRESENT = 1 << 0,
-    __PG_WRITE   = 1 << 1,
-    __PG_USER    = 1 << 2,
-    __PG_LARGE   = 1 << 7,
-    __PG_GLOBAL  = 1 << 8,
 
-    __PG_NOEXEC = 1ull << 63
+#define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
+#define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
+
+enum pte_flags {
+    __PTE_PRESENT = 1 << 0,
+    __PTE_WRITE   = 1 << 1,
+    __PTE_USER    = 1 << 2,
+    __PTE_LARGE   = 1 << 7,
+    __PTE_GLOBAL  = 1 << 8,
+
+    __PTE_NOEXEC = 1ull << 63
 };
 
-#define PGT_FLAGS (__PG_PRESENT | __PG_WRITE | __PG_NOEXEC)
+#define PGT_FLAGS (__PTE_PRESENT | __PTE_WRITE | __PTE_NOEXEC)
 
 struct page;
 extern const uint64_t PAGE_OFFSET;

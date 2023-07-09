@@ -36,12 +36,10 @@ __mbuffer_open_static(void *const buffer,
 {
     struct mutable_buffer mbuffer = {
         .begin = buffer,
+        .ptr = (void *)chk_add_overflow_assert((uint64_t)mbuffer.begin, used),
         .end = buffer + capacity
     };
 
-    assert(!chk_add_overflow((uint64_t)mbuffer.begin,
-                             used,
-                             (uint64_t *)&mbuffer.ptr));
     return mbuffer;
 }
 
@@ -53,26 +51,26 @@ uint64_t mbuffer_get_free_space(const struct mutable_buffer mbuffer) {
     return distance(mbuffer.end, mbuffer.ptr);
 }
 
-uint64_t mbuffer_get_used_size(const struct mutable_buffer mbuffer) {
+uint64_t mbuffer_used_size(const struct mutable_buffer mbuffer) {
     return distance(mbuffer.ptr, mbuffer.begin);
 }
 
-uint64_t mbuffer_get_capacity(const struct mutable_buffer mbuffer) {
+uint64_t mbuffer_capacity(const struct mutable_buffer mbuffer) {
     return distance(mbuffer.end, mbuffer.begin);
 }
 
 bool
 mbuffer_can_add_size(const struct mutable_buffer mbuffer, const uint64_t size) {
-    return (size >= mbuffer_get_used_size(mbuffer));
+    return (size >= mbuffer_used_size(mbuffer));
 }
 
-bool mbuffer_is_empty(const struct mutable_buffer mbuffer) {
-    return (mbuffer_get_used_size(mbuffer) == 0);
+bool mbuffer_empty(const struct mutable_buffer mbuffer) {
+    return (mbuffer_used_size(mbuffer) == 0);
 }
 
-bool mbuffer_is_full(struct mutable_buffer mbuffer) {
-    const uint64_t used_size = mbuffer_get_used_size(mbuffer);
-    const uint64_t capacity = mbuffer_get_capacity(mbuffer);
+bool mbuffer_full(struct mutable_buffer mbuffer) {
+    const uint64_t used_size = mbuffer_used_size(mbuffer);
+    const uint64_t capacity = mbuffer_capacity(mbuffer);
 
     return used_size == capacity;
 }
@@ -91,7 +89,7 @@ uint64_t
 mbuffer_decrement_ptr(struct mutable_buffer *const mbuffer,
                       const uint64_t bad_amt)
 {
-    const uint64_t used_size = mbuffer_get_used_size(*mbuffer);
+    const uint64_t used_size = mbuffer_used_size(*mbuffer);
     const uint64_t decrement_amt = min(used_size, bad_amt);
 
     mbuffer->ptr -= decrement_amt;
@@ -128,10 +126,10 @@ mbuffer_append_sv(struct mutable_buffer *const mbuffer,
 }
 
 bool
-mbuffer_truncate_to_used_size(struct mutable_buffer *const mbuffer,
-                              const uint64_t new_used_size)
+mbuffer_truncate(struct mutable_buffer *const mbuffer,
+                 const uint64_t new_used_size)
 {
-    const uint64_t current_used_size = mbuffer_get_used_size(*mbuffer);
+    const uint64_t current_used_size = mbuffer_used_size(*mbuffer);
     if (new_used_size > current_used_size) {
         return false;
     }

@@ -90,16 +90,18 @@ __unused static uint64_t alloc_cont_pages(const uint32_t amount) {
         return 0;
     }
 
-    struct freepages_info *walker = NULL;
-    uint64_t free_page = 0;
+    struct freepages_info *info = NULL;
 
-    list_foreach(walker, &freepages_list, list_entry) {
-        uint64_t count = walker->count;
+    uint64_t free_page = 0;
+    bool is_in_middle = false;
+
+    list_foreach(info, &freepages_list, list_entry) {
+        uint64_t count = info->count;
         if (count < amount) {
             continue;
         }
 
-        uint64_t phys = virt_to_phys(walker);
+        uint64_t phys = virt_to_phys(info);
         uint64_t last_phys = phys + ((count - amount) * PAGE_SIZE);
 
         if (!has_align(last_phys, PAGE_SIZE * amount)) {
@@ -107,14 +109,9 @@ __unused static uint64_t alloc_cont_pages(const uint32_t amount) {
             if (last_phys < phys) {
                 continue;
             }
-        } else {
-            if (count >= amount) {
-                break;
-            }
-        }
 
-        // Take last page out of list, because first page stores the
-        // freepage_info struct.
+            is_in_middle = true;
+        }
 
         free_page = last_phys;
         break;
@@ -124,132 +121,199 @@ __unused static uint64_t alloc_cont_pages(const uint32_t amount) {
         return 0;
     }
 
-    const uint64_t walker_phys = virt_to_phys(walker);
-    const uint64_t free_page_index = free_page - walker_phys;
-    const uint64_t free_page_end_index = free_page_index + (amount * PAGE_SIZE);
-    const uint64_t walker_end = walker_phys + (walker->count * PAGE_SIZE);
+    if (is_in_middle) {
+        struct freepages_info *prev = info;
+        const uint64_t old_info_count = info->count;
 
-    struct list *prev = &walker->list_entry;
-    walker->count = PAGE_COUNT(free_page_index);
+        info->count = PAGE_COUNT(free_page - virt_to_phys(info));
+        if (info->count == 0) {
+            prev = list_prev(info, list_entry);
+            list_delete(&info->list_entry);
+        }
 
-    if (walker->count == 0) {
-        prev = walker->list_entry.prev;
-        list_delete(&walker->list_entry);
-    }
+        const uint64_t new_info_phys = free_page + (PAGE_SIZE * amount);
+        const uint64_t new_info_count = old_info_count - info->count - amount;
 
-    if (free_page_end_index != walker_end) {
-        struct freepages_info *const new_info =
-            (struct freepages_info *)((void *)walker + free_page_end_index);
+        if (new_info_count != 0) {
+            struct freepages_info *const new_info =
+                (struct freepages_info *)phys_to_virt(new_info_phys);
 
-        new_info->count = PAGE_COUNT(walker_end - free_page_end_index);
-        list_add(prev, &new_info->list_entry);
+            new_info->count = new_info_count;
+            list_add(&prev->list_entry, &new_info->list_entry);
+        }
+    } else {
+        info->count -= amount;
+        if (info->count == 0) {
+            list_delete(&info->list_entry);
+        }
     }
 
     memzero(phys_to_virt(free_page), PAGE_SIZE * amount);
     return free_page;
 }
 
-static uint64_t early_alloc_pgt() {
-    const uint64_t page = early_alloc_page();
-    if (page == 0) {
-        return 0;
+static struct page *
+ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
+    (void)walker;
+    (void)cb_info;
+
+    // We don't have a structpage-table setup yet when this function is called,
+    // but because ptwalker never dereferences the page, we can return a pointer
+    // to where the page would've been.
+
+    const uint64_t phys = early_alloc_page();
+    if (phys != 0) {
+        return phys_to_page(phys);
     }
 
-    return (page | PGT_FLAGS);
-}
-
-static
-bool fill_out_to_level(struct pgt_walker *const walker, const uint8_t level) {
-    if (pgtwalker_table_for_level(walker, level) != NULL) {
-        return true;
-    }
-
-    if (!fill_out_to_level(walker, level + 1)) {
-        return false;
-    }
-
-    const uint64_t page = early_alloc_pgt();
-    if (page == 0) {
-        return false;
-    }
-
-    *pgtwalker_pte_in_level(walker, level + 1) = page;
-
-    walker->level = level;
-    walker->tables[pgtwalker_index_into_array(walker, level)] =
-        phys_to_virt(page & PG_PHYS_MASK);
-
-    return true;
+    panic("Failed to setup page-structs. Ran out of memory\n");
 }
 
 static void
 setup_pagestructs_table(const uint64_t root_page, uint64_t byte_count) {
     const uint64_t structpage_count = PAGE_COUNT(byte_count);
-    uint64_t structpage_table_size = structpage_count * STRUCTPAGE_SIZEOF;
+    uint64_t map_size = structpage_count * SIZEOF_STRUCTPAGE;
 
-    if (!align_up(structpage_table_size, PAGE_SIZE, &structpage_table_size)) {
+    if (!align_up(map_size, PAGE_SIZE_2MIB, &map_size)) {
         panic("Failed to initialize memory, overflow error when alighing");
     }
 
     printk(LOGLEVEL_INFO,
            "mm: structpage table is %" PRIu64 " bytes\n",
-           structpage_table_size);
+           map_size);
 
     // Map struct page table
-    struct pgt_walker pgt_walker = {};
-    const uint64_t page_flags =
-        __PG_PRESENT | __PG_WRITE | __PG_GLOBAL | __PG_NOEXEC;
+    struct pt_walker pt_walker = {};
+    const uint64_t pte_flags =
+        __PTE_PRESENT | __PTE_WRITE | __PTE_GLOBAL | __PTE_NOEXEC;
 
-    enum pgt_walker_result walker_result = E_PGT_WALKER_OK;
-    pgtwalker_create_customroot(&pgt_walker, PAGE_OFFSET, root_page);
+    enum pt_walker_result walker_result = E_PT_WALKER_OK;
+    ptwalker_create_customroot(&pt_walker,
+                               root_page,
+                               PAGE_OFFSET,
+                               /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
+                               /*free_pgtable=*/NULL);
 
-#if 0
-    for (;
-         structpage_table_size >= LARGEPAGE_SIZE(0);
-         structpage_table_size -= LARGEPAGE_SIZE(0),
-         walker_result =
-            pgtwalker_next_custom(&pgt_walker,
-                                  /*level=*/2,
-                                  /*alloc_if_not_present=*/false,
-                                  /*alloc_parents_if_not_present=*/false))
-    {
-        if (walker_result != E_PGT_WALKER_OK ||
-            !fill_out_to_level(&pgt_walker, /*level=*/2))
-        {
+    if (map_size >= PAGE_SIZE_1GIB) {
+        walker_result =
+            ptwalker_fill_in_to(&pt_walker,
+                                /*level=*/3,
+                                /*should_ref=*/false,
+                                /*alloc_pgtable_cb_info=*/NULL,
+                                /*free_pgtable_cb_info=*/NULL);
+
+        if (walker_result != E_PT_WALKER_OK) {
+        panic:
             panic("Failed to setup page-structs. Ran out of memory\n");
         }
 
-        const uint64_t page = alloc_cont_pages(/*order=*/PGT_COUNT);
-        if (page == 0) {
-            break;
-        }
+        do {
+            const uint64_t page =
+                alloc_cont_pages(/*order=*/PGT_COUNT * PGT_COUNT);
 
-        *pgtwalker_pte_in_level(&pgt_walker, /*level=*/2) =
-            page | page_flags | __PG_LARGE;
+            if (page == 0) {
+                // We failed to alloc a 1gib page, so try 2mib pages next.
+                break;
+            }
+
+            *ptwalker_pte_in_level(&pt_walker, /*level=*/3) =
+                page | pte_flags | __PTE_LARGE;
+
+            walker_result =
+                ptwalker_next_custom(&pt_walker,
+                                     /*level=*/3,
+                                     /*alloc_parents=*/true,
+                                     /*alloc_level=*/true,
+                                     /*should_ref=*/false,
+                                     /*alloc_pgtable_cb_info=*/NULL,
+                                     /*free_pgtable_cb_info=*/NULL);
+
+            if (walker_result != E_PT_WALKER_OK) {
+                goto panic;
+            }
+
+            map_size -= PAGE_SIZE_1GIB;
+        } while (map_size >= PAGE_SIZE_1GIB);
     }
-#endif
 
-    for (;
-         structpage_table_size >= PAGE_SIZE;
-         structpage_table_size -= PAGE_SIZE,
-         walker_result =
-            pgtwalker_next_custom(&pgt_walker,
-                                  /*level=*/1,
-                                  /*alloc_if_not_present=*/false,
-                                  /*alloc_parents_if_not_present=*/false))
-    {
-        if (walker_result != E_PGT_WALKER_OK ||
-            !fill_out_to_level(&pgt_walker, /*level=*/1))
-        {
-            panic("Failed to setup page-structs. Ran out of memory\n");
+    if (map_size >= PAGE_SIZE_2MIB) {
+        walker_result =
+            ptwalker_fill_in_to(&pt_walker,
+                                /*level=*/2,
+                                /*should_ref=*/false,
+                                /*alloc_pgtable_cb_info=*/NULL,
+                                /*free_pgtable_cb_info=*/NULL);
+
+        if (walker_result != E_PT_WALKER_OK) {
+            goto panic;
         }
 
-        const uint64_t page = early_alloc_page();
-        if (page == 0) {
-            panic("Ran out of free pages when allocating struct page table");
+        do {
+            const uint64_t page = alloc_cont_pages(/*order=*/PGT_COUNT);
+            if (page == 0) {
+                // We failed to alloc a 2mib page, so fill with 4kib pages
+                // instead.
+                break;
+            }
+
+            *ptwalker_pte_in_level(&pt_walker, /*level=*/2) =
+                page | pte_flags | __PTE_LARGE;
+
+            walker_result =
+                ptwalker_next_custom(&pt_walker,
+                                     /*level=*/2,
+                                     /*alloc_parents=*/true,
+                                     /*alloc_level=*/true,
+                                     /*should_ref=*/false,
+                                     /*alloc_pgtable_cb_info=*/NULL,
+                                     /*free_pgtable_cb_info=*/NULL);
+
+            if (walker_result != E_PT_WALKER_OK) {
+                goto panic;
+            }
+
+            map_size -= PAGE_SIZE_2MIB;
+        } while (map_size >= PAGE_SIZE_2MIB);
+    }
+
+    if (map_size >= PAGE_SIZE) {
+        walker_result =
+            ptwalker_fill_in_to(&pt_walker,
+                                /*level=*/1,
+                                /*should_ref=*/false,
+                                /*alloc_pgtable_cb_info=*/NULL,
+                                /*free_pgtable_cb_info=*/NULL);
+
+        if (walker_result != E_PT_WALKER_OK) {
+            goto panic;
         }
 
-        *pgtwalker_pte_in_level(&pgt_walker, /*level=*/1) = page | page_flags;
+        do {
+            const uint64_t page = early_alloc_page();
+            if (page == 0) {
+                // We failed to alloc a 2mib page, so fill with 4kib pages
+                // instead.
+                break;
+            }
+
+            *ptwalker_pte_in_level(&pt_walker, /*level=*/1) =
+                page | pte_flags;
+
+            walker_result =
+                ptwalker_next_custom(&pt_walker,
+                                     /*level=*/1,
+                                     /*alloc_parents=*/true,
+                                     /*alloc_level=*/true,
+                                     /*should_ref=*/false,
+                                     /*alloc_pgtable_cb_info=*/NULL,
+                                     /*free_pgtable_cb_info=*/NULL);
+
+            if (walker_result != E_PT_WALKER_OK) {
+                goto panic;
+            }
+
+            map_size -= PAGE_SIZE;
+        } while (map_size >= PAGE_SIZE);
     }
 }
 
@@ -269,6 +333,7 @@ void mm_init() {
            (void *)hhdm_request.response->offset);
 
     const struct limine_memmap_response *const resp = memmap_request.response;
+
     struct limine_memmap_entry *const *entries = resp->entries;
     struct limine_memmap_entry *const *const end = entries + resp->entry_count;
 
@@ -337,6 +402,18 @@ void mm_init() {
         entries[0]->base;
 
     setup_pagestructs_table(read_cr3(), total_bytes_repr_by_structpage_table);
+
+    const struct limine_memmap_entry *const first_memmap = entries[0];
+    if (first_memmap->base != 0) {
+        struct page *page = phys_to_page(0);
+        for (uint64_t j = 0; j != PAGE_COUNT(first_memmap->base); j++, page++) {
+            // Avoid using `set_page_bit()` because we don't need atomic ops
+            // this early.
+
+            page->flags |= PAGE_NOT_USABLE;
+        }
+    }
+
     for (uint64_t i = 0; i != memmap_last_usable_index; i++) {
         struct limine_memmap_entry *const memmap = entries[i];
         if (is_usable_memory(memmap->type)) {
@@ -352,10 +429,13 @@ void mm_init() {
         }
     }
 
+    printk(LOGLEVEL_INFO, "mm: finished setting up structpage table\n");
     pagezones_init();
 
     struct freepages_info *walker = NULL;
-    list_foreach(walker, &freepages_list, list_entry) {
+    struct freepages_info *tmp = NULL;
+
+    list_foreach_mut(walker, tmp, &freepages_list, list_entry) {
         list_delete(&walker->list_entry);
 
         struct page *page = virt_to_page(walker);

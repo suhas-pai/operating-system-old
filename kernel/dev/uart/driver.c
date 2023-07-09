@@ -6,8 +6,9 @@
 #include "driver.h"
 
 void uart_init_driver(struct uart_driver *const driver) {
-    driver->init(driver);
-    printk_add_console(&driver->console);
+    if (driver->init(driver)) {
+        printk_add_console(&driver->console);
+    }
 }
 
 void

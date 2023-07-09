@@ -9,6 +9,20 @@
 
 #include "range.h"
 
+struct range range_create(const uint64_t front, const uint64_t size) {
+    return (struct range){
+        .front = front,
+        .size = size
+    };
+}
+
+struct range range_multiply(const struct range range, const uint64_t mult) {
+    return (struct range){
+        .front = chk_mul_overflow_assert(range.front, mult),
+        .size = chk_mul_overflow_assert(range.size, mult)
+    };
+}
+
 bool range_has_index(const struct range range, const uint64_t index) {
     return index_in_bounds(index, range.size);
 }

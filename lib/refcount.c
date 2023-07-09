@@ -23,11 +23,21 @@ void refcount_increment(struct refcount *const ref, const int32_t amount) {
     }
 }
 
-void refcount_decrement(struct refcount *const ref, const int32_t amount) {
+bool refcount_decrement(struct refcount *const ref, const int32_t amount) {
     const int32_t old =
         atomic_fetch_sub_explicit(&ref->count, 1, memory_order_relaxed);
 
     if (old < 0 || old < amount) {
         panic("UAF in refcount_decrement()");
     }
+
+    return old == 1;
+}
+
+void ref_up(struct refcount *const ref) {
+    refcount_increment(ref, /*amount=*/1);
+}
+
+bool ref_down(struct refcount *const ref) {
+    return refcount_decrement(ref, /*amount=*/1);
 }

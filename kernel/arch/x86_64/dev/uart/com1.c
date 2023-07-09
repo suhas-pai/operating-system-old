@@ -52,7 +52,7 @@ static void com1_bust_locks(struct console *const console) {
     g_spinlock = (struct spinlock){};
 }
 
-static void com1_init() {
+static bool com1_init() {
     port_out8(COM1 + 1, 0x00);    // Disable all interrupts
     port_out8(COM1 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
     port_out8(COM1 + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
@@ -65,13 +65,14 @@ static void com1_init() {
 
     // Check if serial is faulty (i.e: not same byte as sent)
     if (port_in8(COM1 + 0) != 0xAE) {
-        cpu_halt();
+        return false;
     }
 
     // If serial is not faulty set it in normal operation mode
     // (not-loopback with IRQs enabled and OUT#1 and OUT#2 bits enabled)
 
     port_out8(COM1 + 4, 0x0F);
+    return true;
 }
 
 struct uart_driver com1_serial = {

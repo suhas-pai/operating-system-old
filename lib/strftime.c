@@ -668,7 +668,7 @@ time_format_to_string_sv_callback(
     const uint64_t result = mbuffer_append_sv(mbuffer, sv);
 
     /* We have filled up the buffer if result isn't equal to sv-length */
-    if (result != sv.length || mbuffer_is_full(*mbuffer)) {
+    if (result != sv.length || mbuffer_full(*mbuffer)) {
         *should_cont_out = false;
     }
 

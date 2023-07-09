@@ -14,25 +14,22 @@
     #include "arch/aarch64/mm/types.h"
 #endif /* defined(__x86_64__) */
 
-#define STRUCTPAGE_SIZEOF (sizeof(uint64_t) * 5)
+#define SIZEOF_STRUCTPAGE (sizeof(uint64_t) * 5)
 #define PAGE_SIZE (1ull << PAGE_SHIFT)
 #define LARGEPAGE_SIZE(index) (1ull << LARGEPAGE_SHIFTS[index])
 #define PAGE_COUNT(size) (((uint64_t)(size) / PAGE_SIZE))
 
 #define PGT_COUNT (PAGE_SIZE/sizeof(pte_t))
 
-#define PG_LEVEL_INDEX(addr, level) \
-    ((((uint64_t)(addr)) >> PAGE_SHIFTS[level - 1]) & PGT_LEVEL_MASKS[level])
-
 #define phys_to_pfn(phys) ((uint64_t)(phys) >> PAGE_SHIFT)
 #define pfn_to_phys(pfn) ((uint64_t)(pfn) << PAGE_SHIFT)
 #define pfn_to_page(pfn) \
-    ((struct page *)(PAGE_OFFSET + (STRUCTPAGE_SIZEOF * (uint64_t)(pfn))))
+    ((struct page *)(PAGE_OFFSET + (SIZEOF_STRUCTPAGE * (uint64_t)(pfn))))
 
 #define SECTION_SHIFT (sizeof(uint32_t) - sizeof(uint8_t))
 #define SECTION_MASK UINT8_MAX
 
-#define page_to_pfn(page) (((uint64_t)(page) - PAGE_OFFSET) / STRUCTPAGE_SIZEOF)
+#define page_to_pfn(page) (((uint64_t)(page) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE)
 
 #define page_to_phys(page) pfn_to_phys(page_to_pfn(page))
 #define phys_to_page(phys) pfn_to_page(phys_to_pfn(phys))
@@ -48,3 +45,8 @@ void *phys_to_virt(uint64_t phys);
 uint64_t virt_to_phys(const void *phys);
 
 void pagezones_init();
+
+static inline
+uint16_t virt_to_pt_index(const void *const virt, const uint8_t level) {
+    return ((uint64_t)virt >> PAGE_SHIFTS[level - 1]) & PT_LEVEL_MASKS[level];
+}

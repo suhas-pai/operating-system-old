@@ -47,9 +47,7 @@ sv_create_end(const char *const c_str, const char *const end) {
 
 static inline struct string_view
 sv_create_length(const char *const c_str, const uint64_t length) {
-    const char *end = NULL;
-    assert(!chk_add_overflow((uint64_t)c_str, length, (uint64_t *)&end));
-
+    chk_add_overflow_assert((uint64_t)c_str, length);
     return sv_create_nocheck(c_str, length);
 }
 

@@ -29,7 +29,7 @@ struct uart_driver {
     uint32_t data_bits;
     uint32_t stop_bits;
 
-    void (*init)(struct uart_driver *);
+    bool (*init)(struct uart_driver *);
 };
 
 void uart_init_driver(struct uart_driver *driver);

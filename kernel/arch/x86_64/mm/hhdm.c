@@ -11,10 +11,7 @@
 extern volatile struct limine_hhdm_request hhdm_request;
 
 void *phys_to_virt(const uint64_t phys) {
-    uint64_t result = 0;
-    assert(!chk_add_overflow(hhdm_request.response->offset, phys, &result));
-
-    return (void *)result;
+    return (void *)chk_add_overflow_assert(hhdm_request.response->offset, phys);
 }
 
 uint64_t virt_to_phys(const void *const virt) {

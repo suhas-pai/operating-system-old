@@ -8,13 +8,13 @@
 
 struct page_freelist {
     struct list pages;
-    uint8_t count;
+    uint64_t count;
 };
 
 struct page_zone {
+    struct spinlock lock;
     struct page_freelist freelist_list[MAX_ORDER];
     struct page_zone *const fallback_zone;
-    struct spinlock lock;
 };
 
 struct page_zone *page_zone_iterstart();

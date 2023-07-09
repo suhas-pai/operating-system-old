@@ -17,13 +17,13 @@
 
 int16_t ps2_read() {
     for (uint64_t i = 0; i != RETRY_LIMIT; i++) {
-        const uint8_t byte = port_in8(PORT_I8042_READ_STATUS);
+        const uint8_t byte = port_in8(PORT_PS2_READ_STATUS);
         if ((byte & F_PS2_STATUS_REG_OUTPUT_BUFFER_FULL) == 0) {
             cpu_pause();
             continue;
         }
 
-        return port_in8(PORT_I8042_INPUT_BUFFER);
+        return port_in8(PORT_PS2_INPUT_BUFFER);
     }
 
     return -1;
@@ -31,7 +31,7 @@ int16_t ps2_read() {
 
 bool ps2_write(const uint16_t port, const uint8_t value) {
     for (uint64_t i = 0; i != RETRY_LIMIT; i++) {
-        const uint8_t byte = port_in8(PORT_I8042_READ_STATUS);
+        const uint8_t byte = port_in8(PORT_PS2_READ_STATUS);
         if (byte & F_PS2_STATUS_REG_INPUT_BUFFER_FULL) {
             cpu_pause();
             continue;
@@ -45,7 +45,7 @@ bool ps2_write(const uint16_t port, const uint8_t value) {
 }
 
 int16_t ps2_read_config() {
-    if (!ps2_write(PORT_I8042_WRITE_COMMAND, PS2_CMD_READ_INPUT_BUFFER_BYTE)) {
+    if (!ps2_write(PORT_PS2_WRITE_CMD, PS2_CMD_READ_INPUT_BUFFER_BYTE)) {
         return -1;
     }
 
@@ -53,11 +53,11 @@ int16_t ps2_read_config() {
 }
 
 bool ps2_write_config(const uint8_t value) {
-    if (!ps2_write(PORT_I8042_WRITE_COMMAND, PS2_CMD_WRITE_INPUT_BUFFER_BYTE)) {
+    if (!ps2_write(PORT_PS2_WRITE_CMD, PS2_CMD_WRITE_INPUT_BUFFER_BYTE)) {
         return false;
     }
 
-    if (!ps2_write(PORT_I8042_INPUT_BUFFER, value)) {
+    if (!ps2_write(PORT_PS2_INPUT_BUFFER, value)) {
         return false;
     }
 
@@ -65,12 +65,12 @@ bool ps2_write_config(const uint8_t value) {
 }
 
 void ps2_init() {
-    if (!ps2_write(PORT_I8042_WRITE_COMMAND, PS2_CMD_DISABLE_1ST_DEVICE)) {
+    if (!ps2_write(PORT_PS2_WRITE_CMD, PS2_CMD_DISABLE_1ST_DEVICE)) {
         printk(LOGLEVEL_WARN, "ps2: failed to disable 1st device for init\n");
         return;
     }
 
-    if (!ps2_write(PORT_I8042_WRITE_COMMAND, PS2_CMD_DISABLE_2ND_DEVICE)) {
+    if (!ps2_write(PORT_PS2_WRITE_CMD, PS2_CMD_DISABLE_2ND_DEVICE)) {
         printk(LOGLEVEL_WARN, "ps2: failed to disable 2nd device for init\n");
         return;
     }
@@ -100,7 +100,7 @@ void ps2_init() {
     }
 
     // Enable keyboard port
-    if (!ps2_write(PORT_I8042_WRITE_COMMAND, PS2_CMD_ENABLE_1ST_DEVICE)) {
+    if (!ps2_write(PORT_PS2_WRITE_CMD, PS2_CMD_ENABLE_1ST_DEVICE)) {
         printk(LOGLEVEL_WARN, "ps2: failed to enable keyboard port\n");
         return;
     }
@@ -108,7 +108,7 @@ void ps2_init() {
     // Enable mouse port if any
     bool mouse_enabled = false;
     if (has_mouse) {
-        if (!ps2_write(PORT_I8042_WRITE_COMMAND, PS2_CMD_ENABLE_2ND_DEVICE)) {
+        if (!ps2_write(PORT_PS2_WRITE_CMD, PS2_CMD_ENABLE_2ND_DEVICE)) {
             printk(LOGLEVEL_WARN, "ps2: failed to enable mouse port\n");
         } else {
             mouse_enabled = true;

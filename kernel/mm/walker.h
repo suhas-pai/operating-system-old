@@ -6,54 +6,83 @@
 #pragma once
 #include "page.h"
 
-#define PGWALKER_CLEAR 0
-#define PGWALKER_DONE -1
+#define PTWALKER_CLEAR 0
+#define PTWALKER_DONE -1
 
-struct pgt_walker {
+struct pt_walker;
+
+typedef struct page *
+(*ptwalker_alloc_pgtable_t)(struct pt_walker *walker, void *cb_info);
+
+typedef void
+(*ptwalker_free_pgtable_t)(struct pt_walker *walker,
+                           struct page *pt,
+                           void *cb_info);
+
+struct pt_walker {
     // tables and indices are stored in reverse-order.
     // i.e. tables[0] is the top level
 
     pte_t *tables[PGT_LEVEL_COUNT];
-    int16_t indices[PGT_LEVEL_COUNT];
+    uint16_t indices[PGT_LEVEL_COUNT];
 
     // level should always start from 1..=PGT_LEVEL_COUNT.
     int16_t level;
     uint8_t top_level;
+
+    ptwalker_alloc_pgtable_t alloc_pgtable;
+    ptwalker_free_pgtable_t free_pgtable;
 };
 
-void pgtwalker_default(struct pgt_walker *walker, uint64_t virt_addr);
-struct pagemap;
+void
+ptwalker_default(struct pt_walker *walker,
+                 uint64_t virt_addr,
+                 ptwalker_alloc_pgtable_t alloc_pgtable,
+                 ptwalker_free_pgtable_t free_pgtable);
 
 void
-pgtwalker_create(struct pgt_walker *walker,
-                 struct pagemap *pagemap,
-                 uint64_t virt_addr);
+ptwalker_create(struct pt_walker *walker,
+                uint64_t root_phys,
+                uint64_t virt_addr,
+                ptwalker_alloc_pgtable_t alloc_pgtable,
+                ptwalker_free_pgtable_t free_pgtable);
 
 void
-pgtwalker_create_customroot(struct pgt_walker *walker,
-                            uint64_t virt_addr,
-                            uint64_t root_phys);
+ptwalker_create_customroot(struct pt_walker *walker,
+                           uint64_t root_phys,
+                           uint64_t virt_addr,
+                           ptwalker_alloc_pgtable_t alloc_pgtable,
+                           ptwalker_free_pgtable_t free_pgtable);
 
-enum pgt_walker_result {
-    E_PGT_WALKER_OK,
-    E_PGT_WALKER_REACHED_END,
-    E_PGT_WALKER_ALLOC_FAIL,
-    E_PGT_WALKER_BAD_INCR
+enum pt_walker_result {
+    E_PT_WALKER_OK,
+    E_PT_WALKER_REACHED_END,
+    E_PT_WALKER_ALLOC_FAIL,
+    E_PT_WALKER_BAD_INCR
 };
 
-pte_t *pgtwalker_table_for_level(struct pgt_walker *walker, uint8_t level);
+pte_t *ptwalker_table_for_level(const struct pt_walker *walker, uint8_t level);
+pte_t *ptwalker_pte_in_level(const struct pt_walker *walker, uint8_t level);
 
-// Get the pte that points to the table of level
-pte_t *pgtwalker_pte_in_level(struct pgt_walker *walker, uint8_t level);
+uint16_t ptwalker_table_index(const struct pt_walker *walker, uint8_t level);
+uint16_t ptwalker_array_index(const struct pt_walker *walker, uint8_t level);
 
-int16_t
-pgtwalker_table_index_for_level(struct pgt_walker *walker, uint8_t level);
+enum pt_walker_result ptwalker_next(struct pt_walker *walker);
+enum pt_walker_result
+ptwalker_next_custom(struct pt_walker *walker,
+                     uint8_t level,
+                     bool alloc_parents,
+                     bool alloc_level,
+                     bool should_ref,
+                     void *alloc_pgtable_cb_info,
+                     void *const free_pgtable_cb_info);
 
-uint16_t pgtwalker_index_into_array(struct pgt_walker *walker, uint8_t level);
+void ptwalker_fill_in_lowest(struct pt_walker *walker, struct page *page);
+void ptwalker_drop_lowest(struct pt_walker *walker, void *free_pgtable_cb_info);
 
-enum pgt_walker_result pgtwalker_next(struct pgt_walker *walker);
-enum pgt_walker_result
-pgtwalker_next_custom(struct pgt_walker *walker,
-                      uint8_t level,
-                      bool alloc_if_not_present,
-                      bool alloc_parents_if_not_present);
+enum pt_walker_result
+ptwalker_fill_in_to(struct pt_walker *walker,
+                    uint8_t level,
+                    bool should_ref,
+                    void *alloc_pgtable_cb_info,
+                    void *free_pgtable_cb_info);

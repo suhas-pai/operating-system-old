@@ -19,7 +19,7 @@ uint8_t pgt_get_top_level() {
 }
 
 bool pte_is_present(const pte_t pte) {
-    return (pte & __PG_VALID) != 0;
+    return (pte & __PTE_VALID) != 0;
 }
 
 bool pte_is_large(const pte_t pte, const uint8_t level) {

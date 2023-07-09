@@ -6,6 +6,7 @@
 #pragma once
 
 #include "mutable_buffer.h"
+#include "range.h"
 #include "string_view.h"
 
 #include "../alloc.h"
@@ -22,10 +23,10 @@ struct growable_buffer gbuffer_alloc(uint64_t init_cap);
 struct growable_buffer gbuffer_alloc_copy(void *data, const uint64_t size);
 
 struct growable_buffer
-gbuffer_open_used(void *buffer,
-                  uint64_t used,
-                  uint64_t capacity,
-                  bool is_alloc);
+gbuffer_open(void *buffer,
+             uint64_t used,
+             uint64_t capacity,
+             bool is_alloc);
 
 struct growable_buffer
 gbuffer_open_mutable_buffer(struct mutable_buffer mbuffer, bool is_alloc);
@@ -35,21 +36,18 @@ bool gbuffer_ensure_can_add_capacity(struct growable_buffer *gb, uint64_t add);
 struct mutable_buffer
 gbuffer_get_mutable_buffer(struct growable_buffer gbuffer);
 
-const void *gbuffer_get_end(struct growable_buffer gbuffer);
-void *gbuffer_get_current_ptr(struct growable_buffer gbuffer);
+const void *gbuffer_end(struct growable_buffer gbuffer);
+void *gbuffer_current_ptr(struct growable_buffer gbuffer);
 
 uint8_t *
 gbuffer_ptr_for_byte_index(struct growable_buffer gbuffer, uint64_t index);
 
-uint64_t gbuffer_get_free_space(struct growable_buffer gbuffer);
-uint64_t gbuffer_get_used_size(struct growable_buffer gbuffer);
-uint64_t gbuffer_get_capacity(struct growable_buffer gbuffer);
+uint64_t gbuffer_free_space(struct growable_buffer gbuffer);
+uint64_t gbuffer_used_size(struct growable_buffer gbuffer);
+uint64_t gbuffer_capacity(struct growable_buffer gbuffer);
 
 bool gbuffer_can_add_size(struct growable_buffer gbuffer, uint64_t size);
-
-bool gbuffer_is_null(struct growable_buffer gbuffer);
-bool gbuffer_is_empty(struct growable_buffer gbuffer);
-bool gbuffer_is_full(struct growable_buffer gbuffer);
+bool gbuffer_empty(struct growable_buffer gbuffer);
 
 uint64_t gbuffer_incr_ptr(struct growable_buffer *gbuffer, uint64_t amt);
 uint64_t gbuffer_decr_ptr(struct growable_buffer *gbuffer, uint64_t amt);

@@ -32,12 +32,12 @@
 #define L0(phys) (((phys) >> L0_SHIFT) & L0_MASK)
 
 typedef uint64_t pte_t;
-enum page_flags {
-    __PG_VALID = 1 << 0,
-    __PG_TABLE = 1 << 1,
+enum pte_flags {
+    __PTE_VALID = 1 << 0,
+    __PTE_TABLE = 1 << 1,
 };
 
-static const uint16_t PGT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
+static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
     { (1ull << 12) - 1, L3_MASK, L2_MASK, L1_MASK, L0_MASK };
 
 static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
@@ -45,7 +45,7 @@ static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
 
 static const uint8_t LARGEPAGE_SHIFTS[] = {};
 
-#define PGT_FLAGS (__PG_VALID | __PG_TABLE)
+#define PGT_FLAGS (__PTE_VALID | __PTE_TABLE)
 
 struct page;
 extern const uint64_t PAGE_OFFSET;

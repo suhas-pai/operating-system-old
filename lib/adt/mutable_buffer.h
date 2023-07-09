@@ -28,13 +28,13 @@ __mbuffer_open_static(void *buffer, uint64_t used, uint64_t capacity);
 void *mbuffer_get_current_ptr(struct mutable_buffer mbuffer);
 
 uint64_t mbuffer_get_free_space(struct mutable_buffer mbuffer);
-uint64_t mbuffer_get_used_size(struct mutable_buffer mbuffer);
-uint64_t mbuffer_get_capacity(struct mutable_buffer mbuffer);
+uint64_t mbuffer_used_size(struct mutable_buffer mbuffer);
+uint64_t mbuffer_capacity(struct mutable_buffer mbuffer);
 
 bool mbuffer_can_add_size(struct mutable_buffer mbuffer, uint64_t size);
 
-bool mbuffer_is_empty(struct mutable_buffer mbuffer);
-bool mbuffer_is_full(struct mutable_buffer mbuffer);
+bool mbuffer_empty(struct mutable_buffer mbuffer);
+bool mbuffer_full(struct mutable_buffer mbuffer);
 
 uint64_t mbuffer_incr_ptr(struct mutable_buffer *mbuffer, uint64_t amt);
 uint64_t mbuffer_decr_ptr(struct mutable_buffer *mbuffer, uint64_t amt);
@@ -53,6 +53,4 @@ uint64_t
 mbuffer_append_sv(struct mutable_buffer *mbuffer,
                   struct string_view sv);
 
-bool
-mbuffer_truncate_to_used_size(struct mutable_buffer *mbuffer,
-                              uint64_t used_size);
+bool mbuffer_truncate(struct mutable_buffer *mbuffer, uint64_t used_size);

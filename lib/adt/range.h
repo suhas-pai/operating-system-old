@@ -13,6 +13,11 @@ struct range {
     uint64_t size;
 };
 
+#define range_create_empty() ((struct range){})
+
+struct range range_create(uint64_t front, uint64_t size);
+struct range range_multiply(struct range range, uint64_t mult);
+
 bool range_has_index(const struct range range, const uint64_t index);
 bool range_has_loc(const struct range range, const uint64_t loc);
 bool range_get_end(const struct range range, uint64_t *const end_out);

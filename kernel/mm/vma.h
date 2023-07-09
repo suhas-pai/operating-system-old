@@ -26,10 +26,15 @@ struct vm_area {
     uint32_t pg_flags;
 };
 
-enum pg_flags {
-    PG_READABLE = 1 << 0,
-    PG_WRITABLE = 1 << 1,
-    PG_EXEC = 1 << 2
+enum prot_flags {
+    PROT_READ = 1 << 0,
+    PROT_WRITE = 1 << 1,
+    PROT_EXEC = 1 << 2
 };
 
-struct vm_area *vmap(struct pagemap *pagemap, uint64_t phys_addr);
+enum mmap_flags {
+    MMAP_NO_CACHE = 1 << 0,
+};
+
+struct vm_area *
+mmap(struct pagemap *pagemap, uint64_t phys_addr, uint8_t prot, uint8_t flags);

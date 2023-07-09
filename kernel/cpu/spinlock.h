@@ -12,7 +12,6 @@ struct spinlock {
     _Atomic int flag;
 };
 
-#define SPINLOCK_INIT(name) ((struct spinlock) {.flag = 0 })
 void spinlock_init(struct spinlock *lock);
 
 void spin_acquire(struct spinlock *lock);

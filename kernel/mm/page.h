@@ -14,7 +14,7 @@ struct page {
     _Atomic uint32_t flags;
     union {
         struct {
-            struct list list;
+            struct list freelist;
             uint8_t order;
         } buddy;
         struct {
@@ -38,16 +38,16 @@ struct page {
     };
 };
 
-_Static_assert(sizeof(struct page) == STRUCTPAGE_SIZEOF, "");
+_Static_assert(sizeof(struct page) == SIZEOF_STRUCTPAGE, "");
 
 enum struct_page_flags {
-    PAGE_IN_FREELIST = 1 << 0,
-    PAGE_SLAB_HEAD = 1 << 1,
-    PAGE_NOT_USABLE = 1 << 2
+    PAGE_NOT_USABLE = 1 << 0,
+    PAGE_IN_FREE_LIST = 1 << 1,
+    PAGE_IS_SLAB_HEAD = 1 << 2,
 };
 
-void set_page_bit(struct page *page, enum struct_page_flags flag);
-bool has_page_bit(struct page *page, enum struct_page_flags flag);
-void clear_page_bit(struct page *page, enum struct_page_flags flag);
+void page_set_bit(struct page *page, enum struct_page_flags flag);
+bool page_has_bit(struct page *page, enum struct_page_flags flag);
+void page_clear_bit(struct page *page, enum struct_page_flags flag);
 
 uint8_t page_get_section(struct page *page);

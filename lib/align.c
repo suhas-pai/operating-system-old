@@ -1,5 +1,6 @@
 /*
  * lib/align.c
+ * © suhas pai
  */
 
 #include "align.h"

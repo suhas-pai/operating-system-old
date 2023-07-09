@@ -140,15 +140,12 @@ static void pl011_reset(const struct uart_driver *const uart) {
     device->cr_offset = CR_TXEN | CR_UARTEN;
 }
 
-static void pl011_init(struct uart_driver *const uart) {
+static bool pl011_init(struct uart_driver *const uart) {
     uart->device = (void *)0x9000000;
     uart->base_clock = 0x16e3600;
 
-    uart->baudrate = 115200;
-    uart->data_bits = 8;
-    uart->stop_bits = 1;
-
     pl011_reset(uart);
+    return true;
 }
 
 struct uart_driver pl011_serial = {

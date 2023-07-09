@@ -9,7 +9,7 @@
 
 #include "kmalloc.h"
 
-static struct slab_allocator kmalloc_slabs[15] = {};
+static struct slab_allocator kmalloc_slabs[14] = {};
 
 void kmalloc_init() {
     slab_allocator_init(&kmalloc_slabs[0], 16, /*alloc_flags=*/0);
@@ -19,14 +19,13 @@ void kmalloc_init() {
     slab_allocator_init(&kmalloc_slabs[4], 64, /*alloc_flags=*/0);
     slab_allocator_init(&kmalloc_slabs[5], 96, /*alloc_flags=*/0);
     slab_allocator_init(&kmalloc_slabs[6], 128, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[7], 128, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[8], 128, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[9], 256, /*alloc_flags=*/0);
+    slab_allocator_init(&kmalloc_slabs[7], 192, /*alloc_flags=*/0);
+    slab_allocator_init(&kmalloc_slabs[8], 256, /*alloc_flags=*/0);
+    slab_allocator_init(&kmalloc_slabs[9], 384, /*alloc_flags=*/0);
     slab_allocator_init(&kmalloc_slabs[10], 512, /*alloc_flags=*/0);
     slab_allocator_init(&kmalloc_slabs[11], 768, /*alloc_flags=*/0);
     slab_allocator_init(&kmalloc_slabs[12], 1024, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[13], 1024, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[14], 2048, /*alloc_flags=*/0);
+    slab_allocator_init(&kmalloc_slabs[13], 2048, /*alloc_flags=*/0);
 }
 
 void *kmalloc(const uint64_t size) {

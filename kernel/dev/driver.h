@@ -23,8 +23,8 @@ extern struct driver drivers_end;
 
 #define driver_foreach(iter) \
     for (struct driver *iter = &drivers_start; \
-        iter < &drivers_end;                   \
-        iter++)                                \
+         iter < &drivers_end;                  \
+         iter++)                               \
 
 #define EXPORT_UART_DRIVER(drv) \
     __attribute__((used, section(".drivers"))) \

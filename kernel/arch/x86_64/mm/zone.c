@@ -23,7 +23,7 @@ static struct page_zone zone_high_896gib = {
 
 struct page_zone *page_to_zone(struct page *const page) {
 	const uint64_t phys = page_to_phys(page);
-	if (phys < mib(16)) {
+	if (phys <= mib(16)) {
 		return &zone_low_16mib;
 	}
 
@@ -35,7 +35,7 @@ struct page_zone *page_to_zone(struct page *const page) {
 }
 
 struct page_zone *page_zone_iterstart() {
-	return &zone_default;
+	return &zone_high_896gib;
 }
 
 struct page_zone *page_zone_iternext(struct page_zone *const zone) {
