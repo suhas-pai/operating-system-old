@@ -32,9 +32,9 @@ struct page {
             };
         } slab;
         struct {
-			struct list delayed_free_list;
+            struct list delayed_free_list;
             struct refcount refcount;
-		} pte;
+        } pte;
     };
 };
 

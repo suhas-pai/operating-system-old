@@ -120,7 +120,7 @@ void slab_free(void *const mem) {
     struct slab_allocator *const allocator = head->slab.head.allocator;
 
     memzero(mem, allocator->object_size);
-	const int flag = spin_acquire_with_irq(&allocator->lock);
+    const int flag = spin_acquire_with_irq(&allocator->lock);
 
     allocator->free_obj_count += 1;
     head->slab.head.free_obj_count += 1;

@@ -38,21 +38,21 @@
     for (typeof(&arr[0]) name = &arr[0]; name != (arr + countof(arr)); name++)
 
 #define swap(a, b) ({      \
-	__auto_type __tmp = b; \
-	b = a;                 \
-	a = __tmp;             \
+    __auto_type __tmp = b; \
+    b = a;                 \
+    a = __tmp;             \
 })
 
 #define max(a, b) ({       \
-	__auto_type __a = (a); \
-	__auto_type __b = (b); \
-	__a > __b ? __a : __b; \
+    __auto_type __a = (a); \
+    __auto_type __b = (b); \
+    __a > __b ? __a : __b; \
 })
 
 #define min(a, b) ({       \
-	__auto_type __a = (a); \
-	__auto_type __b = (b); \
-	__a < __b ? __a : __b; \
+    __auto_type __a = (a); \
+    __auto_type __b = (b); \
+    __a < __b ? __a : __b; \
 })
 
 #define get_to_within_size(x, size) ((x) % (size))

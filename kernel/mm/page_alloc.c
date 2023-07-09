@@ -126,33 +126,33 @@ free_pages_to_zone(struct page *page,
 {
     const int flag = spin_acquire_with_irq(&zone->lock);
     for (; order != MAX_ORDER - 1; order++) {
-		struct page *buddy = buddy_of(page, order);
-		if (zone != page_to_zone(buddy)) {
-			break;
+        struct page *buddy = buddy_of(page, order);
+        if (zone != page_to_zone(buddy)) {
+            break;
         }
 
-		if (page_has_bit(buddy, PAGE_NOT_USABLE)) {
+        if (page_has_bit(buddy, PAGE_NOT_USABLE)) {
             continue;
         }
 
-		if (!page_has_bit(buddy, PAGE_IN_FREE_LIST)) {
-			break;
+        if (!page_has_bit(buddy, PAGE_IN_FREE_LIST)) {
+            break;
         }
 
-		if (buddy->buddy.order != order) {
-			break;
+        if (buddy->buddy.order != order) {
+            break;
         }
 
-		take_off_freelist(&zone->freelist_list[order], buddy);
-		if (page_to_pfn(buddy) < page_to_pfn(page)) {
-			swap(page, buddy);
+        take_off_freelist(&zone->freelist_list[order], buddy);
+        if (page_to_pfn(buddy) < page_to_pfn(page)) {
+            swap(page, buddy);
         }
-	}
+    }
 
-	page->buddy.order = order;
+    page->buddy.order = order;
 
-	add_to_freelist(&zone->freelist_list[order], page);
-	spin_release_with_irq(&zone->lock, flag);
+    add_to_freelist(&zone->freelist_list[order], page);
+    spin_release_with_irq(&zone->lock, flag);
 }
 
 void free_pages(struct page *const page, const uint8_t order) {

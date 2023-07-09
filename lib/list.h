@@ -71,11 +71,11 @@ static inline void list_delete(struct list *const elem) {
     ((type *)((void *)((char *)(list)->prev - offsetof(type, name))))
 
 #define list_foreach(iter, list, name) \
-	for(iter = list_head(list, typeof(*iter), name); &iter->name != (list); \
+    for(iter = list_head(list, typeof(*iter), name); &iter->name != (list); \
         iter = list_next(iter, name))
 
 #define list_foreach_mut(iter, tmp, list, name) \
-	for(iter = list_head(list, typeof(*iter), name), \
+    for(iter = list_head(list, typeof(*iter), name), \
             tmp = list_next(iter, name);             \
         &iter->name != (list);                       \
         iter = tmp, tmp = list_next(iter, name))

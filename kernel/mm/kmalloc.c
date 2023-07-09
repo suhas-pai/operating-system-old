@@ -29,37 +29,37 @@ void kmalloc_init() {
 }
 
 void *kmalloc(const uint64_t size) {
-	if (size == 0) {
-		printk(LOGLEVEL_WARN, "kmalloc(): got size=0\n");
-		return NULL;
-	}
+    if (size == 0) {
+        printk(LOGLEVEL_WARN, "kmalloc(): got size=0\n");
+        return NULL;
+    }
 
-	if (size > 2048) {
-		printk(LOGLEVEL_WARN,
+    if (size > 2048) {
+        printk(LOGLEVEL_WARN,
                "kmalloc(): Can't allocate %" PRIu64 " bytes, max is 2048 "
                "bytes\n",
                size);
 
-		return NULL;
-	}
+        return NULL;
+    }
 
-	struct slab_allocator *allocator = &kmalloc_slabs[0];
+    struct slab_allocator *allocator = &kmalloc_slabs[0];
     while (allocator->object_size < size) {
         allocator++;
     }
 
-	return slab_alloc(allocator);
+    return slab_alloc(allocator);
 }
 
 void *krealloc(void *const buffer, const uint64_t size) {
     // Allow buffer=NULL to call kmalloc().
 
-	if (size == 0) {
-		printk(LOGLEVEL_WARN, "krealloc(): got size=0, use kfree() instead\n");
+    if (size == 0) {
+        printk(LOGLEVEL_WARN, "krealloc(): got size=0, use kfree() instead\n");
         kfree(buffer);
 
-		return NULL;
-	}
+        return NULL;
+    }
 
     const uint64_t buffer_size = slab_object_size(buffer);
     if (size <= buffer_size) {

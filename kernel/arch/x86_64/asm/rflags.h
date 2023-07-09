@@ -39,9 +39,9 @@ enum rflags {
 
 
 __unused static inline uint64_t x86_64_read_rflags() {
-	uint64_t rflags = 0;
-	asm volatile("pushfq;"
-			     "popq %0" : "=r" (rflags) : : "memory");
+    uint64_t rflags = 0;
+    asm volatile("pushfq;"
+                 "popq %0" : "=r" (rflags) : : "memory");
 
-	return rflags;
+    return rflags;
 }

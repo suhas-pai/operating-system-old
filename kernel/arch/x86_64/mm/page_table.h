@@ -11,9 +11,9 @@
 struct pageop {
     struct pt_walker walker;
     struct range flush_range;
-	struct list delayed_free;
+    struct list delayed_free;
 
-	uint8_t page_order;
+    uint8_t page_order;
 };
 
 void

@@ -37,35 +37,35 @@
 
 /*
 arguments:
-	offset1 - vector offset for master PIC
-		vectors on the master become offset1..offset1+7
-	offset2 - same for slave PIC: offset2..offset2+7
+    offset1 - vector offset for master PIC
+        vectors on the master become offset1..offset1+7
+    offset2 - same for slave PIC: offset2..offset2+7
 */
 
 void pic_remap(const uint8_t offset1, const uint8_t offset2) {
-	unsigned char a1, a2;
+    unsigned char a1, a2;
 
-	a1 = port_in8(PIC1_DATA);                        // save masks
-	a2 = port_in8(PIC2_DATA);
+    a1 = port_in8(PIC1_DATA);                        // save masks
+    a2 = port_in8(PIC2_DATA);
 
-	port_out8(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);  // starts the initialization sequence (in cascade mode)
-	cpu_pause();
-	port_out8(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
-	cpu_pause();
-	port_out8(PIC1_DATA, offset1);                 // ICW2: Master PIC vector offset
-	cpu_pause();
-	port_out8(PIC2_DATA, offset2);                 // ICW2: Slave PIC vector offset
-	cpu_pause();
-	port_out8(PIC1_DATA, 4);                       // ICW3: tell Master PIC that there is a slave PIC at IRQ2 (0000 0100)
-	cpu_pause();
-	port_out8(PIC2_DATA, 2);                       // ICW3: tell Slave PIC its cascade identity (0000 0010)
-	cpu_pause();
+    port_out8(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4);  // starts the initialization sequence (in cascade mode)
+    cpu_pause();
+    port_out8(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+    cpu_pause();
+    port_out8(PIC1_DATA, offset1);                 // ICW2: Master PIC vector offset
+    cpu_pause();
+    port_out8(PIC2_DATA, offset2);                 // ICW2: Slave PIC vector offset
+    cpu_pause();
+    port_out8(PIC1_DATA, 4);                       // ICW3: tell Master PIC that there is a slave PIC at IRQ2 (0000 0100)
+    cpu_pause();
+    port_out8(PIC2_DATA, 2);                       // ICW3: tell Slave PIC its cascade identity (0000 0010)
+    cpu_pause();
 
-	port_out8(PIC1_DATA, ICW4_8086);
-	cpu_pause();
-	port_out8(PIC2_DATA, ICW4_8086);
-	cpu_pause();
+    port_out8(PIC1_DATA, ICW4_8086);
+    cpu_pause();
+    port_out8(PIC2_DATA, ICW4_8086);
+    cpu_pause();
 
-	port_out8(PIC1_DATA, a1);   // restore saved masks.
-	port_out8(PIC2_DATA, a2);
+    port_out8(PIC1_DATA, a1);   // restore saved masks.
+    port_out8(PIC2_DATA, a2);
 }
