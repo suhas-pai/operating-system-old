@@ -104,15 +104,10 @@ endif
 
 # Architecture specific internal flags.
 ifeq ($(ARCH),x86_64)
-	ifeq ($(CC_IS_CLANG),yes)
-		override CFLAGS += -target x86_64-elf
-	else
-		override CFLAGS += -mabi=sysv
-	endif
-
 	override CFLAGS += \
 		-m64 \
 		-march=x86-64 \
+		-mabi=sysv \
 		-mno-80387 \
 		-mno-mmx \
 		-mno-sse \
@@ -128,8 +123,7 @@ else ifeq ($(ARCH),aarch64)
 	endif
 
 	override CFLAGS += \
-		-target aarch64-elf \
-		-mgeneral-regs-only -mno-outline-atomics
+		-mgeneral-regs-only
 	override LDFLAGS += \
 		-m aarch64elf
 else ifeq ($(ARCH),riscv64)
@@ -143,6 +137,9 @@ else ifeq ($(ARCH),riscv64)
 	endif
 	override CFLAGS += \
 		-mabi=lp64
+	override LDFLAGS += \
+        -m elf64lriscv \
+        --no-relax
 else
 	$(error Architecture $(ARCH) not supported)
 endif
@@ -156,10 +153,6 @@ override LDFLAGS += \
 	-z max-page-size=0x1000 \
 	-T arch/$(ARCH)/linker.ld \
 	-pie
-
-ifneq ($(ARCH), riscv64)
-	override LDFLAGS += -pie
-endif
 
 define FIND_FILES
 	override $(1) += $(shell find . -type f -name $(2) -not -path "./arch/*")
