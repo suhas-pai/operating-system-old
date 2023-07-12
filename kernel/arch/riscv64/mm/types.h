@@ -1,5 +1,5 @@
 /*
- * kernel/arch/aarch64/mm/types.h
+ * kernel/arch/riscv64/mm/types.h
  * © suhas pai
  */
 
@@ -13,7 +13,7 @@
 #define PML5_SHIFT 48
 
 #define PAGE_SHIFT PML1_SHIFT
-#define PG_PHYS_MASK 0x0000fffffffff000
+#define PG_PHYS_MASK 0x003ffffffffffc00
 
 #define PGT_LEVEL_COUNT 5
 
@@ -26,7 +26,7 @@
 #define PML2_MASK PML1_MASK
 #define PML3_MASK PML1_MASK
 #define PML4_MASK PML1_MASK
-#define PML5_MASK 0xf
+#define PML5_MASK PML1_MASK
 
 #define PML1(phys) (((phys) >> PML1_SHIFT) & PML1_MASK)
 #define PML2(phys) (((phys) >> PML2_SHIFT) & PML2_MASK)
@@ -36,17 +36,13 @@
 
 typedef uint64_t pte_t;
 enum pte_flags {
-    __PTE_VALID  = 1 << 0,
-    __PTE_TABLE  = 1 << 1,
-    __PTE_USER   = 1 << 6,
-    __PTE_RO     = 1 << 7,
-
-    __PTE_UNPREDICTABLE = 0b01 << 8,
-    __PTE_OUTER_SHARE = 0b10 << 8,
-    __PTE_INNER_SHARE = 0b11 << 8,
-
-    __PTE_ACCESS = 1ull << 10,
-    __PTE_NOEXEC = 1ull << 54
+    __PTE_VALID    = 1 << 0,
+    __PTE_READ     = 1 << 1,
+    __PTE_WRITE    = 1 << 2,
+    __PTE_EXEC     = 1 << 3,
+    __PTE_USER     = 1 << 4,
+    __PTE_ACCESSED = 1 << 6,
+    __PTE_DIRTY    = 1 << 7,
 };
 
 static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
@@ -57,5 +53,5 @@ static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
 
 static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
 
-#define PGT_FLAGS (__PTE_VALID | __PTE_TABLE)
+#define PGT_FLAGS (__PTE_VALID)
 struct page;

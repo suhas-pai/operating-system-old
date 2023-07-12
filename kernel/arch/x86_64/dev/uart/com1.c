@@ -21,11 +21,11 @@ static void com1_out(const char ch) {
 static struct spinlock g_spinlock = {};
 
 static void
-com1_write_char(struct console *const console,
+com1_write_char(struct terminal *const term,
                 const char ch,
                 const uint32_t amount)
 {
-    (void)console;
+    (void)term;
 
     const int flag = spin_acquire_with_irq(&g_spinlock);
     for (uint64_t i = 0; i != amount; i++) {
@@ -36,8 +36,8 @@ com1_write_char(struct console *const console,
 }
 
 static
-void com1_write_sv(struct console *const console, const struct string_view sv) {
-    (void)console;
+void com1_write_sv(struct terminal *const term, const struct string_view sv) {
+    (void)term;
 
     const int flag = spin_acquire_with_irq(&g_spinlock);
     sv_foreach(sv, iter) {
@@ -47,7 +47,7 @@ void com1_write_sv(struct console *const console, const struct string_view sv) {
     spin_release_with_irq(&g_spinlock, flag);
 }
 
-static void com1_bust_locks(struct console *const console) {
+static void com1_bust_locks(struct terminal *const console) {
     (void)console;
     g_spinlock = (struct spinlock){};
 }
@@ -76,9 +76,9 @@ static bool com1_init() {
 }
 
 struct uart_driver com1_serial = {
-    .console.emit_ch = com1_write_char,
-    .console.emit_sv = com1_write_sv,
-    .console.bust_locks = com1_bust_locks,
+    .term.emit_ch = com1_write_char,
+    .term.emit_sv = com1_write_sv,
+    .term.bust_locks = com1_bust_locks,
 
     .kind = UART_KIND_COM1,
     .base_clock = 0,

@@ -46,11 +46,11 @@ static void wait_tx_complete(const struct pl011_device *const dev) {
 }
 
 static void
-pl011_send_char(struct console *const console,
-                char ch,
+pl011_send_char(struct terminal *const term,
+                const char ch,
                 const uint32_t amount)
 {
-    struct uart_driver *const uart = (struct uart_driver *)console;
+    struct uart_driver *const uart = (struct uart_driver *)term;
     struct pl011_device *const device = uart->device;
 
     wait_tx_complete(device);
@@ -71,10 +71,8 @@ pl011_send_char(struct console *const console,
 }
 
 static void
-pl011_send_sv(struct console *const console,
-              const struct string_view sv)
-{
-    struct uart_driver *const uart = (struct uart_driver *)console;
+pl011_send_sv(struct terminal *const term, const struct string_view sv) {
+    struct uart_driver *const uart = (struct uart_driver *)term;
     struct pl011_device *const device = uart->device;
 
     wait_tx_complete(device);
@@ -149,8 +147,8 @@ static bool pl011_init(struct uart_driver *const uart) {
 }
 
 struct uart_driver pl011_serial = {
-    .console.emit_ch = pl011_send_char,
-    .console.emit_sv = pl011_send_sv,
+    .term.emit_ch = pl011_send_char,
+    .term.emit_sv = pl011_send_sv,
 
     .baudrate = 115200,
     .data_bits = 8,

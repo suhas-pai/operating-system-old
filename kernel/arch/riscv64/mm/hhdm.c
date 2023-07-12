@@ -1,5 +1,5 @@
 /*
- * kernel/arch/aarch64/mm/hhdm.c
+ * kernel/arch/riscv64/mm/hhdm.c
  * © suhas pai
  */
 

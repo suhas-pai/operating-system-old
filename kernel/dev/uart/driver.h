@@ -11,6 +11,7 @@
 #include "lib/adt/string_view.h"
 
 enum uart_kind {
+    UART_KIND_NONE,
 #if defined(__x86_64__)
     UART_KIND_COM1
 #elif defined(__aarch64__)
@@ -19,7 +20,7 @@ enum uart_kind {
 };
 
 struct uart_driver {
-    struct console console;
+    struct terminal term;
 
     void *device;
     enum uart_kind kind;

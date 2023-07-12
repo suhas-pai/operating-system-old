@@ -183,7 +183,17 @@ find_from_start(struct pagemap *const pagemap,
     }
 }
 
-static void vma_avltree_update_callback(struct avlnode *const node) {
+int
+vma_avltree_compare(struct avlnode *const our_node,
+                    struct avlnode *const their_node)
+{
+    struct vm_area *const ours = vma_of(our_node);
+    struct vm_area *const theirs = vma_of(their_node);
+
+    return range_above(ours->range, theirs->range) ? -1 : 1;
+}
+
+void vma_avltree_update(struct avlnode *const node) {
     struct vm_area *const vma = vma_of(node);
     struct vm_area *const prev = vma_prev(vma->pagemap, vma);
 
@@ -207,11 +217,11 @@ static void vma_avltree_update_callback(struct avlnode *const node) {
 }
 
 bool
-pagemap_add_vma(struct pagemap *const pagemap,
-                struct vm_area *const vma,
-                const struct range in_range,
-                const uint64_t phys_addr,
-                const uint64_t align)
+pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
+                               struct vm_area *const vma,
+                               const struct range in_range,
+                               const uint64_t phys_addr,
+                               const uint64_t align)
 {
     const int flag = spin_acquire_with_irq(&pagemap->lock);
 
@@ -229,7 +239,7 @@ pagemap_add_vma(struct pagemap *const pagemap,
                           &vma->vma_node,
                           &prev->vma_node,
                           &prev->vma_node.right,
-                          vma_avltree_update_callback);
+                          vma_avltree_update);
 
     const bool map_result =
         arch_make_mapping(pagemap,
@@ -244,6 +254,43 @@ pagemap_add_vma(struct pagemap *const pagemap,
     if (!map_result) {
         return false;
     }
+
+    return true;
+}
+
+bool
+pagemap_add_vma_at(struct pagemap *const pagemap,
+                   struct vm_area *const vma,
+                   const struct range in_range,
+                   const uint64_t phys_addr,
+                   const uint64_t align)
+{
+    const int flag = spin_acquire_with_irq(&pagemap->lock);
+
+    /*
+    list_add(&prev->vma_list, &vma->vma_list);
+    avltree_insert_at_loc(&pagemap->vma_tree,
+                          &vma->vma_node,
+                          &prev->vma_node,
+                          &prev->vma_node.right,
+                          vma_avltree_update);*/
+
+    const bool map_result =
+        arch_make_mapping(pagemap,
+                          phys_addr,
+                          vma->range.front,
+                          vma->range.size,
+                          vma->prot,
+                          vma->cachekind,
+                          /*needs_flush=*/false);
+
+    spin_release_with_irq(&pagemap->lock, flag);
+    if (!map_result) {
+        return false;
+    }
+
+    (void)in_range;
+    (void)align;
 
     return true;
 }

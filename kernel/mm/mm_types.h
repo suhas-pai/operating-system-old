@@ -8,11 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#if defined(__x86_64__)
-    #include "arch/x86_64/mm/types.h"
-#elif defined(__aarch64__)
-    #include "arch/aarch64/mm/types.h"
-#endif /* defined(__x86_64__) */
+#include "mm/types.h"
 
 #define SIZEOF_STRUCTPAGE (sizeof(uint64_t) * 5)
 #define PAGE_SIZE (1ull << PAGE_SHIFT)

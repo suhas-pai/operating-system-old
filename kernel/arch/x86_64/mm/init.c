@@ -371,7 +371,9 @@ bool should_ref_max_memmap(const struct limine_memmap_entry *const memmap) {
 }
 
 static void
-setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table) {
+setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
+                     uint64_t *const kernel_memmap_size_out)
+{
     const uint64_t root = early_alloc_page();
     if (root == 0) {
         panic("mm: failed to allocate root page for kernel-pagemap");
@@ -391,6 +393,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table) {
     struct limine_memmap_entry *const *entries = resp->entries;
     struct limine_memmap_entry *const *const end = entries + resp->entry_count;
 
+    uint64_t kernel_memmap_size = 0;
 
     // Map all 'good' regions into the hhdm
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
@@ -402,6 +405,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table) {
         }
 
         if (memmap->type == LIMINE_MEMMAP_KERNEL_AND_MODULES) {
+            kernel_memmap_size = memmap->length;
             map_into_kernel_pagemap(root,
                                     /*phys_addr=*/memmap->base,
                                     /*virt_addr=*/KERNEL_BASE,
@@ -415,6 +419,8 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table) {
                                     __PTE_WRITE | __PTE_NOEXEC | __PTE_GLOBAL);
         }
     }
+
+    *kernel_memmap_size_out = kernel_memmap_size;
 
     setup_pagestructs_table(root, total_bytes_repr_by_structpage_table);
     switch_to_pagemap(&kernel_pagemap);
@@ -507,6 +513,58 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table) {
     }
 }
 
+static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
+    // Setup vma_tree to include all ranges we've mapped.
+
+    struct vm_area *const null_area =
+        vma_alloc(&kernel_pagemap,
+                  range_create(0, PAGE_SIZE),
+                  PROT_NONE,
+                  VMA_CACHEKIND_NO_CACHE);
+
+    struct vm_area *const lower_2_mib_mmio =
+        vma_alloc(&kernel_pagemap,
+                  range_create(PAGE_SIZE, mib(2) - PAGE_SIZE),
+                  PROT_NONE,
+                  VMA_CACHEKIND_MMIO);
+
+    struct vm_area *const kernel =
+        vma_alloc(&kernel_pagemap,
+                  range_create(KERNEL_BASE, kernel_memmap_size),
+                  PROT_NONE,
+                  VMA_CACHEKIND_MMIO);
+
+    struct vm_area *const hhdm =
+        vma_alloc(&kernel_pagemap,
+                  range_create(HHDM_OFFSET, tib(64)),
+                  PROT_NONE,
+                  VMA_CACHEKIND_MMIO);
+
+    list_radd(&kernel_pagemap.vma_list, &null_area->vma_list);
+    avltree_insert(&kernel_pagemap.vma_tree,
+                   &null_area->vma_node,
+                   vma_avltree_compare,
+                   vma_avltree_update);
+
+    list_radd(&kernel_pagemap.vma_list, &lower_2_mib_mmio->vma_list);
+    avltree_insert(&kernel_pagemap.vma_tree,
+                   &lower_2_mib_mmio->vma_node,
+                   vma_avltree_compare,
+                   vma_avltree_update);
+
+    list_radd(&kernel_pagemap.vma_list, &kernel->vma_list);
+    avltree_insert(&kernel_pagemap.vma_tree,
+                   &kernel->vma_node,
+                   vma_avltree_compare,
+                   vma_avltree_update);
+
+    list_radd(&kernel_pagemap.vma_list, &hhdm->vma_list);
+    avltree_insert(&kernel_pagemap.vma_tree,
+                   &hhdm->vma_node,
+                   vma_avltree_compare,
+                   vma_avltree_update);
+}
+
 void mm_init() {
     assert(hhdm_request.response != NULL);
     assert(memmap_request.response != NULL);
@@ -593,7 +651,9 @@ void mm_init() {
     const uint64_t total_bytes_repr_by_structpage_table =
         (last_repr_memmap->base + last_repr_memmap->length) - entries[0]->base;
 
-    setup_kernel_pagemap(total_bytes_repr_by_structpage_table);
+    uint64_t kernel_memmap_size = 0;
+    setup_kernel_pagemap(total_bytes_repr_by_structpage_table,
+                         &kernel_memmap_size);
 
     const struct limine_memmap_entry *const first_memmap = entries[0];
     if (first_memmap->base != 0) {
@@ -641,5 +701,7 @@ void mm_init() {
     }
 
     kmalloc_init();
+    fill_kernel_pagemap_struct(kernel_memmap_size);
+
     printk(LOGLEVEL_INFO, "mm: finished setting up\n");
 }

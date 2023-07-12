@@ -22,7 +22,13 @@ $(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 # It is highly recommended to use a custom built cross toolchain to build a kernel.
 # We are only using "cc" as a placeholder here. It may work by using
 # the host system's toolchain, but this is not guaranteed.
-override DEFAULT_CC := $(ARCH)-elf-gcc
+
+ifeq ($(ARCH), x86_64)
+	override DEFAULT_CC := $(ARCH)-elf-gcc
+else
+	override DEFAULT_CC := clang
+endif
+
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
 
 override CC_IS_CLANG := no
@@ -30,11 +36,11 @@ ifeq ($(shell $(CC) --version 2>&1 | grep -i 'clang' >/dev/null 2>&1 && echo 1),
 	override CC_IS_CLANG := yes
 endif
 
-override DEFAULT_CXX := $(ARCH)-elf-g++
+override DEFAULT_CXX := clang++
 $(eval $(call DEFAULT_VAR,CXX,$(DEFAULT_CXX)))
 
 # Same thing for "ld" (the linker).
-override DEFAULT_LD := $(ARCH)-elf-ld
+override DEFAULT_LD := ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
 COMMON_FLAGS = -g3 -pipe -Wno-attributes -Wcast-align -Wcast-qual \
@@ -98,10 +104,15 @@ endif
 
 # Architecture specific internal flags.
 ifeq ($(ARCH),x86_64)
+	ifeq ($(CC_IS_CLANG),yes)
+		override CFLAGS += -target x86_64-elf
+	else
+		override CFLAGS += -mabi=sysv
+	endif
+
 	override CFLAGS += \
 		-m64 \
 		-march=x86-64 \
-		-mabi=sysv \
 		-mno-80387 \
 		-mno-mmx \
 		-mno-sse \
@@ -112,13 +123,19 @@ ifeq ($(ARCH),x86_64)
 	override NASMFLAGS += \
 		-f elf64
 else ifeq ($(ARCH),aarch64)
+	ifeq ($(CC_IS_CLANG),yes)
+		override CFLAGS += -target aarch64-elf
+	endif
+
 	override CFLAGS += \
+		-target aarch64-elf \
 		-mgeneral-regs-only -mno-outline-atomics
 	override LDFLAGS += \
 		-m aarch64elf
 else ifeq ($(ARCH),riscv64)
 	ifeq ($(CC_IS_CLANG),yes)
 		override CFLAGS += \
+			-target riscv64-elf \
 			-march=rv64imac
 	else
 		override CFLAGS += \
@@ -126,8 +143,6 @@ else ifeq ($(ARCH),riscv64)
 	endif
 	override CFLAGS += \
 		-mabi=lp64
-	override LDFLAGS += \
-		-m elf64lriscv
 else
 	$(error Architecture $(ARCH) not supported)
 endif
@@ -136,11 +151,15 @@ endif
 override LDFLAGS += \
 	-nostdlib \
 	-static \
-	-pie \
 	--no-dynamic-linker \
 	-z text \
 	-z max-page-size=0x1000 \
-	-T arch/$(ARCH)/linker.ld
+	-T arch/$(ARCH)/linker.ld \
+	-pie
+
+ifneq ($(ARCH), riscv64)
+	override LDFLAGS += -pie
+endif
 
 define FIND_FILES
 	override $(1) += $(shell find . -type f -name $(2) -not -path "./arch/*")

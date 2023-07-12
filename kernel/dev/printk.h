@@ -11,18 +11,18 @@
 #include "lib/adt/string_view.h"
 #include "lib/inttypes.h"
 
-struct console;
-struct console {
-    struct console *_Atomic next;
+struct terminal;
+struct terminal {
+    struct terminal *_Atomic next;
 
-    void (*emit_ch)(struct console *console, char ch, uint32_t amt);
-    void (*emit_sv)(struct console *console, const struct string_view sv);
+    void (*emit_ch)(struct terminal *term, char ch, uint32_t amt);
+    void (*emit_sv)(struct terminal *term, const struct string_view sv);
 
     /* Useful for panic() */
-    void (*bust_locks)(struct console *);
+    void (*bust_locks)(struct terminal *);
 };
 
-void printk_add_console(struct console *console);
+void printk_add_terminal(struct terminal *term);
 
 enum log_level {
     LOGLEVEL_DEBUG,

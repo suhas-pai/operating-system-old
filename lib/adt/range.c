@@ -36,11 +36,11 @@ bool range_get_end(const struct range range, uint64_t *const end_out) {
     return !chk_add_overflow(range.front, range.size, end_out);
 }
 
-bool range_above(struct range range, struct range above) {
+bool range_above(const struct range range, const struct range above) {
     return range_is_loc_above(range, above.front);
 }
 
-bool range_below(struct range range, struct range below) {
+bool range_below(const struct range range, const struct range below) {
     return range_is_loc_below(range, below.front);
 }
 

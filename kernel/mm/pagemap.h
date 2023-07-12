@@ -21,10 +21,17 @@ struct pagemap pagemap_create(struct page *root);
 extern struct pagemap kernel_pagemap;
 
 bool
-pagemap_add_vma(struct pagemap *pagemap,
-                struct vm_area *vma,
-                struct range in_range,
-                uint64_t phys_addr,
-                uint64_t align);
+pagemap_find_space_and_add_vma(struct pagemap *pagemap,
+                               struct vm_area *vma,
+                               struct range in_range,
+                               uint64_t phys_addr,
+                               uint64_t align);
+
+bool
+pagemap_add_vma_at(struct pagemap *pagemap,
+                   struct vm_area *vma,
+                   struct range in_range,
+                   uint64_t phys_addr,
+                   uint64_t align);
 
 void switch_to_pagemap(const struct pagemap *pagemap);

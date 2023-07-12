@@ -8,7 +8,7 @@
 #include "lib/refcount.h"
 #include "mm/slab.h"
 
-#include "types.h"
+#include "mm_types.h"
 
 struct page {
     _Atomic uint32_t flags;

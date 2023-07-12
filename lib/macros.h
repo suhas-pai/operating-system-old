@@ -14,7 +14,9 @@
     #define __noreturn __attribute__((noreturn))
 #endif /* !defined(__noreturn )*/
 
-#define __packed __attribute__((packed))
+#if !defined(__packed)
+    #define __packed __attribute__((packed))
+#endif /* !defined(__packed) */
 
 #if !defined(__printf_format)
     #define __printf_format(last_arg_idx, list_idx) \

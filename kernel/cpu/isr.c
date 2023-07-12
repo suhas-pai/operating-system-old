@@ -40,11 +40,11 @@ isr_vector_t isr_get_spur_vector() {
 }
 
 void isr_handle_interrupt(const uint64_t vector, irq_frame_t *const frame) {
-    printk(LOGLEVEL_DEBUG, "Got interrupt: %lu\n", vector);
+    printk(LOGLEVEL_DEBUG, "Got interrupt: %" PRIu64 "\n", vector);
     if (g_funcs[vector] != NULL) {
         g_funcs[vector](vector, frame);
     } else {
-        printk(LOGLEVEL_INFO, "Got unhandled interrupt %lu"  "\n", vector);
+        printk(LOGLEVEL_INFO, "Got unhandled interrupt %" PRIu64 "\n", vector);
     }
 }
 

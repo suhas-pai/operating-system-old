@@ -7,7 +7,7 @@
 
 void uart_init_driver(struct uart_driver *const driver) {
     if (driver->init(driver)) {
-        printk_add_console(&driver->console);
+        printk_add_terminal(&driver->term);
     }
 }
 

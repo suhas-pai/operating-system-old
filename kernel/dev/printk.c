@@ -8,10 +8,10 @@
 
 #include "printk.h"
 
-static struct console *_Atomic g_first_console = NULL;
-void printk_add_console(struct console *const console) {
-    atomic_store(&console->next, g_first_console);
-    atomic_store(&g_first_console, console);
+static struct terminal *_Atomic g_first_console = NULL;
+void printk_add_terminal(struct terminal *const term) {
+    atomic_store(&term->next, g_first_console);
+    atomic_store(&g_first_console, term);
 }
 
 void printk(const enum log_level loglevel, const char *const string, ...) {
@@ -35,11 +35,11 @@ write_char(struct printf_spec_info *const spec_info,
     (void)cb_info;
     (void)cont_out;
 
-    for (struct console *console = atomic_load(&g_first_console);
-         console != NULL;
-         console = atomic_load(&console->next))
+    for (struct terminal *term = atomic_load(&g_first_console);
+         term != NULL;
+         term = atomic_load(&term->next))
     {
-        console->emit_ch(console, ch, amount);
+        term->emit_ch(term, ch, amount);
     }
 
     return amount;
@@ -55,11 +55,11 @@ write_sv(struct printf_spec_info *const spec_info,
     (void)cb_info;
     (void)cont_out;
 
-    for (struct console *console = atomic_load(&g_first_console);
-         console != NULL;
-         console = atomic_load(&console->next))
+    for (struct terminal *term = atomic_load(&g_first_console);
+         term != NULL;
+         term = atomic_load(&term->next))
     {
-        console->emit_sv(console, sv);
+        term->emit_sv(term, sv);
     }
 
     return sv.length;
