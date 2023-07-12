@@ -32,8 +32,6 @@ list_add_common(struct list *const elem,
     elem->prev = prev;
     elem->next = next;
 
-    assert(next != NULL);
-
     prev->next = elem;
     next->prev = elem;
 }

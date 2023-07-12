@@ -55,7 +55,9 @@ static struct page *alloc_slab_page(struct slab_allocator *const alloc) {
     }
 
     // FIXME:
-    const struct page *const end = head + alloc->slab_order;
+    const struct page *const end =
+        head + ((PAGE_SIZE << alloc->slab_order) / sizeof(struct page));
+
     for (struct page *page = head + 1; page < end; page++) {
         page->slab.tail.head = head;
     }

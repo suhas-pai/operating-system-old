@@ -4,7 +4,37 @@
  */
 
 #pragma once
+
 #include "acpi/structs.h"
+#include "lib/adt/array.h"
+
+struct lapic_info {
+    uint8_t apic_id;
+    uint8_t processor_id;
+
+    bool enabled : 1;
+    bool online_capable : 1;
+};
+
+struct apic_iso_info {
+    uint8_t bus_src;
+    uint8_t irq_src;
+    uint8_t gsi;
+    uint16_t flags;
+};
+
+#if defined(__x86_64__)
+    struct ioapic_info {
+        uint8_t id;
+        uint8_t version;
+
+        uint32_t gsi_base;
+        uint8_t max_redirect_count;
+
+        /* gsib = Global System Interrupt Base */
+        volatile struct ioapic_registers *regs;
+    };
+#endif /* defined(__x86_64__) */
 
 struct acpi_info {
     const struct acpi_madt *madt;
@@ -12,6 +42,15 @@ struct acpi_info {
 
     const struct acpi_rsdp *rsdp;
     const struct acpi_rsdt *rsdt;
+
+    // List of struct acpi_madt_entry_cpu_lapic
+    struct array lapic_list;
+#if defined(__x86_64__)
+    struct array ioapic_list;
+#endif /* defined(__x86_64__) */
+    struct array iso_list;
+
+    uint8_t apic_nmi_lint : 1;
 };
 
 void acpi_init();

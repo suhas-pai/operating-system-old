@@ -15,7 +15,7 @@
 #define PML5_SHIFT 48
 
 #define PAGE_SHIFT PML1_SHIFT
-#define PG_PHYS_MASK 0x1fffffffffff000
+#define PG_PHYS_MASK 0x0000fffffffff000
 
 #define PGT_LEVEL_COUNT 5
 
@@ -52,13 +52,12 @@ enum pte_flags {
     __PTE_PRESENT = 1 << 0,
     __PTE_WRITE   = 1 << 1,
     __PTE_USER    = 1 << 2,
+    __PTE_PWT     = 1 << 3,
     __PTE_LARGE   = 1 << 7,
     __PTE_GLOBAL  = 1 << 8,
 
     __PTE_NOEXEC = 1ull << 63
 };
 
-#define PGT_FLAGS (__PTE_PRESENT | __PTE_WRITE | __PTE_NOEXEC)
-
+#define PGT_FLAGS (__PTE_PRESENT | __PTE_WRITE)
 struct page;
-extern const uint64_t PAGE_OFFSET;

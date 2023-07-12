@@ -34,7 +34,7 @@ struct page {
         struct {
             struct list delayed_free_list;
             struct refcount refcount;
-        } pte;
+        } table;
     };
 };
 
@@ -51,3 +51,4 @@ bool page_has_bit(struct page *page, enum struct_page_flags flag);
 void page_clear_bit(struct page *page, enum struct_page_flags flag);
 
 uint8_t page_get_section(struct page *page);
+struct page *alloc_table();

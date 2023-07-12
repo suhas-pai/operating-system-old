@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "lib/align.h"
 #include "lib/assert.h"
 #include "lib/overflow.h"
 #include "lib/util.h"
@@ -33,6 +34,33 @@ bool range_has_loc(const struct range range, const uint64_t loc) {
 
 bool range_get_end(const struct range range, uint64_t *const end_out) {
     return !chk_add_overflow(range.front, range.size, end_out);
+}
+
+bool range_above(struct range range, struct range above) {
+    return range_is_loc_above(range, above.front);
+}
+
+bool range_below(struct range range, struct range below) {
+    return range_is_loc_below(range, below.front);
+}
+
+bool range_is_loc_above(const struct range range, const uint64_t loc) {
+    return (loc >= range.front && (loc - range.front) >= range.size);
+}
+
+bool range_is_loc_below(const struct range range, const uint64_t loc) {
+    return (loc < range.front);
+}
+
+bool range_has_align(const struct range range, const uint64_t align) {
+    return has_align(range.front, align) && has_align(range.size, align);
+}
+
+uint64_t range_get_end_assert(const struct range range) {
+    uint64_t result = 0;
+    assert(range_get_end(range, &result));
+
+    return result;
 }
 
 struct range

@@ -15,11 +15,9 @@ round_up(const uint64_t number,
         return false;
     }
 
-    if (chk_add_overflow(number, multiple - 1, result_out)) {
-        return false;
-    }
-
-    if (chk_mul_overflow(*result_out / multiple, multiple, result_out)) {
+    if (chk_add_overflow(number, multiple - 1, result_out) ||
+        chk_mul_overflow(*result_out / multiple, multiple, result_out))
+    {
         return false;
     }
 

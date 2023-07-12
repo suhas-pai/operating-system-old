@@ -4,7 +4,6 @@
  */
 
 #pragma once
-#include <stdint.h>
 
 #include "cpu/spinlock.h"
 #include "lib/list.h"
@@ -24,4 +23,14 @@ enum page_alloc_flags {
 };
 
 struct page *alloc_pages(uint64_t alloc_flags, uint8_t order);
+struct page_zone;
+
+// free_pages will call zero-out the page. Call page_to_zone() and
+// free_pages_to_zone() directly to avoid this.
+
 void free_pages(struct page *page, uint8_t order);
+
+void
+free_pages_to_zone(struct page *page,
+                   struct page_zone *zone,
+                   uint8_t order);

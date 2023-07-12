@@ -8,13 +8,13 @@
 
 #include "limine.h"
 
-extern volatile struct limine_hhdm_request hhdm_request;
+uint64_t HHDM_OFFSET = 0;
 
 void *phys_to_virt(const uint64_t phys) {
-    return (void *)chk_add_overflow_assert(hhdm_request.response->offset, phys);
+    return (void *)chk_add_overflow_assert(HHDM_OFFSET, phys);
 }
 
 uint64_t virt_to_phys(const void *const virt) {
-    assert((uint64_t)virt >= hhdm_request.response->offset);
-    return (uint64_t)virt - hhdm_request.response->offset;
+    assert((uint64_t)virt >= HHDM_OFFSET);
+    return (uint64_t)virt - HHDM_OFFSET;
 }

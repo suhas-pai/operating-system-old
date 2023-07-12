@@ -3,12 +3,17 @@
  * © suhas pai
  */
 
+#if defined(__x86_64__)
+    #include "apic/ioapic.h"
+#endif /* defined(__x86_64__) */
+
+#include "acpi/api.h"
 #include "dev/printk.h"
 
 #include "lib/align.h"
-#include "mm/page.h"
 
-#include "madt.h"
+#include "mm/page.h"
+#include "mm/pagemap.h"
 
 void madt_init(const struct acpi_madt *const madt) {
     const struct acpi_madt_entry_header *iter = NULL;
@@ -46,7 +51,6 @@ void madt_init(const struct acpi_madt *const madt) {
                        "\tprocessor id: %" PRIu8 "\n",
                        hdr->processor_id);
 
-                #if 0
                 const struct lapic_info lapic_info = {
                     .apic_id = hdr->apic_id,
                     .processor_id = hdr->processor_id,
@@ -60,35 +64,36 @@ void madt_init(const struct acpi_madt *const madt) {
                 if (!lapic_info.enabled) {
                     if (lapic_info.online_capable) {
                         printk(LOGLEVEL_INFO,
-                               "apic: \tCPU #%" PRIu32 " (with Processor "
-                               "ID: %" PRIu8 " and local-apic id: %" PRIu8
-                               " has flag bit 0 disabled, but CAN be enabled",
+                               "apic: cpu #%" PRIu32 " (with processor "
+                               "id: %" PRIu8 " and local-apic id: %" PRIu8
+                               ") has flag bit 0 disabled, but CAN be "
+                               "enabled\n",
                                index,
                                hdr->processor_id,
                                hdr->apic_id);
                     } else {
                         printk(LOGLEVEL_INFO,
-                               "apic: \tCPU #%" PRIu32 " (with Processor "
-                               "ID: %" PRIu8 " and local-apic id: %" PRIu8
-                               " CANNOT be enabled",
+                               "apic: \tcpu #%" PRIu32 " (with processor "
+                               "id: %" PRIu8 " and local-apic id: %" PRIu8
+                               ") CANNOT be enabled\n",
                                index,
                                hdr->processor_id,
                                hdr->apic_id);
                     }
                 } else {
                     printk(LOGLEVEL_INFO,
-                           "apic: \tCPU #%" PRIu32 " (with Processor "
-                           "ID: %" PRIu8 " and local-apic id: %" PRIu8
-                           " CAN be enabled",
+                           "apic: cpu #%" PRIu32 " (with processor "
+                           "id: %" PRIu8 " and local-apic id: %" PRIu8
+                           ") CAN be enabled\n",
                            index,
                            hdr->processor_id,
                            hdr->apic_id);
                 }
 
-                get_apic_info_mut()->lapic_list[lapic_i] = lapic_info;
-                #endif
+                assert_msg(
+                    array_append(&get_acpi_info_mut()->lapic_list, &lapic_info),
+                    "Failed to add Local APIC info to array");
 
-                lapic_index++;
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_IO_APIC: {
@@ -100,6 +105,7 @@ void madt_init(const struct acpi_madt *const madt) {
                     goto done;
                 }
 
+            #if defined(__x86_64__)
                 const struct acpi_madt_entry_ioapic *const hdr =
                     (const struct acpi_madt_entry_ioapic *)iter;
 
@@ -111,15 +117,21 @@ void madt_init(const struct acpi_madt *const madt) {
                        hdr->gsib);
 
                 assert_msg(has_align(hdr->base, PAGE_SIZE),
-                           "IO-APIC base is not aligned on a page boundary");
+                           "io-apic base is not aligned on a page boundary");
 
-                #if 0
-                const uint64_t ioapic_base = phys_to_virt(hdr->base);
+                const uint64_t ioapic_base = (uint64_t)phys_to_virt(hdr->base);
+
+                // Avoid creating a vm_area for this mapping, as we override
+                // ptes inside the hhdm
+
                 const bool map_ioapic_base_result =
-                    vmm_map_mmio_page(/*phys_addr=*/hdr->base,
+                    arch_make_mapping(&kernel_pagemap,
+                                      /*phys_addr=*/hdr->base,
                                       /*virt_addr=*/ioapic_base,
-                                      VMM_PAGE_SIZE_ARCH_DEFAULT,
-                                      /*allow_remap=*/true);
+                                      PAGE_SIZE,
+                                      PROT_READ | PROT_WRITE,
+                                      VMA_CACHEKIND_MMIO,
+                                      /*needs_flush=*/true);
 
                 assert_msg(map_ioapic_base_result,
                            "Failed to map IO-APIC base");
@@ -132,7 +144,7 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 const uint32_t id_reg = ioapic_read(info.regs, IOAPIC_REG_ID);
                 assert_msg(info.id == ioapic_id_reg_get_id(id_reg),
-                           "IO-APIC ID in MADT doesn't match ID in MMIO");
+                           "io-apic ID in MADT doesn't match ID in MMIO");
 
                 const uint32_t ioapic_version_reg =
                     ioapic_read(info.regs, IOAPIC_REG_VERSION);
@@ -143,14 +155,20 @@ void madt_init(const struct acpi_madt *const madt) {
                     ioapic_version_reg_get_max_redirect_count(
                         ioapic_version_reg);
 
-                const bool add_base_result =
-                    array_add_item(&get_apic_info_mut()->ioapic_list,
-                                   sizeof(info),
-                                   &info);
+                printk(LOGLEVEL_INFO,
+                       "ioapic: version: %" PRIu8 "\n",
+                       info.version);
+                printk(LOGLEVEL_INFO,
+                       "ioapic: max redirect count: %" PRIu8 "\n",
+                       info.max_redirect_count);
 
-                assert_msg(add_base_result,
-                           "Failed to add IO-APIC base to array");
-                #endif
+                assert_msg(
+                    array_append(&get_acpi_info_mut()->ioapic_list, &info),
+                    "Failed to add IO-APIC base to array");
+            #else
+                printk(LOGLEVEL_WARN,
+                       "apic: found ioapic entry in madt. ignoring");
+            #endif /* defined(__x86_64__) */
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_INT_SRC_OVERRIDE: {
@@ -180,7 +198,6 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 printk(LOGLEVEL_INFO, "\tFlags: 0x%" PRIx16 "\n", hdr->flags);
 
-                #if 0
                 const struct apic_iso_info info = {
                     .bus_src = hdr->bus_source,
                     .irq_src = hdr->irq_source,
@@ -188,13 +205,8 @@ void madt_init(const struct acpi_madt *const madt) {
                     .flags = hdr->flags
                 };
 
-                const bool add_result =
-                    array_add_item(&get_apic_info_mut()->iso_list,
-                                   sizeof(info),
-                                   &info);
-
-                assert_msg(add_result, "Failed to add APIC ISO-Info to array");
-                #endif
+                assert_msg(array_append(&get_acpi_info_mut()->iso_list, &info),
+                           "Failed to add APIC ISO-Info to array");
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT_SRC: {
@@ -242,7 +254,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 printk(LOGLEVEL_INFO, "\tflags: %" PRIu16 "\n", hdr->flags);
                 printk(LOGLEVEL_INFO, "\tlint: %" PRIu8 "\n", hdr->lint);
 
-                //get_apic_info_mut()->nmi_lint = hdr->lint;
+                get_acpi_info_mut()->apic_nmi_lint = hdr->lint;
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_LOCAL_APIC_ADDR_OVERRIDE: {

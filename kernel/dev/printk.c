@@ -3,9 +3,9 @@
  * © suhas pai
  */
 
+#include "cpu/spinlock.h"
 #include "lib/parse_printf.h"
 
-#include "cpu/spinlock.h"
 #include "printk.h"
 
 static struct console *_Atomic g_first_console = NULL;
@@ -66,10 +66,7 @@ write_sv(struct printf_spec_info *const spec_info,
 }
 
 void
-vprintk(const enum log_level loglevel,
-        const char *const string,
-        va_list list)
-{
+vprintk(const enum log_level loglevel, const char *const string, va_list list) {
     (void)loglevel;
 
     static struct spinlock lock = {};

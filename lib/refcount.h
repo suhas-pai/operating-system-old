@@ -16,7 +16,10 @@ struct refcount {
 #define REFCOUNT_MAX INT32_MAX
 
 #define refcount_create() ((struct refcount){ .count = 1 })
+#define refcount_create_max() ((struct refcount){ .count = REFCOUNT_MAX })
+
 void refcount_init(struct refcount *ref);
+void refcount_init_max(struct refcount *ref);
 
 void refcount_increment(struct refcount *ref, int32_t amount);
 bool refcount_decrement(struct refcount *ref, int32_t amount);

@@ -41,6 +41,10 @@ uint8_t pgt_get_top_level();
 bool pte_is_present(pte_t pte);
 bool pte_is_large(pte_t pte, uint8_t level);
 
+#define pte_to_phys(pte) ((pte) & PG_PHYS_MASK)
+#define pte_to_pfn(pte) phys_to_pfn(pte_to_phys(pte))
+#define pte_to_page(pte) pfn_to_page(pte_to_pfn(pte))
+
 void *phys_to_virt(uint64_t phys);
 uint64_t virt_to_phys(const void *phys);
 
@@ -50,3 +54,31 @@ static inline
 uint16_t virt_to_pt_index(const void *const virt, const uint8_t level) {
     return ((uint64_t)virt >> PAGE_SHIFTS[level - 1]) & PT_LEVEL_MASKS[level];
 }
+
+extern const uint64_t PAGE_OFFSET;
+extern const uint64_t VMAP_BASE;
+extern const uint64_t VMAP_END;
+
+enum prot_flags {
+    PROT_NONE,
+    PROT_READ = 1 << 0,
+    PROT_WRITE = 1 << 1,
+    PROT_EXEC = 1 << 2,
+
+    PROT_RW = PROT_READ | PROT_WRITE,
+    PROT_WX = PROT_WRITE | PROT_EXEC,
+    PROT_RX = PROT_READ | PROT_EXEC,
+
+    PROT_RWX = PROT_READ | PROT_WRITE | PROT_EXEC
+};
+
+enum vma_cachekind {
+    VMA_CACHEKIND_WRITEBACK,
+    VMA_CACHEKIND_DEFAULT = VMA_CACHEKIND_WRITEBACK,
+
+    VMA_CACHEKIND_WRITETHROUGH,
+    VMA_CACHEKIND_WRITECOMBINING,
+    VMA_CACHEKIND_NO_CACHE,
+
+    VMA_CACHEKIND_MMIO = VMA_CACHEKIND_WRITETHROUGH
+};

@@ -4,6 +4,6 @@
  */
 
 #pragma once
-#include "page_table.h"
+#include "mm/pageop.h"
 
 void tlb_flush_pageop(struct pageop *pageop);

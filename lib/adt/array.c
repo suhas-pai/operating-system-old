@@ -19,8 +19,9 @@ struct array array_alloc(const uint64_t obj_size, const uint64_t item_cap) {
     };
 }
 
-void array_append(struct array *const array, const void *const item) {
-    gbuffer_append_data(&array->gbuffer, item, array->object_size);
+bool array_append(struct array *const array, const void *const item) {
+    return gbuffer_append_data(&array->gbuffer, item, array->object_size) ==
+           array->object_size;
 }
 
 void array_remove_index(struct array *const array, const uint64_t index) {
@@ -41,8 +42,16 @@ void *array_begin(const struct array array) {
     return array.gbuffer.begin;
 }
 
-const void *array_end(struct array array) {
-    return gbuffer_end(array.gbuffer);
+const void *array_end(const struct array array) {
+    return array.gbuffer.end;
+}
+
+void *array_at(const struct array array, const uint64_t index) {
+    assert(index_in_bounds(index, array_item_count(array)));
+    const uint64_t byte_index =
+        chk_mul_overflow_assert(index, array.object_size);
+
+    return array.gbuffer.begin + byte_index;
 }
 
 uint64_t array_item_count(const struct array array) {

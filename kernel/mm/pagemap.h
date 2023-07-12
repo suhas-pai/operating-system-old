@@ -5,12 +5,6 @@
 
 #pragma once
 
-#include "cpu/spinlock.h"
-#include "lib/adt/avltree.h"
-
-#include "lib/list.h"
-#include "lib/refcount.h"
-
 #include "page.h"
 #include "vma.h"
 
@@ -24,3 +18,13 @@ struct pagemap {
 };
 
 struct pagemap pagemap_create(struct page *root);
+extern struct pagemap kernel_pagemap;
+
+bool
+pagemap_add_vma(struct pagemap *pagemap,
+                struct vm_area *vma,
+                struct range in_range,
+                uint64_t phys_addr,
+                uint64_t align);
+
+void switch_to_pagemap(const struct pagemap *pagemap);

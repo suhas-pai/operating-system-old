@@ -5,15 +5,17 @@
 
 #include "asm/regs.h"
 #include "lib/align.h"
+#include "lib/size.h"
 #include "dev/printk.h"
 
 #include "mm/kmalloc.h"
 #include "mm/page_alloc.h"
+#include "mm/pagemap.h"
 #include "mm/walker.h"
 
 #include "limine.h"
 
-volatile struct limine_hhdm_request hhdm_request = {
+static volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
     .revision = 0,
     .response = NULL
@@ -30,6 +32,9 @@ volatile struct limine_paging_mode_request paging_mode_request = {
     .revision = 0,
     .response = NULL
 };
+
+#define KERNEL_BASE 0xffffffff80000000
+extern uint64_t HHDM_OFFSET;
 
 struct freepages_info {
     struct list list_entry;
@@ -170,11 +175,11 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
 }
 
 static void
-setup_pagestructs_table(const uint64_t root_page, uint64_t byte_count) {
+setup_pagestructs_table(const uint64_t root_phys, const uint64_t byte_count) {
     const uint64_t structpage_count = PAGE_COUNT(byte_count);
     uint64_t map_size = structpage_count * SIZEOF_STRUCTPAGE;
 
-    if (!align_up(map_size, PAGE_SIZE_2MIB, &map_size)) {
+    if (!align_up(map_size, PAGE_SIZE, &map_size)) {
         panic("Failed to initialize memory, overflow error when alighing");
     }
 
@@ -189,8 +194,8 @@ setup_pagestructs_table(const uint64_t root_page, uint64_t byte_count) {
 
     enum pt_walker_result walker_result = E_PT_WALKER_OK;
     ptwalker_create_customroot(&pt_walker,
-                               root_page,
-                               PAGE_OFFSET,
+                               /*root_phys*/root_phys,
+                               /*virt_addr=*/PAGE_OFFSET,
                                /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
                                /*free_pgtable=*/NULL);
 
@@ -317,10 +322,189 @@ setup_pagestructs_table(const uint64_t root_page, uint64_t byte_count) {
     }
 }
 
-static inline bool is_usable_memory(const uint64_t type) {
-    return type == LIMINE_MEMMAP_USABLE ||
-           type == LIMINE_MEMMAP_ACPI_RECLAIMABLE ||
-           type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE;
+static void
+map_into_kernel_pagemap(const uint64_t root_phys,
+                        const uint64_t phys_addr,
+                        const uint64_t virt_addr,
+                        const uint64_t size,
+                        const uint64_t pte_flags)
+{
+    struct pt_walker walker = {};
+    ptwalker_create_customroot(&walker,
+                               root_phys,
+                               virt_addr,
+                               ptwalker_alloc_pgtable_cb,
+                               /*free_pgtable=*/NULL);
+
+    enum pt_walker_result ptwalker_result =
+        ptwalker_fill_in_to(&walker,
+                            /*level=*/1,
+                            /*should_ref=*/false,
+                            /*alloc_pgtable_cb_info=*/NULL,
+                            /*free_pgtable_cb_info=*/NULL);
+
+    // TODO: The kernel+modules should be mapped 1gib large pages
+    for (uint64_t i = 0; i < size; i += PAGE_SIZE) {
+        if (ptwalker_result != E_PT_WALKER_OK) {
+            panic("Failed to setup kernel pagemap");
+        }
+
+        walker.tables[0][walker.indices[0]] =
+            (phys_addr + i) | __PTE_PRESENT | pte_flags;
+
+        ptwalker_result =
+            ptwalker_next_custom(&walker,
+                                 /*level=*/1,
+                                 /*alloc_parents=*/true,
+                                 /*alloc_level=*/true,
+                                 /*should_ref=*/false,
+                                 /*alloc_pgtable_cb_info=*/NULL,
+                                 /*free_pgtable_cb_info=*/NULL);
+    }
+}
+
+static inline
+bool should_ref_max_memmap(const struct limine_memmap_entry *const memmap) {
+    return (memmap->type == LIMINE_MEMMAP_KERNEL_AND_MODULES ||
+            memmap->type == LIMINE_MEMMAP_FRAMEBUFFER ||
+            memmap->type == LIMINE_MEMMAP_ACPI_NVS);
+}
+
+static void
+setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table) {
+    const uint64_t root = early_alloc_page();
+    if (root == 0) {
+        panic("mm: failed to allocate root page for kernel-pagemap");
+    }
+
+    // Identity map lower 2 mib (excluding NULL page)
+
+    kernel_pagemap.root = phys_to_page(root);
+    map_into_kernel_pagemap(root,
+                            /*phys_addr=*/PAGE_SIZE,
+                            /*virt_addr=*/PAGE_SIZE,
+                            /*size=*/mib(2) - PAGE_SIZE,
+                            __PTE_WRITE | __PTE_NOEXEC);
+
+    const struct limine_memmap_response *const resp = memmap_request.response;
+
+    struct limine_memmap_entry *const *entries = resp->entries;
+    struct limine_memmap_entry *const *const end = entries + resp->entry_count;
+
+
+    // Map all 'good' regions into the hhdm
+    for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
+        const struct limine_memmap_entry *const memmap = *memmap_iter;
+        if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
+            memmap->type == LIMINE_MEMMAP_RESERVED)
+        {
+            continue;
+        }
+
+        if (memmap->type == LIMINE_MEMMAP_KERNEL_AND_MODULES) {
+            map_into_kernel_pagemap(root,
+                                    /*phys_addr=*/memmap->base,
+                                    /*virt_addr=*/KERNEL_BASE,
+                                    memmap->length,
+                                    __PTE_WRITE | __PTE_GLOBAL);
+        } else {
+            map_into_kernel_pagemap(root,
+                                    /*phys_addr=*/memmap->base,
+                                    (uint64_t)phys_to_virt(memmap->base),
+                                    memmap->length,
+                                    __PTE_WRITE | __PTE_NOEXEC | __PTE_GLOBAL);
+        }
+    }
+
+    setup_pagestructs_table(root, total_bytes_repr_by_structpage_table);
+    switch_to_pagemap(&kernel_pagemap);
+
+    // All 'good' memmaps use pages with associated struct pages to them,
+    // despite the pages being allocated before the structpage-table, so we have
+    // to go through each table used, and setup all pgtable metadata inside a
+    // struct page
+
+    for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
+        const struct limine_memmap_entry *const memmap = *memmap_iter;
+        if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
+            memmap->type == LIMINE_MEMMAP_RESERVED)
+        {
+            continue;
+        }
+
+        uint64_t virt_addr = 0;
+        if (memmap->type == LIMINE_MEMMAP_KERNEL_AND_MODULES) {
+            virt_addr = KERNEL_BASE;
+        } else {
+            virt_addr = (uint64_t)phys_to_virt(memmap->base);
+        }
+
+        struct pt_walker walker = {};
+        ptwalker_create_customroot(&walker,
+                                   root,
+                                   virt_addr,
+                                   /*alloc_pgtable=*/NULL,
+                                   /*free_pgtable=*/NULL);
+
+        for (uint8_t level = (uint8_t)walker.level;
+             level <= walker.top_level;
+             level++)
+        {
+            struct page *const page = virt_to_page(walker.tables[level - 1]);
+            list_init(&page->table.delayed_free_list);
+
+            if (level == walker.level && should_ref_max_memmap(memmap)) {
+                refcount_init_max(&page->table.refcount);
+            } else {
+                refcount_init(&page->table.refcount);
+            }
+        }
+
+        // Track changes to the `walker.tables` array by seeing if the index of
+        // the lowest level ever reaches (PGT_COUNT - 1). When it does,
+        // set ref_pages = true
+
+        bool ref_pages = false;
+        for (uint64_t i = 0; i < memmap->length; i += PAGE_SIZE) {
+            const enum pt_walker_result advance_result =
+                ptwalker_next(&walker, /*op=*/NULL);
+
+            if (advance_result != E_PT_WALKER_OK) {
+                panic("Failed to setup kernel pagemap");
+            }
+
+            // When ref_pages is true, the lowest level will have an index 0
+            // after incrementing.
+            // All levels higher will also be reset to 0, but only until a level
+            // with an index not equal to 0.
+
+            if (ref_pages) {
+                for (uint8_t level = (uint8_t)walker.level;
+                    level < walker.top_level;
+                    level++)
+                {
+                    const uint64_t index = walker.indices[level - 1];
+                    if (index != 0) {
+                        break;
+                    }
+
+                    pte_t *const table = walker.tables[level - 1];
+                    struct page *const page = virt_to_page(table);
+
+                    list_init(&page->table.delayed_free_list);
+                    if (level == walker.level &&
+                        should_ref_max_memmap(memmap))
+                    {
+                        refcount_init_max(&page->table.refcount);
+                    } else {
+                        refcount_init(&page->table.refcount);
+                    }
+                }
+            }
+
+            ref_pages = walker.indices[walker.level - 1] == PGT_COUNT - 1;
+        }
+    }
 }
 
 void mm_init() {
@@ -328,6 +512,7 @@ void mm_init() {
     assert(memmap_request.response != NULL);
     assert(paging_mode_request.response != NULL);
 
+    HHDM_OFFSET = hhdm_request.response->offset;
     printk(LOGLEVEL_INFO,
            "mm: hhdm at %p\n",
            (void *)hhdm_request.response->offset);
@@ -338,19 +523,21 @@ void mm_init() {
     struct limine_memmap_entry *const *const end = entries + resp->entry_count;
 
     uint64_t memmap_index = 0;
-    uint64_t memmap_last_usable_index = 0;
+    uint64_t memmap_last_repr_index = 0;
 
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         const struct limine_memmap_entry *const memmap = *memmap_iter;
         const char *type_desc = "<unknown>";
 
-        // Don't yet claim pages in *Reclaimable memmaps, although we do map it
+        // Don't claim pages in *Reclaimable memmaps yet, although we do map it
         // in the structpage table.
 
         switch (memmap->type) {
             case LIMINE_MEMMAP_USABLE:
                 claim_pages(memmap->base, PAGE_COUNT(memmap->length));
+
                 type_desc = "usable";
+                memmap_last_repr_index = memmap_index;
 
                 break;
             case LIMINE_MEMMAP_RESERVED:
@@ -358,26 +545,32 @@ void mm_init() {
                 break;
             case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
                 type_desc = "acpi-reclaimable";
+                memmap_last_repr_index = memmap_index;
+
                 break;
             case LIMINE_MEMMAP_ACPI_NVS:
                 type_desc = "acpi-nvs";
+                memmap_last_repr_index = memmap_index;
+
                 break;
             case LIMINE_MEMMAP_BAD_MEMORY:
                 type_desc = "bad-memory";
                 break;
             case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
                 type_desc = "bootloader-reclaimable";
+                memmap_last_repr_index = memmap_index;
+
                 break;
             case LIMINE_MEMMAP_KERNEL_AND_MODULES:
                 type_desc = "kernel-and-modules";
+                memmap_last_repr_index = memmap_index;
+
                 break;
             case LIMINE_MEMMAP_FRAMEBUFFER:
                 type_desc = "framebuffer";
-                break;
-        }
+                memmap_last_repr_index = memmap_index;
 
-        if (is_usable_memory(memmap->type)) {
-            memmap_last_usable_index = memmap_index;
+                break;
         }
 
         printk(LOGLEVEL_INFO,
@@ -394,14 +587,13 @@ void mm_init() {
            "mm: system has %" PRIu64 " usable pages\n",
            total_free_pages);
 
-    const struct limine_memmap_entry *const last_usable_memmap =
-        entries[memmap_last_usable_index];
+    const struct limine_memmap_entry *const last_repr_memmap =
+        entries[memmap_last_repr_index];
 
     const uint64_t total_bytes_repr_by_structpage_table =
-        (last_usable_memmap->base + last_usable_memmap->length) -
-        entries[0]->base;
+        (last_repr_memmap->base + last_repr_memmap->length) - entries[0]->base;
 
-    setup_pagestructs_table(read_cr3(), total_bytes_repr_by_structpage_table);
+    setup_kernel_pagemap(total_bytes_repr_by_structpage_table);
 
     const struct limine_memmap_entry *const first_memmap = entries[0];
     if (first_memmap->base != 0) {
@@ -414,24 +606,25 @@ void mm_init() {
         }
     }
 
-    for (uint64_t i = 0; i != memmap_last_usable_index; i++) {
+    for (uint64_t i = 0; i <= memmap_last_repr_index; i++) {
         struct limine_memmap_entry *const memmap = entries[i];
-        if (is_usable_memory(memmap->type)) {
-            continue;
-        }
+        if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
+            memmap->type == LIMINE_MEMMAP_RESERVED)
+        {
+            struct page *page = phys_to_page(memmap->base);
+            for (uint64_t j = 0; j != PAGE_COUNT(memmap->length); j++, page++) {
+                // Avoid using `set_page_bit()` because we don't need atomic ops
+                // this early.
 
-        struct page *page = phys_to_page(memmap->base);
-        for (uint64_t j = 0; j != PAGE_COUNT(memmap->length); j++, page++) {
-            // Avoid using `set_page_bit()` because we don't need atomic ops
-            // this early.
-
-            page->flags |= PAGE_NOT_USABLE;
+                page->flags |= PAGE_NOT_USABLE;
+            }
         }
     }
 
     printk(LOGLEVEL_INFO, "mm: finished setting up structpage table\n");
     pagezones_init();
 
+    // TODO: Claim bootloader-reclaimable and acpi-reclaimable pages
     struct freepages_info *walker = NULL;
     struct freepages_info *tmp = NULL;
 
@@ -442,6 +635,7 @@ void mm_init() {
         const struct page *const page_end = page + walker->count;
 
         for (; page != page_end; page++) {
+            // Call free_pages_to_zone() to avoid re-zeroing usable pages.
             free_page(page);
         }
     }

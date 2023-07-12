@@ -36,7 +36,6 @@ bool gbuffer_ensure_can_add_capacity(struct growable_buffer *gb, uint64_t add);
 struct mutable_buffer
 gbuffer_get_mutable_buffer(struct growable_buffer gbuffer);
 
-const void *gbuffer_end(struct growable_buffer gbuffer);
 void *gbuffer_current_ptr(struct growable_buffer gbuffer);
 
 uint8_t *

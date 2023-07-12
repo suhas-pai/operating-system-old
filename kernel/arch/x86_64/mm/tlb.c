@@ -9,27 +9,25 @@
 
 #include "tlb.h"
 
-static
-void tlb_flush_range(const struct range range, const uint64_t page_order) {
-    uint64_t end = 0;
-    assert(range_get_end(range, &end));
-
-    for (uint64_t addr = range.front;
-         addr < end;
-         addr += PAGE_SIZE << page_order)
-    {
+static void tlb_flush_range(const struct range range) {
+    const uint64_t end = range_get_end_assert(range);
+    for (uint64_t addr = range.front; addr < end; addr += PAGE_SIZE) {
         invlpg(addr);
     }
 }
 
 void tlb_flush_pageop(struct pageop *const pageop) {
-    tlb_flush_range(pageop->flush_range, pageop->page_order);
+    tlb_flush_range(pageop->flush_range);
 
     struct page *page = NULL;
     struct page *tmp = NULL;
 
-    list_foreach_mut(page, tmp, &pageop->delayed_free, pte.delayed_free_list) {
-        list_delete(&page->pte.delayed_free_list);
+    list_foreach_mut(page,
+                     tmp,
+                     &pageop->delayed_free,
+                     table.delayed_free_list)
+    {
+        list_delete(&page->table.delayed_free_list);
         free_page(page);
     }
 }

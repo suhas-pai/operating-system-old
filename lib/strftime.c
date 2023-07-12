@@ -50,7 +50,7 @@ handle_strftime_spec(
     uint64_t *const written_out,
     bool *const should_continue_out)
 {
-#define CALL_CALLBACK(sv)                                                      \
+#define CALL_CALLBACK(sv) \
     do {                                                                       \
         sv_cb(spec_info, sv_cb_info, (sv), should_continue_out);               \
         if (!*should_continue_out) {                                           \
@@ -58,7 +58,7 @@ handle_strftime_spec(
         }                                                                      \
     } while (false)
 
-#define RECURSIVE_CALL_FOR_SPEC(other_spec)                                    \
+#define RECURSIVE_CALL_FOR_SPEC(other_spec) \
     do {                                                                       \
         const struct strftime_spec_info other_spec_info = {                    \
             .spec = other_spec,                                                \
@@ -82,7 +82,7 @@ handle_strftime_spec(
      * since our sv is at most 2 characters, we have enough space for a zero.
      */
 
-#define PAD_WITH_CHAR_IF_NECESSARY(sv, ch, expected_len)                       \
+#define PAD_WITH_CHAR_IF_NECESSARY(sv, ch, expected_len) \
     do {                                                                       \
         const struct strftime_modifiers mods = spec_info->mods;                \
         if (!mods.dont_pad_number) {                                           \
@@ -112,8 +112,8 @@ handle_strftime_spec(
      * Simple macro to use the `_upper` function when we need to.
      */
 
-#define GET_SV_FROM_FUNC(func, ...)                                            \
-    (spec_info->mods.capitalize_letters ?                                    \
+#define GET_SV_FROM_FUNC(func, ...) \
+    (spec_info->mods.capitalize_letters ?                                      \
         VAR_CONCAT(func, _upper)(__VA_ARGS__) :                                \
         func(__VA_ARGS__))                                                     \
 
