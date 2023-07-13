@@ -9,8 +9,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "lib/assert.h"
-
 /* list is a circular doubly-linked list */
 struct list {
     struct list *prev;
@@ -51,8 +49,11 @@ static inline bool list_empty(struct list *const list) {
 }
 
 static inline void list_delete(struct list *const elem) {
-    elem->prev->next = elem->next;
     elem->next->prev = elem->prev;
+    elem->prev->next = elem->next;
+
+    elem->prev = NULL;
+    elem->next = NULL;
 }
 
 #define container_of(ptr, type, name) \
@@ -72,8 +73,19 @@ static inline void list_delete(struct list *const elem) {
     for(iter = list_head(list, typeof(*iter), name); &iter->name != (list); \
         iter = list_next(iter, name))
 
+#define list_count(list, type, name) ({ \
+    uint64_t __result__ = 0;            \
+    for (__auto_type __iter__ = list_head(list, type, name); \
+         &__iter__->(name) != (list);                        \
+         __iter__ = list_next(__iter__, name))               \
+    {                                  \
+        __result__++;                  \
+    }                                  \
+    __result__;                        \
+})
+
 #define list_foreach_mut(iter, tmp, list, name) \
-    for(iter = list_head(list, typeof(*iter), name), \
-            tmp = list_next(iter, name);             \
-        &iter->name != (list);                       \
-        iter = tmp, tmp = list_next(iter, name))
+    for (iter = list_head(list, typeof(*iter), name), \
+             tmp = list_next(iter, name);             \
+         &iter->name != (list);                       \
+         iter = tmp, tmp = list_next(iter, name))

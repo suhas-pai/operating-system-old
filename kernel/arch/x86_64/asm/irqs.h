@@ -8,6 +8,11 @@
 #include <stdbool.h>
 #include "rflags.h"
 
+enum irq_number {
+    IRQ_TIMER    = 0,
+    IRQ_KEYBOARD = 1,
+};
+
 static inline bool are_interrupts_enabled() {
     return (x86_64_read_rflags() & RFLAGS_INTERRUPTS_ENABLED) != 0;
 }

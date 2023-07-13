@@ -4,11 +4,10 @@
  */
 
 #if defined(__x86_64__)
-    #include "arch/x86_64/asm/regs.h"
+    #include "asm/regs.h"
 #endif /* defined(__x86_64__) */
 
 #include "lib/align.h"
-
 #include "mm/pagemap.h"
 
 #include "walker.h"

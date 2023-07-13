@@ -3,6 +3,9 @@
  * © suhas pai
  */
 
+#pragma once
+#include "../../port.h"
+
 enum port {
     PORT_PIT_CHANNEL_0_DATA = 0x40,
     PORT_PIT_MODE_COMMAND   = 0x43,

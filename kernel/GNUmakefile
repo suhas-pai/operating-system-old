@@ -104,6 +104,10 @@ endif
 
 # Architecture specific internal flags.
 ifeq ($(ARCH),x86_64)
+	ifeq ($(CC_IS_CLANG),yes)
+		override CFLAGS += -target x86_64-elf
+	endif
+
 	override CFLAGS += \
 		-m64 \
 		-march=x86-64 \

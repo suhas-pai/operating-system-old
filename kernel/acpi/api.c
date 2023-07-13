@@ -71,6 +71,13 @@ void acpi_init(void) {
         panic("ACPI is not supported on this machine");
     }
 
+#if defined(__x86_64__)
+    array_init(&get_acpi_info_mut()->lapic_list, sizeof(struct lapic_info));
+    array_init(&get_acpi_info_mut()->ioapic_list, sizeof(struct ioapic_info));
+#endif /* defined(__x86_64__) */
+
+    array_init(&get_acpi_info_mut()->iso_list, sizeof(struct apic_iso_info));
+
     info.rsdp = response->address;
     if (has_xsdt()) {
         info.rsdt = phys_to_virt(info.rsdp->v2.xsdt_addr);

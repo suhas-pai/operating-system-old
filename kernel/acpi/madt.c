@@ -5,6 +5,7 @@
 
 #if defined(__x86_64__)
     #include "apic/ioapic.h"
+    #include "apic/init.h"
 #endif /* defined(__x86_64__) */
 
 #include "acpi/api.h"
@@ -18,10 +19,11 @@
 void madt_init(const struct acpi_madt *const madt) {
     const struct acpi_madt_entry_header *iter = NULL;
 
+#if defined(__x86_64__)
     uint64_t local_apic_base = madt->local_apic_base;
-    uint32_t lapic_index = 0;
-    uint32_t length = madt->sdt.length - sizeof(*madt);
+#endif /* defined(_-x86_64__) */
 
+    uint32_t length = madt->sdt.length - sizeof(*madt);
     for (uint32_t offset = 0, index = 0;
          offset + sizeof(struct acpi_madt_entry_header) <= length;
          offset += iter->length, index++)
@@ -37,9 +39,10 @@ void madt_init(const struct acpi_madt *const madt) {
                            "apic: invalid local-apic madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
-                    goto done;
+                    continue;
                 }
 
+            #if defined(__x86_64__)
                 const struct acpi_madt_entry_cpu_lapic *const hdr =
                     (const struct acpi_madt_entry_cpu_lapic *)iter;
 
@@ -93,6 +96,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 assert_msg(
                     array_append(&get_acpi_info_mut()->lapic_list, &lapic_info),
                     "Failed to add Local APIC info to array");
+            #endif /* defined(__x86_64__) */
 
                 break;
             }
@@ -102,7 +106,7 @@ void madt_init(const struct acpi_madt *const madt) {
                            "apic: invalid io-apic madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
-                    goto done;
+                    continue;
                 }
 
             #if defined(__x86_64__)
@@ -119,15 +123,13 @@ void madt_init(const struct acpi_madt *const madt) {
                 assert_msg(has_align(hdr->base, PAGE_SIZE),
                            "io-apic base is not aligned on a page boundary");
 
-                const uint64_t ioapic_base = (uint64_t)phys_to_virt(hdr->base);
-
                 // Avoid creating a vm_area for this mapping, as we override
                 // ptes inside the hhdm
 
                 const bool map_ioapic_base_result =
                     arch_make_mapping(&kernel_pagemap,
                                       /*phys_addr=*/hdr->base,
-                                      /*virt_addr=*/ioapic_base,
+                                      /*virt_addr=*/hdr->base,
                                       PAGE_SIZE,
                                       PROT_READ | PROT_WRITE,
                                       VMA_CACHEKIND_MMIO,
@@ -139,7 +141,8 @@ void madt_init(const struct acpi_madt *const madt) {
                 struct ioapic_info info = {
                     .id = hdr->apic_id,
                     .gsi_base = hdr->gsib,
-                    .regs = (volatile struct ioapic_registers *)ioapic_base
+                    .regs =
+                        (volatile struct ioapic_registers *)(uint64_t)hdr->base
                 };
 
                 const uint32_t id_reg = ioapic_read(info.regs, IOAPIC_REG_ID);
@@ -177,7 +180,7 @@ void madt_init(const struct acpi_madt *const madt) {
                            "apic: invalid int-src override madt entry at "
                            "index: %" PRIu32,
                            index);
-                    goto done;
+                    continue;
                 }
 
                 const struct acpi_madt_entry_iso *const hdr =
@@ -215,7 +218,7 @@ void madt_init(const struct acpi_madt *const madt) {
                            "apic: invalid nmi source madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
-                    goto done;
+                    continue;
                 }
 
                 const struct acpi_madt_entry_nmi_src *const hdr =
@@ -239,7 +242,7 @@ void madt_init(const struct acpi_madt *const madt) {
                            "apic: invalid nmi override madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
-                    goto done;
+                    continue;
                 }
 
                 const struct acpi_madt_entry_nmi *const hdr =
@@ -254,7 +257,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 printk(LOGLEVEL_INFO, "\tflags: %" PRIu16 "\n", hdr->flags);
                 printk(LOGLEVEL_INFO, "\tlint: %" PRIu8 "\n", hdr->lint);
 
-                get_acpi_info_mut()->apic_nmi_lint = hdr->lint;
+                get_acpi_info_mut()->nmi_lint = hdr->lint;
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_LOCAL_APIC_ADDR_OVERRIDE: {
@@ -265,9 +268,10 @@ void madt_init(const struct acpi_madt *const madt) {
                            "apic: invalid lapic addr override madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
-                    goto done;
+                    continue;
                 }
 
+            #if defined(__x86_64__)
                 const struct acpi_madt_entry_lapic_addr_override *const hdr =
                     (const struct acpi_madt_entry_lapic_addr_override *)iter;
 
@@ -276,6 +280,7 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 printk(LOGLEVEL_INFO, "\tbase: 0x%" PRIx64 "\n", hdr->base);
                 local_apic_base = hdr->base;
+            #endif /* defined(__x86_64__) */
 
                 break;
             }
@@ -287,7 +292,7 @@ void madt_init(const struct acpi_madt *const madt) {
                            "apic: invalid local x2apic madt entry at "
                            "index: %" PRIu32 "\n",
                            index);
-                    goto done;
+                    continue;
                 }
 
                 const struct acpi_madt_entry_cpu_local_x2apic *const hdr =
@@ -311,7 +316,20 @@ void madt_init(const struct acpi_madt *const madt) {
         }
     }
 
-done:
-    (void)local_apic_base;
-    (void)lapic_index;
+#if defined(__x86_64__)
+    assert_msg(local_apic_base != 0, "Failed to find local-apic registers");
+    const bool map_lapic_regs_result =
+        arch_make_mapping(&kernel_pagemap,
+                          /*phys_addr=*/local_apic_base,
+                          /*virt_addr=*/local_apic_base,
+                          PAGE_SIZE,
+                          PROT_READ | PROT_WRITE,
+                          VMA_CACHEKIND_MMIO,
+                          /*needs_flush=*/true);
+
+    assert_msg(map_lapic_regs_result, "Failed to map lapic-regs");
+    get_acpi_info_mut()->lapic_regs = (volatile void *)local_apic_base;
+
+    apic_init();
+#endif /* defined(__x86_64__) */
 }

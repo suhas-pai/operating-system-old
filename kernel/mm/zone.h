@@ -8,6 +8,8 @@
 
 struct page_freelist {
     struct list pages;
+
+    uint8_t order;
     uint64_t count;
 };
 
@@ -26,5 +28,5 @@ struct page_zone *page_to_zone(struct page *const page);
 
 #define for_each_page_zone(zone) \
     for (__auto_type zone = page_zone_iterstart(); \
-         zone != NULL;                                  \
+         zone != NULL;                             \
          zone = page_zone_iternext(zone))

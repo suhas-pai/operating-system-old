@@ -69,8 +69,8 @@ alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
     while (alloced_order > order) {
         alloced_order--;
 
-        struct page *const buddy_page = buddy_of(page, order);
-        buddy_page->buddy.order = order;
+        struct page *const buddy_page = buddy_of(page, alloced_order);
+        buddy_page->buddy.order = alloced_order;
 
         add_to_freelist(&zone->freelist_list[alloced_order], buddy_page);
     }
@@ -125,7 +125,7 @@ free_pages_to_zone(struct page *page,
                    uint8_t order)
 {
     const int flag = spin_acquire_with_irq(&zone->lock);
-    for (; order != MAX_ORDER - 1; order++) {
+    for (; order == MAX_ORDER - 1; order++) {
         struct page *buddy = buddy_of(page, order);
         if (zone != page_to_zone(buddy)) {
             break;

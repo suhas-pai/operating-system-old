@@ -3,9 +3,9 @@
  * © suhas pai
  */
 
-#include "asm/regs.h"
 #include "lib/align.h"
 #include "lib/size.h"
+
 #include "dev/printk.h"
 
 #include "mm/kmalloc.h"
@@ -89,7 +89,7 @@ static uint64_t early_alloc_page() {
     return free_page;
 }
 
-__unused static uint64_t alloc_cont_pages(const uint32_t amount) {
+static uint64_t alloc_cont_pages(const uint32_t amount) {
     if (list_empty(&freepages_list)) {
         printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
         return 0;
@@ -371,6 +371,75 @@ bool should_ref_max_memmap(const struct limine_memmap_entry *const memmap) {
 }
 
 static void
+refcount_range(const uint64_t virt_addr,
+               const uint64_t length,
+               const bool ref_max)
+{
+    struct pt_walker walker = {};
+    ptwalker_create(&walker,
+                    virt_addr,
+                    /*alloc_pgtable=*/NULL,
+                    /*free_pgtable=*/NULL);
+
+    for (uint8_t level = (uint8_t)walker.level;
+         level <= walker.top_level;
+         level++)
+    {
+        struct page *const page = virt_to_page(walker.tables[level - 1]);
+        list_init(&page->table.delayed_free_list);
+
+        if (level == walker.level && ref_max) {
+            refcount_init_max(&page->table.refcount);
+        } else {
+            refcount_init(&page->table.refcount);
+        }
+    }
+
+    // Track changes to the `walker.tables` array by seeing if the index of
+    // the lowest level ever reaches (PGT_COUNT - 1). When it does,
+    // set ref_pages = true
+
+    bool ref_pages = false;
+    for (uint64_t i = 0; i < length; i += PAGE_SIZE) {
+        const enum pt_walker_result advance_result =
+            ptwalker_next(&walker, /*op=*/NULL);
+
+        if (advance_result != E_PT_WALKER_OK) {
+            panic("Failed to setup kernel pagemap");
+        }
+
+        // When ref_pages is true, the lowest level will have an index 0
+        // after incrementing.
+        // All levels higher will also be reset to 0, but only until a level
+        // with an index not equal to 0.
+
+        if (ref_pages) {
+            for (uint8_t level = (uint8_t)walker.level;
+                level < walker.top_level;
+                level++)
+            {
+                const uint64_t index = walker.indices[level - 1];
+                if (index != 0) {
+                    break;
+                }
+
+                pte_t *const table = walker.tables[level - 1];
+                struct page *const page = virt_to_page(table);
+
+                list_init(&page->table.delayed_free_list);
+                if (level == walker.level && ref_max) {
+                    refcount_init_max(&page->table.refcount);
+                } else {
+                    refcount_init(&page->table.refcount);
+                }
+            }
+        }
+
+        ref_pages = walker.indices[walker.level - 1] == PGT_COUNT - 1;
+    }
+}
+
+static void
 setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
                      uint64_t *const kernel_memmap_size_out)
 {
@@ -430,6 +499,11 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // to go through each table used, and setup all pgtable metadata inside a
     // struct page
 
+    // Refcount the lower 2 mib range
+    refcount_range(/*virt_addr=*/PAGE_SIZE,
+                   /*length=*/mib(2) - PAGE_SIZE,
+                   /*ref_max=*/true);
+
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         const struct limine_memmap_entry *const memmap = *memmap_iter;
         if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
@@ -445,71 +519,9 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
             virt_addr = (uint64_t)phys_to_virt(memmap->base);
         }
 
-        struct pt_walker walker = {};
-        ptwalker_create_customroot(&walker,
-                                   root,
-                                   virt_addr,
-                                   /*alloc_pgtable=*/NULL,
-                                   /*free_pgtable=*/NULL);
-
-        for (uint8_t level = (uint8_t)walker.level;
-             level <= walker.top_level;
-             level++)
-        {
-            struct page *const page = virt_to_page(walker.tables[level - 1]);
-            list_init(&page->table.delayed_free_list);
-
-            if (level == walker.level && should_ref_max_memmap(memmap)) {
-                refcount_init_max(&page->table.refcount);
-            } else {
-                refcount_init(&page->table.refcount);
-            }
-        }
-
-        // Track changes to the `walker.tables` array by seeing if the index of
-        // the lowest level ever reaches (PGT_COUNT - 1). When it does,
-        // set ref_pages = true
-
-        bool ref_pages = false;
-        for (uint64_t i = 0; i < memmap->length; i += PAGE_SIZE) {
-            const enum pt_walker_result advance_result =
-                ptwalker_next(&walker, /*op=*/NULL);
-
-            if (advance_result != E_PT_WALKER_OK) {
-                panic("Failed to setup kernel pagemap");
-            }
-
-            // When ref_pages is true, the lowest level will have an index 0
-            // after incrementing.
-            // All levels higher will also be reset to 0, but only until a level
-            // with an index not equal to 0.
-
-            if (ref_pages) {
-                for (uint8_t level = (uint8_t)walker.level;
-                    level < walker.top_level;
-                    level++)
-                {
-                    const uint64_t index = walker.indices[level - 1];
-                    if (index != 0) {
-                        break;
-                    }
-
-                    pte_t *const table = walker.tables[level - 1];
-                    struct page *const page = virt_to_page(table);
-
-                    list_init(&page->table.delayed_free_list);
-                    if (level == walker.level &&
-                        should_ref_max_memmap(memmap))
-                    {
-                        refcount_init_max(&page->table.refcount);
-                    } else {
-                        refcount_init(&page->table.refcount);
-                    }
-                }
-            }
-
-            ref_pages = walker.indices[walker.level - 1] == PGT_COUNT - 1;
-        }
+        refcount_range(virt_addr,
+                       memmap->length,
+                       should_ref_max_memmap(memmap));
     }
 }
 
@@ -695,7 +707,6 @@ void mm_init() {
         const struct page *const page_end = page + walker->count;
 
         for (; page != page_end; page++) {
-            // Call free_pages_to_zone() to avoid re-zeroing usable pages.
             free_page(page);
         }
     }

@@ -5,16 +5,22 @@
 
 #pragma once
 
+#if defined(__x86_64__)
+    #include "apic/structs.h"
+#endif /* defined(__x86_64__) */
+
 #include "acpi/structs.h"
 #include "lib/adt/array.h"
 
-struct lapic_info {
-    uint8_t apic_id;
-    uint8_t processor_id;
+#if defined(__x86_64__)
+    struct lapic_info {
+        uint8_t apic_id;
+        uint8_t processor_id;
 
-    bool enabled : 1;
-    bool online_capable : 1;
-};
+        bool enabled : 1;
+        bool online_capable : 1;
+    };
+#endif /* defined(__x86_64__) */
 
 struct apic_iso_info {
     uint8_t bus_src;
@@ -43,14 +49,21 @@ struct acpi_info {
     const struct acpi_rsdp *rsdp;
     const struct acpi_rsdt *rsdt;
 
-    // List of struct acpi_madt_entry_cpu_lapic
-    struct array lapic_list;
 #if defined(__x86_64__)
+    volatile struct lapic_registers *lapic_regs;
+#endif /* defined(__x86_64__) */
+
+#if defined(__x86_64__)
+    // List of struct lapic_info
+    struct array lapic_list;
     struct array ioapic_list;
 #endif /* defined(__x86_64__) */
     struct array iso_list;
 
-    uint8_t apic_nmi_lint : 1;
+    uint8_t nmi_lint : 1;
+#if defined(__x86_64__)
+    bool using_x2apic : 1;
+#endif /* defined(__x86_64__) */
 };
 
 void acpi_init();

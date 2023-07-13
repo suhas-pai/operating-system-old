@@ -8,4 +8,6 @@
 #include <stdint.h>
 
 void gdt_load();
+
 uint16_t gdt_get_kernel_code_segment();
+uint16_t gdt_get_user_data_segment();

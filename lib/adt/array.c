@@ -5,11 +5,9 @@
 
 #include "array.h"
 
-struct array array_create(const uint64_t object_size) {
-    return (struct array){
-        .gbuffer = {},
-        .object_size = object_size
-    };
+void array_init(struct array *const array, const uint64_t object_size) {
+    array->gbuffer = GBUFFER_INIT();
+    array->object_size = object_size;
 }
 
 struct array array_alloc(const uint64_t obj_size, const uint64_t item_cap) {

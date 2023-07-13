@@ -49,12 +49,14 @@ static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
 #define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
 
 enum pte_flags {
-    __PTE_PRESENT = 1 << 0,
-    __PTE_WRITE   = 1 << 1,
-    __PTE_USER    = 1 << 2,
-    __PTE_PWT     = 1 << 3,
-    __PTE_LARGE   = 1 << 7,
-    __PTE_GLOBAL  = 1 << 8,
+    __PTE_PRESENT  = 1 << 0,
+    __PTE_WRITE    = 1 << 1,
+    __PTE_USER     = 1 << 2,
+    __PTE_PWT      = 1 << 3,
+    __PTE_PCD      = 1 << 4,
+    __PTE_ACCESSED = 1 << 5,
+    __PTE_LARGE    = 1 << 7,
+    __PTE_GLOBAL   = 1 << 8,
 
     __PTE_NOEXEC = 1ull << 63
 };

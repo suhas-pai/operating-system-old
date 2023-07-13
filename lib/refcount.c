@@ -16,7 +16,7 @@ void refcount_init_max(struct refcount *const ref) {
 
 void refcount_increment(struct refcount *const ref, const int32_t amount) {
     const int32_t old =
-        atomic_fetch_add_explicit(&ref->count, 1, memory_order_relaxed);
+        atomic_fetch_add_explicit(&ref->count, amount, memory_order_relaxed);
 
     if (old == 0) {
         panic("Either refcount not initialized or UAF");

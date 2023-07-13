@@ -19,6 +19,8 @@ struct growable_buffer {
     bool is_alloc : 1;
 };
 
+#define GBUFFER_INIT() ((struct growable_buffer){})
+
 struct growable_buffer gbuffer_alloc(uint64_t init_cap);
 struct growable_buffer gbuffer_alloc_copy(void *data, const uint64_t size);
 

@@ -176,6 +176,10 @@ uint16_t gdt_get_kernel_code_segment() {
     return 0x28;
 }
 
+uint16_t gdt_get_user_data_segment() {
+    return 0x50;
+}
+
 void gdt_load() {
     asm volatile (
         "lgdt %0\n\t"

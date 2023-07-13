@@ -3,6 +3,8 @@
  * © suhas pai
  */
 
+#include "lib/align.h"
+
 #include "mm/pagemap.h"
 #include "mm/walker.h"
 
@@ -64,6 +66,8 @@ arch_make_mapping(struct pagemap *const pagemap,
                   const enum vma_cachekind cachekind,
                   const bool needs_flush)
 {
+    assert(has_align(size, PAGE_SIZE));
+
     // TODO: Add Huge page support
     struct pageop pageop;
     pageop_init(&pageop);
