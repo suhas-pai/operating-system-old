@@ -5,6 +5,8 @@
 
 #if defined(__x86_64__)
     #include "asm/regs.h"
+#elif defined(__aarch64__)
+    #include "asm/ttbr.h"
 #endif /* defined(__x86_64__) */
 
 #include "lib/align.h"
@@ -32,6 +34,9 @@ ptwalker_free_pgtable_cb(struct pt_walker *const walker,
 static inline uint64_t get_root_phys() {
 #if defined(__x86_64__)
     const uint64_t root_phys = read_cr3();
+#elif defined(__aarch64__)
+    // TODO: User pagemaps are in ttbr1_base_address()
+    const uint64_t root_phys = read_ttbr0_base_address();
 #else
     const uint64_t root_phys = 0;
     verify_not_reached();
@@ -96,7 +101,7 @@ ptwalker_create_customroot(struct pt_walker *const walker,
         if (prev_table != NULL) {
             const pte_t entry = prev_table[walker->indices[level]];
             if (pte_is_present(entry)) {
-                table = phys_to_virt(entry & PG_PHYS_MASK);
+                table = phys_to_virt(entry & PTE_PHYS_MASK);
                 walker->level = level;
             }
         }
@@ -165,7 +170,7 @@ setup_levels_lower_than(struct pt_walker *const walker,
     uint8_t level = orig_level - 1;
 
     while (true) {
-        pte_t *const table = phys_to_virt(*pte & PG_PHYS_MASK);
+        pte_t *const table = phys_to_virt(*pte & PTE_PHYS_MASK);
 
         walker->tables[level - 1] = table;
         walker->indices[level - 1] = 0;
@@ -470,7 +475,7 @@ ptwalker_fill_in_lowest(struct pt_walker *const walker, struct page *const page)
 
     *pte = page_to_phys(page) | PGT_FLAGS;
 
-    ref_up(&phys_to_page(*pte & PG_PHYS_MASK)->table.refcount);
+    ref_up(&phys_to_page(*pte & PTE_PHYS_MASK)->table.refcount);
     ref_up(&page->table.refcount);
 }
 

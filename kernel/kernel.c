@@ -60,6 +60,6 @@ void _start(void) {
     isr_init();
     dev_init();
 
-    enable_interrupts();
+    enable_all_interrupts();
     hcf();
 }

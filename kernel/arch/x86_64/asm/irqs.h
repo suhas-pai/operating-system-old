@@ -17,19 +17,19 @@ static inline bool are_interrupts_enabled() {
     return (x86_64_read_rflags() & RFLAGS_INTERRUPTS_ENABLED) != 0;
 }
 
-static inline void disable_interrupts() { asm volatile("cli"); }
-static inline void enable_interrupts() { asm volatile("sti"); }
+static inline void disable_all_interrupts() { asm volatile("cli"); }
+static inline void enable_all_interrupts() { asm volatile("sti"); }
 
-static inline bool disable_int_if_not() {
+static inline bool disable_all_int_if_not() {
     const bool result = are_interrupts_enabled();
-    disable_interrupts();
+    disable_all_interrupts();
 
     return result;
 }
 
-static inline void enable_int_if_flag(const bool flag) {
+static inline void enable_all_int_if_flag(const bool flag) {
     if (flag) {
-        enable_interrupts();
+        enable_all_interrupts();
     }
 }
 

@@ -28,7 +28,7 @@ void spin_release(struct spinlock *const lock) {
 int spin_acquire_with_irq(struct spinlock *const lock) {
     const bool irqs_enabled = are_interrupts_enabled();
 
-    disable_interrupts();
+    disable_all_interrupts();
     spin_acquire(lock);
 
     return irqs_enabled;
@@ -37,6 +37,6 @@ int spin_acquire_with_irq(struct spinlock *const lock) {
 void spin_release_with_irq(struct spinlock *const lock, const int flag) {
     spin_release(lock);
     if (flag != 0) {
-        enable_interrupts();
+        enable_all_interrupts();
     }
 }

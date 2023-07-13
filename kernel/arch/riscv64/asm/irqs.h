@@ -8,11 +8,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-static inline void disable_interrupts(void) {
+static inline void disable_all_interrupts(void) {
     asm volatile ("csrci sstatus, 0x2" ::: "memory");
 }
 
-static inline void enable_interrupts(void) {
+static inline void enable_all_interrupts(void) {
     asm volatile ("csrsi sstatus, 0x2" ::: "memory");
 }
 

@@ -43,7 +43,7 @@ arch_make_mapping(struct pagemap *const pagemap,
                   const uint64_t size,
                   const uint8_t prot,
                   const enum vma_cachekind cachekind,
-                  const bool needs_flush)
+                  const bool is_overwrite)
 {
     // TODO: Add Huge page support
     struct pageop pageop;
@@ -65,20 +65,43 @@ arch_make_mapping(struct pagemap *const pagemap,
     }
 
     const uint64_t flags = flags_from_info(prot, cachekind);
-    for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
-        walker.tables[0][walker.indices[0]] = (phys_addr + i) | flags;
-        ptwalker_result = ptwalker_next(&walker, &pageop);
+    if (is_overwrite) {
+        for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
+            const pte_t old_entry = walker.tables[0][walker.indices[0]];
+            const pte_t new_entry = (phys_addr + i) | flags;
 
-        if (ptwalker_result != E_PT_WALKER_OK) {
-            undo_changes(&walker, &pageop, i);
-            pageop_finish(&pageop);
+            walker.tables[0][walker.indices[0]] = new_entry;
+            if (pte_is_present(old_entry)) {
+                const uint64_t flags_mask =
+                    __PTE_READ | __PTE_WRITE | __PTE_EXEC | __PTE_USER;
 
-            return false;
+                if ((old_entry & flags_mask) != (new_entry & flags_mask) ||
+                    (old_entry & PTE_PHYS_MASK) != (new_entry & PTE_PHYS_MASK))
+                {
+                    pageop_flush(&pageop, virt_addr + i);
+                }
+            }
+
+            ptwalker_result = ptwalker_next(&walker, &pageop);
+            if (ptwalker_result != E_PT_WALKER_OK) {
+                undo_changes(&walker, &pageop, i);
+                pageop_finish(&pageop);
+
+                return false;
+            }
         }
-    }
+    } else {
+        for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
+            walker.tables[0][walker.indices[0]] = (phys_addr + i) | flags;
+            ptwalker_result = ptwalker_next(&walker, &pageop);
 
-    if (needs_flush) {
-        pageop_flush_range(&pageop, range_create(virt_addr, size));
+            if (ptwalker_result != E_PT_WALKER_OK) {
+                undo_changes(&walker, &pageop, i);
+                pageop_finish(&pageop);
+
+                return false;
+            }
+        }
     }
 
     pageop_finish(&pageop);

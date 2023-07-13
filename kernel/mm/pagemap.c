@@ -248,7 +248,7 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
                           vma->range.size,
                           vma->prot,
                           vma->cachekind,
-                          /*needs_flush=*/false);
+                          /*is_overwrite=*/false);
 
     spin_release_with_irq(&pagemap->lock, flag);
     if (!map_result) {
@@ -282,7 +282,7 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
                           vma->range.size,
                           vma->prot,
                           vma->cachekind,
-                          /*needs_flush=*/false);
+                          /*is_overwrite=*/false);
 
     spin_release_with_irq(&pagemap->lock, flag);
     if (!map_result) {

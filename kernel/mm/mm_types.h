@@ -37,7 +37,7 @@ uint8_t pgt_get_top_level();
 bool pte_is_present(pte_t pte);
 bool pte_is_large(pte_t pte, uint8_t level);
 
-#define pte_to_phys(pte) ((pte) & PG_PHYS_MASK)
+#define pte_to_phys(pte) ((pte) & PTE_PHYS_MASK)
 #define pte_to_pfn(pte) phys_to_pfn(pte_to_phys(pte))
 #define pte_to_page(pte) pfn_to_page(pte_to_pfn(pte))
 

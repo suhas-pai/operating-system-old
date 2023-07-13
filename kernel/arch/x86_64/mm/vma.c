@@ -66,7 +66,7 @@ arch_make_mapping(struct pagemap *const pagemap,
                   const uint64_t size,
                   const uint8_t prot,
                   const enum vma_cachekind cachekind,
-                  const bool needs_flush)
+                  const bool is_overwrite)
 {
     assert(has_align(size, PAGE_SIZE));
 
@@ -90,20 +90,44 @@ arch_make_mapping(struct pagemap *const pagemap,
     }
 
     const uint64_t flags = flags_from_info(prot, cachekind);
-    for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
-        walker.tables[0][walker.indices[0]] = (phys_addr + i) | flags;
-        ptwalker_result = ptwalker_next(&walker, &pageop);
+    if (is_overwrite) {
+        for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
+            const pte_t entry = walker.tables[0][walker.indices[0]];
+            const pte_t new_entry = (phys_addr + i) | flags;
 
-        if (ptwalker_result != E_PT_WALKER_OK) {
-            undo_changes(&walker, &pageop, i);
-            pageop_finish(&pageop);
+            walker.tables[0][walker.indices[0]] = new_entry;
+            if (pte_is_present(entry)) {
+                const uint64_t flags_mask =
+                    __PTE_WRITE | __PTE_USER | __PTE_PWT | __PTE_PCD |
+                    __PTE_PAT | __PTE_GLOBAL | __PTE_NOEXEC;
 
-            return false;
+                if ((entry & flags_mask) != (new_entry & flags_mask) ||
+                    (entry & PTE_PHYS_MASK) != (new_entry & PTE_PHYS_MASK))
+                {
+                    pageop_flush(&pageop, virt_addr + i);
+                }
+            }
+
+            ptwalker_result = ptwalker_next(&walker, &pageop);
+            if (ptwalker_result != E_PT_WALKER_OK) {
+                undo_changes(&walker, &pageop, i);
+                pageop_finish(&pageop);
+
+                return false;
+            }
         }
-    }
+    } else {
+        for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
+            walker.tables[0][walker.indices[0]] = (phys_addr + i) | flags;
+            ptwalker_result = ptwalker_next(&walker, &pageop);
 
-    if (needs_flush) {
-        pageop_flush_range(&pageop, range_create(virt_addr, size));
+            if (ptwalker_result != E_PT_WALKER_OK) {
+                undo_changes(&walker, &pageop, i);
+                pageop_finish(&pageop);
+
+                return false;
+            }
+        }
     }
 
     pageop_finish(&pageop);

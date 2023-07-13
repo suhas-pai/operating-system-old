@@ -74,4 +74,4 @@ arch_make_mapping(struct pagemap *pagemap,
                   uint64_t size,
                   uint8_t prot,
                   enum vma_cachekind cachekind,
-                  bool needs_flush);
+                  bool is_overwrite);

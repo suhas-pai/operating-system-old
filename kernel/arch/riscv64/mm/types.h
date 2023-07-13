@@ -13,7 +13,7 @@
 #define PML5_SHIFT 48
 
 #define PAGE_SHIFT PML1_SHIFT
-#define PG_PHYS_MASK 0x003ffffffffffc00
+#define PTE_PHYS_MASK 0x003ffffffffffc00
 
 #define PGT_LEVEL_COUNT 5
 

@@ -52,21 +52,21 @@ void pit_sleep_for(const uint32_t ms) {
 }
 
 uint16_t pit_get_current_tick() {
-    const bool flag = disable_int_if_not();
+    const bool flag = disable_all_int_if_not();
     port_out8(PORT_PIT_MODE_COMMAND, 0x0);
 
     const uint8_t low = port_in8(PORT_PIT_CHANNEL_0_DATA);
     const uint8_t high = port_in8(PORT_PIT_CHANNEL_0_DATA);
 
-    enable_int_if_flag(flag);
+    enable_all_int_if_flag(flag);
     return (uint16_t)high << 8 | low;
 }
 
 void pit_set_reload_value(const uint16_t count) {
-    const bool flag = disable_int_if_not();
+    const bool flag = disable_all_int_if_not();
 
     port_out8(PORT_PIT_CHANNEL_0_DATA, count & 0xFF);
     port_out8(PORT_PIT_CHANNEL_0_DATA, (count & 0xFF00) >> 8);
 
-    enable_int_if_flag(flag);
+    enable_all_int_if_flag(flag);
 }

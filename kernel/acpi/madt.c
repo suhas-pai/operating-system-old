@@ -123,8 +123,8 @@ void madt_init(const struct acpi_madt *const madt) {
                 assert_msg(has_align(hdr->base, PAGE_SIZE),
                            "io-apic base is not aligned on a page boundary");
 
-                // Avoid creating a vm_area for this mapping, as we override
-                // ptes inside the hhdm
+                // Avoid creating a vm_area for this mapping, as we likely
+                // are inside another vma.
 
                 const bool map_ioapic_base_result =
                     arch_make_mapping(&kernel_pagemap,
@@ -133,7 +133,7 @@ void madt_init(const struct acpi_madt *const madt) {
                                       PAGE_SIZE,
                                       PROT_READ | PROT_WRITE,
                                       VMA_CACHEKIND_MMIO,
-                                      /*needs_flush=*/true);
+                                      /*is_overwrite=*/true);
 
                 assert_msg(map_ioapic_base_result,
                            "Failed to map IO-APIC base");
@@ -325,7 +325,7 @@ void madt_init(const struct acpi_madt *const madt) {
                           PAGE_SIZE,
                           PROT_READ | PROT_WRITE,
                           VMA_CACHEKIND_MMIO,
-                          /*needs_flush=*/true);
+                          /*is_overwrite=*/true);
 
     assert_msg(map_lapic_regs_result, "Failed to map lapic-regs");
     get_acpi_info_mut()->lapic_regs = (volatile void *)local_apic_base;
