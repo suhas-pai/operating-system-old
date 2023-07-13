@@ -42,7 +42,7 @@ void apic_init() {
            (info->version & F_LAPIC_VERSION_REG_VERION_MASK));
 
     uint64_t apic_msr = read_msr(IA32_MSR_APIC_BASE);
-    printk(LOGLEVEL_INFO, "apic: msr: %" PRIx64 "\n", apic_msr);
+    printk(LOGLEVEL_INFO, "apic: msr: 0x%" PRIx64 "\n", apic_msr);
 
     /* Use the x2apic if available */
     if (get_cpu_capabilities()->supports_x2apic) {

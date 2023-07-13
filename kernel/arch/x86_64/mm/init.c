@@ -3,6 +3,8 @@
  * © suhas pai
  */
 
+#include "asm/msr.h"
+
 #include "lib/align.h"
 #include "lib/size.h"
 
@@ -363,18 +365,12 @@ map_into_kernel_pagemap(const uint64_t root_phys,
     }
 }
 
-static inline
-bool should_ref_max_memmap(const struct limine_memmap_entry *const memmap) {
-    return (memmap->type == LIMINE_MEMMAP_KERNEL_AND_MODULES ||
-            memmap->type == LIMINE_MEMMAP_FRAMEBUFFER ||
-            memmap->type == LIMINE_MEMMAP_ACPI_NVS);
+static void init_table_page(struct page *const page) {
+    list_init(&page->table.delayed_free_list);
+    refcount_init(&page->table.refcount);
 }
 
-static void
-refcount_range(const uint64_t virt_addr,
-               const uint64_t length,
-               const bool ref_max)
-{
+static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
     struct pt_walker walker = {};
     ptwalker_create(&walker,
                     virt_addr,
@@ -386,13 +382,7 @@ refcount_range(const uint64_t virt_addr,
          level++)
     {
         struct page *const page = virt_to_page(walker.tables[level - 1]);
-        list_init(&page->table.delayed_free_list);
-
-        if (level == walker.level && ref_max) {
-            refcount_init_max(&page->table.refcount);
-        } else {
-            refcount_init(&page->table.refcount);
-        }
+        init_table_page(page);
     }
 
     // Track changes to the `walker.tables` array by seeing if the index of
@@ -426,12 +416,7 @@ refcount_range(const uint64_t virt_addr,
                 pte_t *const table = walker.tables[level - 1];
                 struct page *const page = virt_to_page(table);
 
-                list_init(&page->table.delayed_free_list);
-                if (level == walker.level && ref_max) {
-                    refcount_init_max(&page->table.refcount);
-                } else {
-                    refcount_init(&page->table.refcount);
-                }
+                init_table_page(page);
             }
         }
 
@@ -481,11 +466,16 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
                                     memmap->length,
                                     __PTE_WRITE | __PTE_GLOBAL);
         } else {
+            uint64_t flags = __PTE_WRITE | __PTE_NOEXEC | __PTE_GLOBAL;
+            if (memmap->type == LIMINE_MEMMAP_FRAMEBUFFER) {
+                flags |= __PTE_PAT;
+            }
+
             map_into_kernel_pagemap(root,
                                     /*phys_addr=*/memmap->base,
                                     (uint64_t)phys_to_virt(memmap->base),
                                     memmap->length,
-                                    __PTE_WRITE | __PTE_NOEXEC | __PTE_GLOBAL);
+                                    flags);
         }
     }
 
@@ -500,10 +490,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // struct page
 
     // Refcount the lower 2 mib range
-    refcount_range(/*virt_addr=*/PAGE_SIZE,
-                   /*length=*/mib(2) - PAGE_SIZE,
-                   /*ref_max=*/true);
-
+    refcount_range(/*virt_addr=*/PAGE_SIZE, /*length=*/mib(2) - PAGE_SIZE);
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         const struct limine_memmap_entry *const memmap = *memmap_iter;
         if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
@@ -519,9 +506,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
             virt_addr = (uint64_t)phys_to_virt(memmap->base);
         }
 
-        refcount_range(virt_addr,
-                       memmap->length,
-                       should_ref_max_memmap(memmap));
+        refcount_range(virt_addr, memmap->length);
     }
 }
 
@@ -586,6 +571,14 @@ void mm_init() {
     printk(LOGLEVEL_INFO,
            "mm: hhdm at %p\n",
            (void *)hhdm_request.response->offset);
+
+    // Enable write-combining
+    const uint64_t pat_msr =
+        read_msr(IA32_MSR_PAT) & ~(0b111ull << MSR_PAT_INDEX_PAT4);
+    const uint64_t write_combining_mask =
+        (uint64_t)MSR_PAT_ENCODING_WRITE_COMBINING << MSR_PAT_INDEX_PAT4;
+
+    write_msr(IA32_MSR_PAT, pat_msr | write_combining_mask);
 
     const struct limine_memmap_response *const resp = memmap_request.response;
 
@@ -674,22 +667,25 @@ void mm_init() {
             // Avoid using `set_page_bit()` because we don't need atomic ops
             // this early.
 
-            page->flags |= PAGE_NOT_USABLE;
+            page->flags = PAGE_NOT_USABLE;
         }
     }
 
     for (uint64_t i = 0; i <= memmap_last_repr_index; i++) {
         struct limine_memmap_entry *const memmap = entries[i];
-        if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
-            memmap->type == LIMINE_MEMMAP_RESERVED)
+        if (memmap->type == LIMINE_MEMMAP_USABLE ||
+            memmap->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE ||
+            memmap->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE)
         {
-            struct page *page = phys_to_page(memmap->base);
-            for (uint64_t j = 0; j != PAGE_COUNT(memmap->length); j++, page++) {
-                // Avoid using `set_page_bit()` because we don't need atomic ops
-                // this early.
+            continue;
+        }
 
-                page->flags |= PAGE_NOT_USABLE;
-            }
+        struct page *page = phys_to_page(memmap->base);
+        for (uint64_t j = 0; j != PAGE_COUNT(memmap->length); j++, page++) {
+            // Avoid using `set_page_bit()` because we don't need atomic ops
+            // this early.
+
+            page->flags = PAGE_NOT_USABLE;
         }
     }
 

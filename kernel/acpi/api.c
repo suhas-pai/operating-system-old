@@ -96,7 +96,8 @@ struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {
     if (has_xsdt()) {
         uint64_t *const data = (uint64_t *)(uint64_t)info.rsdt->ptrs;
         const uint32_t entry_count =
-            (info.rsdt->sdt.length - sizeof(struct acpi_sdt)) / sizeof(uint64_t);
+            (info.rsdt->sdt.length - sizeof(struct acpi_sdt)) /
+            sizeof(uint64_t);
 
         for (uint32_t i = 0; i != entry_count; i++) {
             struct acpi_sdt *const sdt = phys_to_virt(data[i]);
@@ -107,7 +108,8 @@ struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {
     } else {
         uint32_t *const data = (uint32_t *)(uint64_t)info.rsdt->ptrs;
         const uint32_t entry_count =
-            (info.rsdt->sdt.length - sizeof(struct acpi_sdt)) / sizeof(uint32_t);
+            (info.rsdt->sdt.length - sizeof(struct acpi_sdt)) /
+            sizeof(uint32_t);
 
         for (uint32_t i = 0; i != entry_count; i++) {
             struct acpi_sdt *const sdt = phys_to_virt(data[i]);

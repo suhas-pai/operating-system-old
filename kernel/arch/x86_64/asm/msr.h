@@ -54,5 +54,40 @@ enum ia32_msr_efer_flags {
     F_IA32_MSR_EFER_BIT_NXE = (1 << 11),
 };
 
+enum msr_pat_encoding {
+    MSR_PAT_ENCODING_UNCACHEABLE     = 0x00,
+    MSR_PAT_ENCODING_WRITE_COMBINING = 0x01,
+    MSR_PAT_ENCODING_WRITE_THROUGH   = 0x04,
+    MSR_PAT_ENCODING_WRITE_PROTECT   = 0x05,
+    MSR_PAT_ENCODING_WRITE_BACK      = 0x06,
+    MSR_PAT_ENCODING_UNCACHED        = 0x07,
+};
+
+enum msr_pat_indexes {
+    /* PAT=0, PCD=0, PWT=0 */
+    MSR_PAT_INDEX_PAT0 = 0,
+
+    /* PAT=0, PCD=0, PWT=1 */
+    MSR_PAT_INDEX_PAT1 = 8,
+
+    /* PAT=0, PCD=1, PWT=0 */
+    MSR_PAT_INDEX_PAT2 = 16,
+
+    /* PAT=0, PCD=1, PWT=1 */
+    MSR_PAT_INDEX_PAT3 = 24,
+
+    /* PAT=1, PCD=0, PWT=0 */
+    MSR_PAT_INDEX_PAT4 = 32,
+
+    /* PAT=1, PCD=0, PWT=1 */
+    MSR_PAT_INDEX_PAT5 = 40,
+
+    /* PAT=1, PCD=1, PWT=0 */
+    MSR_PAT_INDEX_PAT6 = 48,
+
+    /* PAT=1, PCD=1, PWT=1 */
+    MSR_PAT_INDEX_PAT7 = 56,
+};
+
 uint64_t read_msr(enum ia32_msr msr);
 void write_msr(enum ia32_msr msr, uint64_t value);

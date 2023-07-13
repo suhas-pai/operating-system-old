@@ -26,8 +26,10 @@ flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
             result |= __PTE_PWT;
             break;
         case VMA_CACHEKIND_WRITECOMBINING:
+            result |= __PTE_PAT;
             break;
         case VMA_CACHEKIND_NO_CACHE:
+            result |= __PTE_PCD;
             break;
     }
 
