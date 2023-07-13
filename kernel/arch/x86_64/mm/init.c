@@ -522,20 +522,20 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
     struct vm_area *const lower_2_mib_mmio =
         vma_alloc(&kernel_pagemap,
                   range_create(PAGE_SIZE, mib(2) - PAGE_SIZE),
-                  PROT_NONE,
+                  PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_MMIO);
 
     struct vm_area *const kernel =
         vma_alloc(&kernel_pagemap,
                   range_create(KERNEL_BASE, kernel_memmap_size),
-                  PROT_NONE,
-                  VMA_CACHEKIND_MMIO);
+                  PROT_READ | PROT_WRITE,
+                  VMA_CACHEKIND_DEFAULT);
 
     struct vm_area *const hhdm =
         vma_alloc(&kernel_pagemap,
                   range_create(HHDM_OFFSET, tib(64)),
-                  PROT_NONE,
-                  VMA_CACHEKIND_MMIO);
+                  PROT_READ | PROT_WRITE,
+                  VMA_CACHEKIND_DEFAULT);
 
     list_radd(&kernel_pagemap.vma_list, &null_area->vma_list);
     avltree_insert(&kernel_pagemap.vma_tree,
