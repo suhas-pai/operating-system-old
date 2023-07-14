@@ -41,5 +41,5 @@ int64_t string_find_sv(struct string *string, struct string_view sv);
 int64_t string_find_string(struct string *string, const struct string *ch);
 
 struct string_view string_to_sv(struct string string);
-void string_free(struct string *string);
+void string_destroy(struct string *string);
 

@@ -305,7 +305,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                 unsigned_to_string_view(number,
                                         NUMERIC_BASE_10,
                                         buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
             break;
         case 'o':
             if (curr_spec->length.length == 0) {
@@ -317,7 +317,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                 unsigned_to_string_view(number,
                                         NUMERIC_BASE_8,
                                         buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
             break;
         case 'x':
             if (curr_spec->length.length == 0) {
@@ -329,7 +329,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                 unsigned_to_string_view(number,
                                         NUMERIC_BASE_16,
                                         buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
             break;
         case 'X': {
             if (curr_spec->length.length == 0) {
@@ -615,7 +615,7 @@ parse_printf(const char *const fmt,
         }
 
         // Format is %[flags][width][.precision][length]specifier
-        curr_spec = (struct printf_spec_info){};
+        curr_spec = (struct printf_spec_info){0};
         if (!parse_flags(&curr_spec, iter, &iter)) {
             // If we have an incomplete spec, then we exit without writing
             // anything.
@@ -837,7 +837,7 @@ parse_printf(const char *const fmt,
         const struct string_view unformatted =
             sv_create_length(unformatted_start, strlen(unformatted_start));
 
-        curr_spec = (struct printf_spec_info){};
+        curr_spec = (struct printf_spec_info){0};
         written_out +=
             call_cb(NULL,
                     unformatted,

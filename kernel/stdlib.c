@@ -104,14 +104,19 @@ char *strchr(const char *const str, const int ch) {
 
 #define DECL_MEM_COPY_FUNC(type) \
     static inline unsigned long  \
-    VAR_CONCAT(_memcpy_, type)(void *const dst,            \
+    VAR_CONCAT(_memcpy_, type)(void *dst,                  \
                                const void *src,            \
-                               const unsigned long n,      \
+                               unsigned long n,            \
                                void **const dst_out,       \
                                const void **const src_out) \
     {                                                                          \
-        for (uint8_t off = 0; off < n; off += sizeof(type)) {                  \
-            ((type *)dst)[off] = ((const type *)src)[off];                     \
+        while (n >= sizeof(type)) {                                            \
+            (*(type *)dst) = (*(const type *)src);                             \
+                                                                               \
+            dst += sizeof(type);                                               \
+            src += sizeof(type);                                               \
+                                                                               \
+            n -= sizeof(type);                                                 \
         }                                                                      \
                                                                                \
         *dst_out = dst;                                                        \

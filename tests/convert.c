@@ -376,7 +376,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
             unsigned_to_string_view(test->number,
                                     NUMERIC_BASE_2,
                                     buffer,
-                                    (struct num_to_str_options){});
+                                    (struct num_to_str_options){0});
 
         assert(sv_equals_c_str(binary_unsigned_sv,
                                test->expected_unsigned_binary));
@@ -387,7 +387,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
             unsigned_to_string_view(test->number,
                                     NUMERIC_BASE_8,
                                     buffer,
-                                    (struct num_to_str_options){});
+                                    (struct num_to_str_options){0});
 
         assert(sv_equals_c_str(octal_unsigned_sv,
                                test->expected_unsigned_octal));
@@ -398,7 +398,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
             unsigned_to_string_view(test->number,
                                     NUMERIC_BASE_10,
                                     buffer,
-                                    (struct num_to_str_options){});
+                                    (struct num_to_str_options){0});
 
         assert(sv_equals_c_str(decimal_unsigned_sv,
                                test->expected_unsigned_decimal));
@@ -422,7 +422,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
             signed_to_string_view((int64_t)test->number,
                                   NUMERIC_BASE_2,
                                   buffer,
-                                  (struct num_to_str_options){});
+                                  (struct num_to_str_options){0});
 
         assert(sv_equals_c_str(binary_signed_sv,
                                test->expected_signed_binary));
@@ -433,7 +433,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
             signed_to_string_view((int64_t)test->number,
                                   NUMERIC_BASE_8,
                                   buffer,
-                                  (struct num_to_str_options){});
+                                  (struct num_to_str_options){0});
 
         assert(sv_equals_c_str(octal_signed_sv,
                                test->expected_signed_octal));
@@ -444,7 +444,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
             signed_to_string_view((int64_t)test->number,
                                   NUMERIC_BASE_10,
                                   buffer,
-                                  (struct num_to_str_options){});
+                                  (struct num_to_str_options){0});
 
         assert(sv_equals_c_str(decimal_signed_sv,
                                test->expected_signed_decimal));

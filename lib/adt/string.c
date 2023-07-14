@@ -22,7 +22,7 @@ static inline void set_null_terminator(const struct string *const string) {
 }
 
 struct string string_create() {
-    return (struct string){};
+    return (struct string){.gbuffer = GBUFFER_INIT()};
 }
 
 struct string string_create_alloc(const struct string_view sv) {
@@ -169,7 +169,7 @@ struct string_view string_to_sv(const struct string string) {
     return sv_create_nocheck(string.gbuffer.begin, string_length(string));
 }
 
-void string_free(struct string *const string) {
+void string_destroy(struct string *const string) {
     gbuffer_destroy(&string->gbuffer);
 }
 

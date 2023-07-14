@@ -12,7 +12,7 @@
 // Structure to represent a slab allocator.
 struct slab_allocator {
     // List of struct page used as slabs.
-    struct list slab_list;
+    struct list slab_head_list;
     struct spinlock lock;
 
     // Statistics about this allocator. These are constant and can be read w/o

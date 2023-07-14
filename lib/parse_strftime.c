@@ -42,13 +42,12 @@ parse_strftime_mods(const char *const iter, const char **const iter_out) {
 }
 
 static bool
-handle_strftime_spec(
-    const struct strftime_spec_info *const spec_info,
-    const parse_strftime_sv_callback sv_cb,
-    void *const sv_cb_info,
-    const struct tm *const tm,
-    uint64_t *const written_out,
-    bool *const should_continue_out)
+handle_strftime_spec(const struct strftime_spec_info *const spec_info,
+                     const parse_strftime_sv_callback sv_cb,
+                     void *const sv_cb_info,
+                     const struct tm *const tm,
+                     uint64_t *const written_out,
+                     bool *const should_continue_out)
 {
 #define CALL_CALLBACK(sv) \
     do {                                                                       \
@@ -188,7 +187,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(year,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             CALL_CALLBACK(sv);
             break;
@@ -198,7 +197,7 @@ handle_strftime_spec(
                 unsigned_to_string_view((uint64_t)tm->tm_mday,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', 2);
             CALL_CALLBACK(sv);
@@ -219,7 +218,7 @@ handle_strftime_spec(
                 unsigned_to_string_view((uint64_t)tm->tm_mday,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, ' ', MAX_DAY_OF_MONTH_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -268,7 +267,7 @@ handle_strftime_spec(
                     unsigned_to_string_view(year % 100,
                                             NUMERIC_BASE_10,
                                             conv_buffer,
-                                            (struct num_to_str_options){});
+                                            (struct num_to_str_options){0});
 
                 PAD_WITH_CHAR_IF_NECESSARY(sv, '0', 2);
             } else {
@@ -276,7 +275,7 @@ handle_strftime_spec(
                     unsigned_to_string_view(year,
                                             NUMERIC_BASE_10,
                                             conv_buffer,
-                                            (struct num_to_str_options){});
+                                            (struct num_to_str_options){0});
             }
 
             CALL_CALLBACK(sv);
@@ -287,7 +286,7 @@ handle_strftime_spec(
                 unsigned_to_string_view((uint8_t)tm->tm_hour,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_HOUR_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -300,7 +299,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(hour,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_HOUR_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -317,7 +316,7 @@ handle_strftime_spec(
                 unsigned_to_string_view((uint16_t)tm->tm_yday + 1,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_YEAR_DAY_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -329,7 +328,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(tm_mon_to_month(tm->tm_mon),
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_MONTH_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -341,7 +340,7 @@ handle_strftime_spec(
                 unsigned_to_string_view((uint16_t)tm->tm_min,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_MINUTE_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -379,7 +378,7 @@ handle_strftime_spec(
                 unsigned_to_string_view((uint64_t)tm->tm_sec,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_SECOND_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -407,7 +406,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(number,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_WEEKDAY_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -424,7 +423,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(week_number,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_WEEK_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -443,7 +442,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(week_number,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_WEEK_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -455,7 +454,7 @@ handle_strftime_spec(
                 unsigned_to_string_view((uint8_t)tm->tm_wday,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_WEEKDAY_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -472,7 +471,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(week_number,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', MAX_WEEK_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -494,7 +493,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(last_two_digits,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, '0', 2);
             CALL_CALLBACK(sv);
@@ -506,7 +505,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(tm_year_to_year(tm->tm_year),
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             CALL_CALLBACK(sv);
             break;
@@ -517,7 +516,7 @@ handle_strftime_spec(
                 unsigned_to_string_view((uint64_t)tm->tm_hour,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, ' ', MAX_HOUR_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -530,7 +529,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(hour,
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(sv, ' ', MAX_HOUR_NUMBER_LENGTH);
             CALL_CALLBACK(sv);
@@ -552,7 +551,7 @@ handle_strftime_spec(
                 unsigned_to_string_view(tm_mon_to_month(tm->tm_mon),
                                         NUMERIC_BASE_10,
                                         conv_buffer,
-                                        (struct num_to_str_options){});
+                                        (struct num_to_str_options){0});
 
             PAD_WITH_CHAR_IF_NECESSARY(month_sv, ' ', 3);
             CALL_CALLBACK(month_sv);

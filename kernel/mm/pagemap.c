@@ -14,7 +14,7 @@
 
 struct pagemap kernel_pagemap = {
     .root = NULL, // setup later
-    .lock = {0},
+    .lock = SPINLOCK_INIT(),
     .refcount = refcount_create(),
     .vma_tree = {0},
     .vma_list = LIST_INIT(kernel_pagemap.vma_list)

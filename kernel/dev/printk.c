@@ -69,7 +69,7 @@ void
 vprintk(const enum log_level loglevel, const char *const string, va_list list) {
     (void)loglevel;
 
-    static struct spinlock lock = {0};
+    static struct spinlock lock = SPINLOCK_INIT();
     const int flag = spin_acquire_with_irq(&lock);
 
     parse_printf(string,

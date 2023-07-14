@@ -140,11 +140,11 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
     }
 
     struct string string = string_create();
-    if (g_kbd_state.shift) {
+    if (g_kbd_state.shift != 0) {
         string_append_sv(&string, SV_STATIC("shift"));
     }
 
-    if (g_kbd_state.ctrl) {
+    if (g_kbd_state.ctrl != 0) {
         if (g_kbd_state.shift != 0) {
             string_append_sv(&string, SV_STATIC("-"));
         }
@@ -153,7 +153,7 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
     }
 
     if (g_kbd_state.alt) {
-        if (g_kbd_state.shift != 0 || g_kbd_state.ctrl) {
+        if (g_kbd_state.shift != 0 || g_kbd_state.ctrl != 0) {
             string_append_sv(&string, SV_STATIC("-"));
         }
 
@@ -161,7 +161,10 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
     }
 
     if (g_kbd_state.cmd != 0) {
-        if (g_kbd_state.shift != 0 || g_kbd_state.ctrl || g_kbd_state.alt) {
+        if (g_kbd_state.shift != 0 ||
+            g_kbd_state.ctrl != 0 ||
+            g_kbd_state.alt)
+        {
             string_append_sv(&string, SV_STATIC("-"));
         }
 
@@ -173,6 +176,8 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
            STRING_FMT_ARGS(string),
            get_char_from_ps2_kb(scan_code),
            g_kbd_state.caps_lock ? " [caps-lock]" : "");
+
+    string_destroy(&string);
 }
 
 void ps2_keyboard_init(const enum ps2_device_id device_id) {
@@ -201,4 +206,5 @@ void ps2_keyboard_init(const enum ps2_device_id device_id) {
                                /*masked=*/false);
 
     ps2_read_input_byte();
+    printk(LOGLEVEL_INFO, "ps2: keyboard initialized\n");
 }
