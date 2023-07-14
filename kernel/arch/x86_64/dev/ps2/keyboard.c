@@ -92,7 +92,7 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
         return;
     }
 
-    switch (scan_code) {
+    switch ((enum ps2_scancode_keys)scan_code) {
         case PS2_SCANNODE_E0:
             g_kbd_state.in_e0 = true;
             return;
@@ -118,6 +118,9 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
             return;
         case PS2_SCANCODE_CAPSLOCK:
             g_kbd_state.caps_lock = !g_kbd_state.caps_lock;
+            return;
+        case PS2_SCANCODE_NUMLOCK:
+            printk(LOGLEVEL_DEBUG, "ps2: got numlock\n");
             return;
     }
 
@@ -173,11 +176,9 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
 }
 
 void ps2_keyboard_init(const enum ps2_device_id device_id) {
-    ps2_send_to_device(device_id, PS2_KEYBOARD_COMMAND_SCAN_CODE_SET);
-
+    ps2_send_to_device(device_id, PS2_KBD_CMD_SCAN_CODE_SET);
     const int16_t get_response =
-        ps2_send_to_device(device_id,
-                           PS2_KEYBOARD_SCAN_CODE_SET_SUBCOMMAND_GET);
+        ps2_send_to_device(device_id, PS2_KBD_SCAN_CODE_SET_SUBCMD_GET);
 
     if (get_response != PS2_RESPONSE_ACKNOWLEDGE) {
         printk(LOGLEVEL_WARN,

@@ -19,7 +19,7 @@ cpuid(const uint32_t leaf,
       uint64_t *const c,
       uint64_t *const d)
 {
-    __asm__ __volatile__ (
+    asm volatile (
         "cpuid"
         : "=a"(*a), "=b"(*b), "=c"(*c), "=d"(*d)
         : "a" (leaf), "c" (subleaf)
@@ -31,7 +31,7 @@ cpuid(const uint32_t leaf,
  */
 
 int cpuid_string(const int code, uint32_t where[const 4]) {
-    __asm__ __volatile__ (
+    asm volatile (
         "cpuid"
         : "=a"(*where), "=b"(*(where + 1)),
           "=c"(*(where + 2)), "=d"(*(where + 3))

@@ -9,7 +9,7 @@ uint64_t read_msr(const enum ia32_msr msr) {
     uint32_t eax = 0;
     uint32_t edx = 0;
 
-    __asm__ __volatile__ (
+    asm volatile (
         "rdmsr"
         : "=a" (eax), "=d" (edx)
         : "c" ((uint32_t)msr)
@@ -23,7 +23,7 @@ void write_msr(const enum ia32_msr msr, const uint64_t value) {
     uint32_t eax = (uint32_t)value;
     uint32_t edx = value >> 32;
 
-    __asm__ __volatile__ (
+    asm volatile (
         "wrmsr"
         :
         : "a" (eax), "d" (edx), "c" ((uint32_t)msr)

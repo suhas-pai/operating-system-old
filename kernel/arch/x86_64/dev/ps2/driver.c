@@ -125,7 +125,7 @@ ps2_get_device_kind(const enum ps2_device_id device_id,
         ps2_send_to_device(device_id, PS2_CMD_IDENTIFY);
 
     if (identity_cmd_response != PS2_RESPONSE_ACKNOWLEDGE &&
-        identity_cmd_response != PS2_KEYBOARD_SPECIAL_BYTE_SELF_TEST_PASS)
+        identity_cmd_response != PS2_KBD_SPECIAL_BYTE_SELF_TEST_PASS)
     {
         printk(LOGLEVEL_INFO,
                "ps2: identify command for device %" PRIu8 " failed with "
@@ -137,12 +137,12 @@ ps2_get_device_kind(const enum ps2_device_id device_id,
     /* NOTE: This is a hack. We're not supposed to have to have these checks. */
 
     int16_t first = ps2_read_input_byte();
-    if (first == PS2_KEYBOARD_SPECIAL_BYTE_SELF_TEST_PASS) {
+    if (first == PS2_KBD_SPECIAL_BYTE_SELF_TEST_PASS) {
         first = ps2_read_input_byte();
     }
 
     int16_t second = ps2_read_input_byte();
-    if (second == PS2_KEYBOARD_SPECIAL_BYTE_ERROR) {
+    if (second == PS2_KBD_SPECIAL_BYTE_ERROR) {
         second = ps2_read_input_byte();
     }
 

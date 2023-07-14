@@ -61,7 +61,7 @@ void _start(void) {
     dev_init();
 
     enable_all_interrupts();
-    printk(LOGLEVEL_INFO, "Done\n");
+    printk(LOGLEVEL_INFO, "kernel: finished initializing\n");
 
     hcf();
 }
