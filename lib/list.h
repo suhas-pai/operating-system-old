@@ -73,15 +73,13 @@ static inline void list_delete(struct list *const elem) {
     for(iter = list_head(list, typeof(*iter), name); &iter->name != (list); \
         iter = list_next(iter, name))
 
-#define list_count(list, type, name) ({ \
-    uint64_t __result__ = 0;            \
-    for (__auto_type __iter__ = list_head(list, type, name); \
-         &__iter__->(name) != (list);                        \
-         __iter__ = list_next(__iter__, name))               \
-    {                                  \
-        __result__++;                  \
-    }                                  \
-    __result__;                        \
+#define list_count(list, type, name) ({  \
+    uint64_t __result__ = 0;             \
+    type *__iter__ = NULL;               \
+    list_foreach(__iter__, list, name) { \
+        __result__++;                    \
+    }                                    \
+    __result__;                          \
 })
 
 #define list_foreach_mut(iter, tmp, list, name) \

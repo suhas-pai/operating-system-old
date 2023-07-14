@@ -12,3 +12,5 @@
 #define mib(amount) chk_mul_overflow_assert(1ull << 20, (amount))
 #define gib(amount) chk_mul_overflow_assert(1ull << 30, (amount))
 #define tib(amount) chk_mul_overflow_assert(1ull << 40, (amount))
+#define pib(amount) chk_mul_overflow_assert(1ull << 50, (amount))
+#define eib(amount) chk_mul_overflow_assert(1ull << 60, (amount))
