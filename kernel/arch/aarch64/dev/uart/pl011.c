@@ -139,7 +139,7 @@ static void pl011_reset(const struct uart_driver *const uart) {
 }
 
 static bool pl011_init(struct uart_driver *const uart) {
-    uart->device = (void *)0x9000000;
+    uart->device = (void *)(uint64_t)uart->base;
     uart->base_clock = 0x16e3600;
 
     pl011_reset(uart);
@@ -150,6 +150,7 @@ struct uart_driver pl011_serial = {
     .term.emit_ch = pl011_send_char,
     .term.emit_sv = pl011_send_sv,
 
+    .base = (port_t)0x9000000,
     .baudrate = 115200,
     .data_bits = 8,
     .stop_bits = 1,

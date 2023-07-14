@@ -48,23 +48,25 @@ struct freepages_info {
 static struct list freepages_list = LIST_INIT(freepages_list);
 static uint64_t total_free_pages = 0;
 
-static void claim_pages(const uint64_t first_phys, const uint64_t count) {
+static void claim_pages(const uint64_t first_phys, const uint64_t length) {
+    const uint64_t page_count = PAGE_COUNT(length);
+
     // Check if the we can combine this entry and the prior one.
     struct freepages_info *const back =
         list_tail(&freepages_list, struct freepages_info, list_entry);
 
     // Store structure in the first page in list.
     struct freepages_info *const info = phys_to_virt(first_phys);
-    total_free_pages += count;
+    total_free_pages += page_count;
 
     if (back != NULL) {
         if ((uint8_t *)back + (back->count * PAGE_SIZE) == (uint8_t *)info) {
-            back->count += count;
+            back->count += page_count;
             return;
         }
     }
 
-    info->count = count;
+    info->count = page_count;
     list_add(&freepages_list, &info->list_entry);
 }
 
@@ -597,7 +599,7 @@ void mm_init() {
 
         switch (memmap->type) {
             case LIMINE_MEMMAP_USABLE:
-                claim_pages(memmap->base, PAGE_COUNT(memmap->length));
+                claim_pages(memmap->base, memmap->length);
 
                 type_desc = "usable";
                 memmap_last_repr_index = memmap_index;
@@ -673,11 +675,14 @@ void mm_init() {
 
     for (uint64_t i = 0; i <= memmap_last_repr_index; i++) {
         struct limine_memmap_entry *const memmap = entries[i];
-        if (memmap->type == LIMINE_MEMMAP_USABLE ||
-            memmap->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE ||
-            memmap->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE)
-        {
+        if (memmap->type == LIMINE_MEMMAP_USABLE) {
             continue;
+        }
+
+        // Don't claim bootloader reclaimable entires because that's where our
+        // stack is
+        if (memmap->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE) {
+            claim_pages(memmap->base, memmap->length);
         }
 
         struct page *page = phys_to_page(memmap->base);

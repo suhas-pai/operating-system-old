@@ -111,7 +111,7 @@ char *strchr(const char *const str, const int ch) {
                                const void **const src_out) \
     {                                                                          \
         while (n >= sizeof(type)) {                                            \
-            (*(type *)dst) = (*(const type *)src);                             \
+            *(type *)dst = *(const type *)src;                                 \
                                                                                \
             dst += sizeof(type);                                               \
             src += sizeof(type);                                               \

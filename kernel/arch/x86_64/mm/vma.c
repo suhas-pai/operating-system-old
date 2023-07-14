@@ -33,8 +33,6 @@ flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
             break;
     }
 
-    // TODO:
-    (void)cachekind;
     return result;
 }
 

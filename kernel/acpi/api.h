@@ -20,16 +20,7 @@
         bool enabled : 1;
         bool online_capable : 1;
     };
-#endif /* defined(__x86_64__) */
 
-struct apic_iso_info {
-    uint8_t bus_src;
-    uint8_t irq_src;
-    uint8_t gsi;
-    uint16_t flags;
-};
-
-#if defined(__x86_64__)
     struct ioapic_info {
         uint8_t id;
         uint8_t version;
@@ -41,6 +32,13 @@ struct apic_iso_info {
         volatile struct ioapic_registers *regs;
     };
 #endif /* defined(__x86_64__) */
+
+struct apic_iso_info {
+    uint8_t bus_src;
+    uint8_t irq_src;
+    uint8_t gsi;
+    uint16_t flags;
+};
 
 struct acpi_info {
     const struct acpi_madt *madt;
@@ -54,8 +52,9 @@ struct acpi_info {
 #endif /* defined(__x86_64__) */
 
 #if defined(__x86_64__)
-    // List of struct lapic_info
+    // Array of struct lapic_info
     struct array lapic_list;
+    // Array of struct ioapic_info
     struct array ioapic_list;
 #endif /* defined(__x86_64__) */
     struct array iso_list;
