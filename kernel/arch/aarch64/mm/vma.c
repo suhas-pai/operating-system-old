@@ -91,9 +91,7 @@ arch_make_mapping(struct pagemap *const pagemap,
 
             ptwalker_result = ptwalker_next(&walker, &pageop);
             if (ptwalker_result != E_PT_WALKER_OK) {
-                undo_changes(&walker, &pageop, i);
                 pageop_finish(&pageop);
-
                 return false;
             }
         }
