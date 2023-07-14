@@ -1,5 +1,5 @@
 /*
- * lib/strftime.h
+ * lib/parse_strftime.h
  * © suhas pai
  */
 

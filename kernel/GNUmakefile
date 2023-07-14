@@ -173,9 +173,10 @@ $(eval $(call FIND_FILES,NASMFILES, "*.asm"))
 LIBFILES += \
 	../lib/convert.c ../lib/ctype.c ../lib/parse_printf.c ../lib/align.c \
 	../lib/format.c ../lib/adt/string_view.c ../lib/adt/range.c ../lib/util.c \
-	../lib/refcount.c ../lib/adt/string.c ../lib/time.c ../lib/strftime.c \
-	../lib/adt/mutable_buffer.c ../lib/adt/growable_buffer.c ../lib/string.c \
-	../lib/adt/avltree.c ../lib/adt/array.c
+	../lib/refcount.c ../lib/adt/string.c ../lib/time.c \
+	../lib/parse_strftime.c ../lib/adt/mutable_buffer.c \
+	../lib/adt/growable_buffer.c ../lib/string.c ../lib/adt/avltree.c \
+	../lib/adt/array.c
 
 override OBJ := $(foreach obj, $(CFILES:./%=%), obj/$(basename $(obj)).o) \
 				$(foreach obj, $(CPPFILES:./%=%), obj/$(basename $(obj)).cpp.o) \
