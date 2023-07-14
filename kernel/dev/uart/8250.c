@@ -1,10 +1,9 @@
 /*
- * kernel/arch/riscv64/dev/uart/uart8250.c
+ * kernel/dev/uart/8250.c
  * © suhas pai
  */
 
-#include "dev/driver.h"
-#include "port.h"
+#include "8250.h"
 
 #define UART_RBR_OFFSET 0  /* In:  Recieve Buffer Register */
 #define UART_THR_OFFSET 0  /* Out: Transmitter Holding Register */
@@ -30,17 +29,15 @@
 #define UART_LSR_DR 0x01    /* Receiver data ready */
 #define UART_LSR_BRK_ERROR_BITS 0x1E    /* BI, FE, PE, OE bits */
 
-static uint32_t uart8250_in_freq = 3686400;
-static uint32_t uart8250_baudrate = 115200;
-static uint32_t uart8250_reg_width = 1;
-static uint32_t uart8250_reg_shift = 0;
-
-static inline
-uint32_t get_reg(volatile void *const uart8250_base, const uint32_t num) {
-    const uint32_t offset = num << uart8250_reg_shift;
-    if (uart8250_reg_width == 1) {
+static inline uint32_t
+get_reg(const port_t uart8250_base,
+        struct uart8250_info *const info,
+        const uint32_t num)
+{
+    const uint32_t offset = num << info->reg_shift;
+    if (info->reg_width == 1) {
         return port_in8(uart8250_base + offset);
-    } else if (uart8250_reg_width == 2) {
+    } else if (info->reg_width == 2) {
         return port_in16(uart8250_base + offset);
     }
 
@@ -48,23 +45,28 @@ uint32_t get_reg(volatile void *const uart8250_base, const uint32_t num) {
 }
 
 static inline void
-set_reg(volatile void *const uart8250_base,
+set_reg(const port_t uart8250_base,
+        struct uart8250_info *const info,
         const uint32_t num,
         const uint32_t val)
 {
-    const uint32_t offset = num << uart8250_reg_shift;
-    if (uart8250_reg_width == 1) {
+    const uint32_t offset = num << info->reg_shift;
+    if (info->reg_width == 1) {
         port_out8(uart8250_base + offset, val);
-    } else if (uart8250_reg_width == 2) {
+    } else if (info->reg_width == 2) {
         port_out16(uart8250_base + offset, val);
     } else {
         port_out32(uart8250_base + offset, val);
     }
 }
 
-static void uart8250_putc(volatile void *const uart8250_base, const char ch) {
-    while ((get_reg(uart8250_base, UART_LSR_OFFSET) & UART_LSR_THRE) == 0) {}
-    set_reg(uart8250_base, UART_THR_OFFSET, ch);
+static void
+uart8250_putc(const port_t base,
+              struct uart8250_info *const info,
+              const char ch)
+{
+    while ((get_reg(base, info, UART_LSR_OFFSET) & UART_LSR_THRE) == 0) {}
+    set_reg(base, info, UART_THR_OFFSET, ch);
 }
 
 static void
@@ -73,65 +75,69 @@ uart8250_send_char(struct terminal *const term,
                    const uint32_t amount)
 {
     struct uart_driver *const driver = (struct uart_driver *)term;
+    struct uart8250_info *const info =
+        (struct uart8250_info *)driver->extra_info;
+
+    const bool flag = spin_acquire_with_irq(&info->lock);
     for (uint32_t i = 0; i != amount; i++) {
-        uart8250_putc((volatile void *)driver->device, ch);
+        uart8250_putc(driver->base, info, ch);
     }
+
+    spin_release_with_irq(&info->lock, flag);
 }
 
 static void
 uart8250_send_sv(struct terminal *const term, const struct string_view sv) {
     struct uart_driver *const driver = (struct uart_driver *)term;
+    struct uart8250_info *const info =
+        (struct uart8250_info *)driver->extra_info;
+
+    const bool flag = spin_acquire_with_irq(&info->lock);
     sv_foreach(sv, iter) {
-        uart8250_putc((volatile void *)driver->device, *iter);
+        uart8250_putc(driver->base, info, *iter);
     }
+
+    spin_release_with_irq(&info->lock, flag);
 }
 
-static bool uart8250_init(struct uart_driver *const uart) {
-    uart->device = (void *)0x10000000 + /*reg_offset=*/0;
-    volatile void *uart8250_base = uart->device;
+bool uart8250_init(struct uart_driver *const driver) {
+    driver->term.emit_ch = uart8250_send_char,
+    driver->term.emit_sv = uart8250_send_sv,
+    driver->data_bits = 8;
+    driver->stop_bits = 1;
+
+    struct uart8250_info *const info =
+        (struct uart8250_info *)driver->extra_info;
 
     uint16_t bdiv = 0;
-    if (uart8250_baudrate != 0) {
+    if (driver->baudrate != 0) {
         bdiv =
-            (uart8250_in_freq + 8 * uart8250_baudrate) /
-            (16 * uart8250_baudrate);
+            (info->in_freq + 8 * driver->baudrate) / (16 * driver->baudrate);
     }
 
     /* Disable all interrupts */
-    set_reg(uart8250_base, UART_IER_OFFSET, 0x00);
+    set_reg(driver->base, info, UART_IER_OFFSET, 0x00);
     /* Enable DLAB */
-    set_reg(uart8250_base, UART_LCR_OFFSET, 0x80);
+    set_reg(driver->base, info, UART_LCR_OFFSET, 0x80);
 
-    if (bdiv) {
+    if (bdiv != 0) {
         /* Set divisor low byte */
-        set_reg(uart8250_base, UART_DLL_OFFSET, bdiv & 0xff);
+        set_reg(driver->base, info, UART_DLL_OFFSET, bdiv & 0xff);
         /* Set divisor high byte */
-        set_reg(uart8250_base, UART_DLM_OFFSET, (bdiv >> 8) & 0xff);
+        set_reg(driver->base, info, UART_DLM_OFFSET, (bdiv >> 8) & 0xff);
     }
 
     /* 8 bits, no parity, one stop bit */
-    set_reg(uart8250_base, UART_LCR_OFFSET, 0x03);
+    set_reg(driver->base, info, UART_LCR_OFFSET, 0x03);
     /* Enable FIFO */
-    set_reg(uart8250_base, UART_FCR_OFFSET, 0x01);
+    set_reg(driver->base, info, UART_FCR_OFFSET, 0x01);
     /* No modem control DTR RTS */
-    set_reg(uart8250_base, UART_MCR_OFFSET, 0x00);
+    set_reg(driver->base, info, UART_MCR_OFFSET, 0x00);
     /* Clear line status */
-    get_reg(uart8250_base, UART_LSR_OFFSET);
+    get_reg(driver->base, info, UART_LSR_OFFSET);
     /* Read receive buffer */
-    get_reg(uart8250_base, UART_RBR_OFFSET);
+    get_reg(driver->base, info, UART_RBR_OFFSET);
     /* Set scratchpad */
-    set_reg(uart8250_base, UART_SCR_OFFSET, 0x00);
+    set_reg(driver->base, info, UART_SCR_OFFSET, 0x00);
     return true;
 }
-
-struct uart_driver uart8250_serial = {
-    .term.emit_ch = uart8250_send_char,
-    .term.emit_sv = uart8250_send_sv,
-
-    .baudrate = 115200,
-    .data_bits = 8,
-    .stop_bits = 1,
-    .init = uart8250_init,
-};
-
-EXPORT_UART_DRIVER(uart8250_serial);

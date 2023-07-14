@@ -3,56 +3,11 @@
  * © suhas pai
  */
 
-#include "cpu/spinlock.h"
-#include "cpu/util.h"
-
 #include "dev/driver.h"
-#include "dev/printk.h"
-
-#include "port.h"
+#include "dev/uart/8250.h"
 
 #define COM1 0x3f8
-
-static void com1_out(const char ch) {
-    while ((port_in8(COM1 + 5) & 0x20) == 0) {}
-    port_out8(COM1, ch);
-}
-
-static struct spinlock g_spinlock = SPINLOCK_INIT();
-
-static void
-com1_write_char(struct terminal *const term,
-                const char ch,
-                const uint32_t amount)
-{
-    (void)term;
-
-    const int flag = spin_acquire_with_irq(&g_spinlock);
-    for (uint64_t i = 0; i != amount; i++) {
-        com1_out(ch);
-    }
-
-    spin_release_with_irq(&g_spinlock, flag);
-}
-
-static
-void com1_write_sv(struct terminal *const term, const struct string_view sv) {
-    (void)term;
-
-    const int flag = spin_acquire_with_irq(&g_spinlock);
-    sv_foreach(sv, iter) {
-        com1_out(*iter);
-    }
-
-    spin_release_with_irq(&g_spinlock, flag);
-}
-
-static void com1_bust_locks(struct terminal *const term) {
-    (void)term;
-    g_spinlock = SPINLOCK_INIT();
-}
-
-static bool com1_init() {
+__unused static bool com1_init() {
     port_out8(COM1 + 1, 0x00);    // Disable all interrupts
     port_out8(COM1 + 3, 0x80);    // Enable DLAB (set baud rate divisor)
     port_out8(COM1 + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
@@ -76,17 +31,16 @@ static bool com1_init() {
 }
 
 struct uart_driver com1_serial = {
-    .term.emit_ch = com1_write_char,
-    .term.emit_sv = com1_write_sv,
-    .term.bust_locks = com1_bust_locks,
-
-    .kind = UART_KIND_COM1,
-    .base_clock = 0,
+    .base = COM1,
     .baudrate = 38400,
-    .data_bits = 8,
-    .stop_bits = 1,
 
-    .init = com1_init
+    .init = uart8250_init,
+    .extra_info = &(struct uart8250_info) {
+        .lock = SPINLOCK_INIT(),
+        .in_freq = 1536000,
+        .reg_shift = 0,
+        .reg_width = 1
+    }
 };
 
 EXPORT_UART_DRIVER(com1_serial);

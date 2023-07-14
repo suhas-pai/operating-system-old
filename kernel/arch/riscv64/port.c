@@ -11,6 +11,7 @@ static inline void io_br_fence() {
 
 uint8_t port_in8(const port_t port) {
     uint8_t result = 0;
+
     asm volatile("lb %0, 0(%1)" : "=r"(result) : "r"(port));
     io_br_fence();
 
@@ -19,6 +20,7 @@ uint8_t port_in8(const port_t port) {
 
 uint16_t port_in16(const port_t port) {
     uint16_t result = 0;
+
     asm volatile("lh %0, 0(%1)" : "=r"(result) : "r"(port));
     io_br_fence();
 
@@ -27,6 +29,7 @@ uint16_t port_in16(const port_t port) {
 
 uint32_t port_in32(const port_t port) {
     uint32_t result = 0;
+
     asm volatile("lw %0, 0(%1)" : "=r"(result) : "r"(port));
     io_br_fence();
 
@@ -35,6 +38,7 @@ uint32_t port_in32(const port_t port) {
 
 uint64_t port_in64(const port_t port) {
     uint64_t result = 0;
+
     asm volatile("ld %0, 0(%1)" : "=r"(result) : "r"(port));
     io_br_fence();
 
