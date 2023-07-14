@@ -14,6 +14,11 @@
 
 #include "slab.h"
 
+// Use space inside free slab objects to create a singly-linked list.
+struct free_slab_object {
+    struct free_slab_object *next;
+};
+
 bool
 slab_allocator_init(struct slab_allocator *const slab_alloc,
                     uint32_t object_size_arg,
@@ -24,7 +29,10 @@ slab_allocator_init(struct slab_allocator *const slab_alloc,
     // To store free_page_objects, every object must be at least 8 bytes large.
     // We also make this the required minimum alignment.
 
-    if (!align_up(object_size, /*boundary=*/8, &object_size)) {
+    if (!align_up(object_size,
+                  /*boundary=*/sizeof(struct free_slab_object),
+                  &object_size))
+    {
         return false;
     }
 
@@ -108,11 +116,6 @@ static inline struct page *slab_head_of(const void *const mem) {
 
     return page->slab.tail.head;
 }
-
-// Use space inside free slab objects to create a singly-linked list.
-struct free_slab_object {
-    struct free_slab_object *next;
-};
 
 void slab_free(void *const mem) {
     struct page *const head = slab_head_of(mem);
