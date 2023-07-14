@@ -19,7 +19,7 @@
                              &count);                                          \
                                                                                \
                                                                                \
-        struct string string = {};                                             \
+        struct string string = {0};                                             \
         const uint64_t string_length =                                         \
             format_to_string(&string,                                          \
                              str "%n",                                         \
@@ -50,7 +50,7 @@
     } while (false)
 
 void test_format() {
-    char buffer[4096] = {};
+    char buffer[4096] = {0};
 
     {
         // Test invalid formats.

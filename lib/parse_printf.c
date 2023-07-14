@@ -578,13 +578,13 @@ parse_printf(const char *const fmt,
              void *const write_sv_cb_info,
              va_list list)
 {
-    struct va_list_struct list_struct = {};
+    struct va_list_struct list_struct = {0};
     va_copy(list_struct.list, list);
 
     // Add 2 for a int-prefix, and one for a sign.
-    char buffer[MAX_CONVERT_CAP + 3] = {};
+    char buffer[MAX_CONVERT_CAP + 3] = {0};
 
-    struct printf_spec_info curr_spec = {};
+    struct printf_spec_info curr_spec = {0};
     const char *unformatted_start = fmt;
 
     uint64_t written_out = 0;
@@ -650,7 +650,7 @@ parse_printf(const char *const fmt,
         }
 
         // Parse specifier
-        struct string_view parsed = {};
+        struct string_view parsed = {0};
         bool is_null = false;
 
         curr_spec.spec = *iter;

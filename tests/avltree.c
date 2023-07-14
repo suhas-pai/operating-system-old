@@ -53,7 +53,7 @@ static void insert_node(struct avltree *const tree, const uint32_t number) {
 }
 
 void test_avltree() {
-    struct avltree tree = {};
+    struct avltree tree = {0};
 
     insert_node(&tree, 8);
     insert_node(&tree, 9);

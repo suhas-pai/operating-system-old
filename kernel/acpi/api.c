@@ -16,7 +16,7 @@ static volatile struct limine_rsdp_request rsdp_request = {
     .revision = 0
 };
 
-static struct acpi_info info = {};
+static struct acpi_info info = {0};
 static inline bool has_xsdt() {
     return (info.rsdp->revision >= 2 && info.rsdp->v2.xsdt_addr != 0);
 }
@@ -52,15 +52,11 @@ static inline void acpi_init_each_sdt(const struct acpi_sdt *const sdt) {
 
     if (memcmp(sdt->signature, "APIC", 4) == 0) {
         info.madt = (const struct acpi_madt *)sdt;
-        madt_init(info.madt);
-
         return;
     }
 
     if (memcmp(sdt->signature, "FACP", 4) == 0) {
         info.fadt = (const struct acpi_fadt *)sdt;
-        fadt_init(info.fadt);
-
         return;
     }
 }
@@ -90,6 +86,14 @@ void acpi_init(void) {
     printk(LOGLEVEL_INFO, "acpi: rsdt at %p\n", info.rsdt);
 
     acpi_recurse(acpi_init_each_sdt);
+
+    if (get_acpi_info()->madt != NULL) {
+        madt_init(get_acpi_info()->madt);
+    }
+
+    if (get_acpi_info()->fadt != NULL) {
+        fadt_init(get_acpi_info()->fadt);
+    }
 }
 
 struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {

@@ -21,6 +21,10 @@ static inline void set_null_terminator(const struct string *const string) {
     ((uint8_t *)gbuffer.begin)[gbuffer.index] = '\0';
 }
 
+struct string string_create() {
+    return (struct string){};
+}
+
 struct string string_create_alloc(const struct string_view sv) {
     struct string result = {
         .gbuffer = gbuffer_alloc(sv.length + 1)
@@ -158,6 +162,10 @@ int64_t string_find_string(struct string *string, const struct string *find) {
 }
 
 struct string_view string_to_sv(const struct string string) {
+    if (string_length(string) == 0) {
+        return sv_create_empty();
+    }
+
     return sv_create_nocheck(string.gbuffer.begin, string_length(string));
 }
 

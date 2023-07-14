@@ -13,8 +13,8 @@
 #include "gdt.h"
 
 static bool g_base_cpu_init = false;
-static struct cpu_capabilities g_cpu_capabilities = {};
-static struct cpu_info g_base_cpu_info = {};
+static struct cpu_capabilities g_cpu_capabilities = {0};
+static struct cpu_info g_base_cpu_info = {0};
 
 static void init_cpuid_features() {
     {
@@ -119,6 +119,10 @@ static void init_cpuid_features() {
                (uint64_t)gdt_get_user_data_segment() << 48));
 
     write_msr(IA32_MSR_FMASK, 0);
+}
+
+const struct cpu_info *get_base_cpu_info() {
+    return &g_base_cpu_info;
 }
 
 const struct cpu_info *get_cpu_info() {

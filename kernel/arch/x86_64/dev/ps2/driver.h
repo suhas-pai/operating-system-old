@@ -74,7 +74,25 @@ enum ps2_status_register_masks {
     F_PS2_STATUS_REG_PARITY_ERROR   = (1ull << 7)
 };
 
+enum ps2_device_kind {
+    PS2_DEVICE_KIND_STANDARD_MOUSE,
+    PS2_DEVICE_KIND_SCROLL_WHEEL_MOUSE = 0x03,
+    PS2_DEVICE_KIND_5_BUTTON_MOUSE     = 0x05,
+
+    PS2_DEVICE_KIND_MF2_KBD_WITH_TRANSL_1 = (uint16_t)(0xAB << 8) | 0x41,
+    PS2_DEVICE_KIND_MF2_KBD_WITH_TRANSL_2 = (uint16_t)(0xAB << 8) | 0xC1,
+
+    PS2_DEVICE_KIND_MF2_KBD = (uint16_t)(0xAB << 8) | 0x83
+};
+
+enum ps2_device_id {
+    PS2_FIRST_DEVICE,
+    PS2_SECOND_DEVICE
+};
+
 void ps2_init();
 
 int16_t ps2_read_input_byte();
 int16_t ps2_read_config();
+
+int16_t ps2_send_to_device(const enum ps2_device_id device, const uint8_t byte);

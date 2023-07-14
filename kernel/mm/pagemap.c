@@ -14,9 +14,9 @@
 
 struct pagemap kernel_pagemap = {
     .root = NULL, // setup later
-    .lock = {},
+    .lock = {0},
     .refcount = refcount_create(),
-    .vma_tree = {},
+    .vma_tree = {0},
     .vma_list = LIST_INIT(kernel_pagemap.vma_list)
 };
 

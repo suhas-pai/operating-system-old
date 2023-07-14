@@ -8,10 +8,10 @@
 
 #include "printk.h"
 
-static struct terminal *_Atomic g_first_console = NULL;
+static struct terminal *_Atomic g_first_term = NULL;
 void printk_add_terminal(struct terminal *const term) {
-    atomic_store(&term->next, g_first_console);
-    atomic_store(&g_first_console, term);
+    atomic_store(&term->next, g_first_term);
+    atomic_store(&g_first_term, term);
 }
 
 void printk(const enum log_level loglevel, const char *const string, ...) {
@@ -35,7 +35,7 @@ write_char(struct printf_spec_info *const spec_info,
     (void)cb_info;
     (void)cont_out;
 
-    for (struct terminal *term = atomic_load(&g_first_console);
+    for (struct terminal *term = atomic_load(&g_first_term);
          term != NULL;
          term = atomic_load(&term->next))
     {
@@ -55,7 +55,7 @@ write_sv(struct printf_spec_info *const spec_info,
     (void)cb_info;
     (void)cont_out;
 
-    for (struct terminal *term = atomic_load(&g_first_console);
+    for (struct terminal *term = atomic_load(&g_first_term);
          term != NULL;
          term = atomic_load(&term->next))
     {
@@ -69,7 +69,7 @@ void
 vprintk(const enum log_level loglevel, const char *const string, va_list list) {
     (void)loglevel;
 
-    static struct spinlock lock = {};
+    static struct spinlock lock = {0};
     const int flag = spin_acquire_with_irq(&lock);
 
     parse_printf(string,

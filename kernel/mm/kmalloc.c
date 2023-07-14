@@ -9,7 +9,7 @@
 
 #include "kmalloc.h"
 
-static struct slab_allocator kmalloc_slabs[13] = {};
+static struct slab_allocator kmalloc_slabs[13] = {0};
 
 void kmalloc_init() {
     slab_allocator_init(&kmalloc_slabs[0], 16, /*alloc_flags=*/0);

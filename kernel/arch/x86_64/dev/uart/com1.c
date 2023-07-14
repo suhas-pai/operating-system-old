@@ -18,7 +18,7 @@ static void com1_out(const char ch) {
     port_out8(COM1, ch);
 }
 
-static struct spinlock g_spinlock = {};
+static struct spinlock g_spinlock = {0};
 
 static void
 com1_write_char(struct terminal *const term,
@@ -47,8 +47,8 @@ void com1_write_sv(struct terminal *const term, const struct string_view sv) {
     spin_release_with_irq(&g_spinlock, flag);
 }
 
-static void com1_bust_locks(struct terminal *const console) {
-    (void)console;
+static void com1_bust_locks(struct terminal *const term) {
+    (void)term;
     g_spinlock = (struct spinlock){};
 }
 

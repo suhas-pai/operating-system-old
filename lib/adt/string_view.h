@@ -28,7 +28,7 @@ struct string_view {
 #define SV_FMT_ARGS(sv) (int)(sv).length, (sv).begin
 
 static inline struct string_view sv_create_empty() {
-    return (struct string_view){ .begin = NULL, .length = 0 };
+    return (struct string_view){ .begin = "", .length = 0 };
 }
 
 static inline struct string_view

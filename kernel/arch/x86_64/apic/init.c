@@ -70,6 +70,7 @@ void apic_init() {
                item->max_redirect_count);
     }
 
+    lapic_init();
     isr_assign_irq_to_self_cpu(IRQ_TIMER,
                                isr_get_timer_vector(),
                                lapic_timer_irq_callback,

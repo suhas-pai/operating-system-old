@@ -371,7 +371,7 @@ void run_str_to_num_test(const struct str_to_num_test *const test) {
 
 void run_num_to_str_test(const struct num_to_str_test *const test) {
     {
-        char buffer[MAX_CONVERT_CAP] = {};
+        char buffer[MAX_CONVERT_CAP] = {0};
         const struct string_view binary_unsigned_sv =
             unsigned_to_string_view(test->number,
                                     NUMERIC_BASE_2,
@@ -382,7 +382,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
                                test->expected_unsigned_binary));
     }
     {
-        char buffer[MAX_CONVERT_CAP] = {};
+        char buffer[MAX_CONVERT_CAP] = {0};
         const struct string_view octal_unsigned_sv =
             unsigned_to_string_view(test->number,
                                     NUMERIC_BASE_8,
@@ -393,7 +393,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
                                test->expected_unsigned_octal));
     }
     {
-        char buffer[MAX_CONVERT_CAP] = {};
+        char buffer[MAX_CONVERT_CAP] = {0};
         const struct string_view decimal_unsigned_sv =
             unsigned_to_string_view(test->number,
                                     NUMERIC_BASE_10,
@@ -404,7 +404,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
                                test->expected_unsigned_decimal));
     }
     {
-        char buffer[MAX_CONVERT_CAP] = {};
+        char buffer[MAX_CONVERT_CAP] = {0};
         const struct string_view hexadecimal_unsigned_sv =
             unsigned_to_string_view(test->number,
                                     NUMERIC_BASE_16,
@@ -417,7 +417,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
                                test->expected_unsigned_hexadecimal));
     }
     {
-        char buffer[MAX_CONVERT_CAP] = {};
+        char buffer[MAX_CONVERT_CAP] = {0};
         const struct string_view binary_signed_sv =
             signed_to_string_view((int64_t)test->number,
                                   NUMERIC_BASE_2,
@@ -428,7 +428,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
                                test->expected_signed_binary));
     }
     {
-        char buffer[MAX_CONVERT_CAP] = {};
+        char buffer[MAX_CONVERT_CAP] = {0};
         const struct string_view octal_signed_sv =
             signed_to_string_view((int64_t)test->number,
                                   NUMERIC_BASE_8,
@@ -439,7 +439,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
                                test->expected_signed_octal));
     }
     {
-        char buffer[MAX_CONVERT_CAP] = {};
+        char buffer[MAX_CONVERT_CAP] = {0};
         const struct string_view decimal_signed_sv =
             signed_to_string_view((int64_t)test->number,
                                   NUMERIC_BASE_10,
@@ -450,7 +450,7 @@ void run_num_to_str_test(const struct num_to_str_test *const test) {
                                test->expected_signed_decimal));
     }
     {
-        char buffer[MAX_CONVERT_CAP] = {};
+        char buffer[MAX_CONVERT_CAP] = {0};
         const struct string_view hexadecimal_signed_sv =
             signed_to_string_view((int64_t)test->number,
                                   NUMERIC_BASE_16,

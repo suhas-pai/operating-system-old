@@ -190,7 +190,7 @@ setup_pagestructs_table(const uint64_t root_phys, const uint64_t byte_count) {
            map_size);
 
     // Map struct page table
-    struct pt_walker pt_walker = {};
+    struct pt_walker pt_walker = {0};
     const uint64_t pte_flags =
         __PTE_PRESENT | __PTE_WRITE | __PTE_GLOBAL | __PTE_NOEXEC;
 
@@ -331,7 +331,7 @@ map_into_kernel_pagemap(const uint64_t root_phys,
                         const uint64_t size,
                         const uint64_t pte_flags)
 {
-    struct pt_walker walker = {};
+    struct pt_walker walker = {0};
     ptwalker_create_customroot(&walker,
                                root_phys,
                                virt_addr,
@@ -371,7 +371,7 @@ static void init_table_page(struct page *const page) {
 }
 
 static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
-    struct pt_walker walker = {};
+    struct pt_walker walker = {0};
     ptwalker_create(&walker,
                     virt_addr,
                     /*alloc_pgtable=*/NULL,

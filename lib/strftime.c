@@ -10,7 +10,7 @@
 
 static inline struct strftime_modifiers
 parse_strftime_mods(const char *const iter, const char **const iter_out) {
-    struct strftime_modifiers mods = {};
+    struct strftime_modifiers mods = {0};
     switch (*iter) {
         case 'E':
             mods.locale_alt_repr = true;
@@ -117,7 +117,7 @@ handle_strftime_spec(
         VAR_CONCAT(func, _upper)(__VA_ARGS__) :                                \
         func(__VA_ARGS__))                                                     \
 
-    char conv_buffer[MAX_CONVERT_CAP] = {};
+    char conv_buffer[MAX_CONVERT_CAP] = {0};
     switch (spec_info->spec) {
         case 'a': {
             const enum weekday weekday = (enum weekday)tm->tm_wday;
@@ -262,7 +262,7 @@ handle_strftime_spec(
                 year -= 1;
             }
 
-            struct string_view sv = {};
+            struct string_view sv = {0};
             if (spec_info->spec == 'g') {
                 sv =
                     unsigned_to_string_view(year % 100,
@@ -587,7 +587,7 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
     uint64_t unformat_buffer_length = 0;
     uint64_t written_out = 0;
 
-    struct strftime_spec_info spec_info = {};
+    struct strftime_spec_info spec_info = {0};
     c_string_foreach (format, iter) {
         const char ch = *iter;
         if (ch != '%') {

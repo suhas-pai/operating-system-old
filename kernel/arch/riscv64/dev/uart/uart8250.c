@@ -79,8 +79,8 @@ uart8250_send_char(struct terminal *const term,
 }
 
 static void
-uart8250_send_sv(struct terminal *const console, const struct string_view sv) {
-    struct uart_driver *const driver = (struct uart_driver *)console;
+uart8250_send_sv(struct terminal *const term, const struct string_view sv) {
+    struct uart_driver *const driver = (struct uart_driver *)term;
     sv_foreach(sv, iter) {
         uart8250_putc((volatile void *)driver->device, *iter);
     }

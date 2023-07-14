@@ -13,7 +13,7 @@
 #include "cpu.h"
 #include "isr.h"
 
-static isr_func_t g_funcs[256] = {};
+static isr_func_t g_funcs[256] = {0};
 
 static isr_vector_t g_free_vector = 0x21;
 static isr_vector_t g_timer_vector = 0;
