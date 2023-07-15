@@ -69,12 +69,6 @@ override DEFAULT_LDFLAGS :=
 $(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
 
 # User controllable C preprocessor flags. We set none by default.
-CPPFLAGS ?= -std=c++20 $(COMMON_FLAGS)
-ifeq ($(shell uname -s),Darwin)
-	CPPFLAGS ?= $(CPPFLAGS) -isysroot \
-				$(xcode-select -p)/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
-endif
-
 # User controllable linker flags. We set none by default.
 override DEFAULT_LDFLAGS :=
 $(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
@@ -85,6 +79,7 @@ override CFLAGS += \
 	-Wextra \
 	-std=gnu11 \
 	-ffreestanding \
+	-fms-extensions \
 	-fno-stack-protector \
 	-fno-stack-check \
 	-fno-lto \
@@ -167,7 +162,6 @@ endef
 # Use "find" to glob all *.c, *.S, and *.asm files in the tree and obtain the
 # object and header dependency file names.
 $(eval $(call FIND_FILES,CFILES, "*.c"))
-$(eval $(call FIND_FILES,CPPFILES, "*.cpp"))
 $(eval $(call FIND_FILES,ASFILES, "*.S"))
 $(eval $(call FIND_FILES,NASMFILES, "*.asm"))
 
@@ -180,12 +174,11 @@ LIBFILES += \
 	../lib/adt/array.c
 
 override OBJ := $(foreach obj, $(CFILES:./%=%), obj/$(basename $(obj)).o) \
-				$(foreach obj, $(CPPFILES:./%=%), obj/$(basename $(obj)).cpp.o) \
 				$(foreach obj, $(ASFILES:./%=%), obj/$(basename $(obj)).S.o) \
 				$(foreach obj, $(NASMFILES:./%=%), obj/$(basename $(obj)).asm.o) \
 				$(foreach obj, $(LIBFILES:../lib/%=lib/%), obj/$(basename $(obj)).c.o)
 
-override HEADER_DEPS := $(CFILES:.c=.d) $(CPPFILES:.cpp=.cpp.d) $(ASFILES:.S=.d)
+override HEADER_DEPS := $(CFILES:.c=.d) $(ASFILES:.S=.d)
 
 # Default target.
 .PHONY: all
@@ -209,10 +202,6 @@ obj/%.o: %.c limine.h
 obj/lib/%.c.o: ../lib/%.c
 	@mkdir -p $(dir $@)
 	$(CC) -std=gnu17 $(CFLAGS) -c $< -o $@
-
-obj/%.cpp.o: %.cpp limine.h
-	@mkdir -p $(dir $@)
-	$(CXX) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Compilation rules for *.S files.
 obj/%.S.o: %.S limine.h

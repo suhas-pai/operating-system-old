@@ -42,7 +42,10 @@ void apic_init() {
            (info->version & F_LAPIC_VERSION_REG_VERION_MASK));
 
     uint64_t apic_msr = read_msr(IA32_MSR_APIC_BASE);
+
     printk(LOGLEVEL_INFO, "apic: msr: 0x%" PRIx64 "\n", apic_msr);
+    assert_msg((apic_msr & IA32_MSR_APIC_BASE_IS_BSP) != 0,
+               "apic: cpu is not bsp");
 
     /* Use the x2apic if available */
     if (get_cpu_capabilities()->supports_x2apic) {

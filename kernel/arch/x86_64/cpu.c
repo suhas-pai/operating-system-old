@@ -5,6 +5,7 @@
 
 #include "asm/cpuid.h"
 #include "asm/cr.h"
+#include "asm/fsgsbase.h"
 #include "asm/msr.h"
 
 #include "dev/printk.h"
@@ -81,6 +82,7 @@ static void init_cpuid_features() {
                eax, ebx, ecx, edx);
 
         const uint32_t expected_ebx_features =
+            CPUID_FEAT_EXT_7_EBX_FSGSBASE |
             CPUID_FEAT_EXT_7_EBX_BMI1 |
             CPUID_FEAT_EXT_7_EBX_BMI2 |
             CPUID_FEAT_EXT_7_EBX_REP_MOVSB_STOSB |
@@ -101,11 +103,14 @@ static void init_cpuid_features() {
         CR4_BIT_PGE |
         CR4_BIT_OSFXSR |
         CR4_BIT_OSXMMEXCPTO |
+        CR4_BIT_FSGSBASE |
         CR4_BIT_SMEP |
         CR4_BIT_SMAP |
         CR4_BIT_OSXSAVE;
 
+    printk(LOGLEVEL_DEBUG, "Wr\n");
     write_cr4(read_cr4() | cr4_bits);
+    printk(LOGLEVEL_DEBUG, "Wrote\n");
 
     /* Enable Syscalls, No-Execute, and Fast-FPU */
     write_msr(IA32_MSR_EFER,
@@ -126,11 +131,11 @@ const struct cpu_info *get_base_cpu_info() {
 }
 
 const struct cpu_info *get_cpu_info() {
-    return (const struct cpu_info *)read_msr(IA32_MSR_KERNEL_GS_BASE);
+    return (const struct cpu_info *)read_gsbase();
 }
 
 struct cpu_info *get_cpu_info_mut() {
-    return (struct cpu_info *)read_msr(IA32_MSR_KERNEL_GS_BASE);
+    return (struct cpu_info *)read_gsbase();
 }
 
 const struct cpu_capabilities *get_cpu_capabilities() {
@@ -138,8 +143,8 @@ const struct cpu_capabilities *get_cpu_capabilities() {
 }
 
 void cpu_init() {
-    write_msr(IA32_MSR_KERNEL_GS_BASE, (uint64_t)&g_base_cpu_info);
     init_cpuid_features();
+    write_gsbase((uint64_t)&g_base_cpu_info);
 
     g_base_cpu_init = true;
 }

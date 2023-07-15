@@ -680,7 +680,7 @@ void mm_init() {
         }
 
         // Don't claim bootloader reclaimable entires because that's where our
-        // stack is
+        // stack is.
         if (memmap->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE) {
             claim_pages(memmap->base, memmap->length);
         }

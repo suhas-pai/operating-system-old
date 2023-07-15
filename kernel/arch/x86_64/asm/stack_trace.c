@@ -19,7 +19,10 @@ struct stack_trace *stacktrace_next(struct stack_trace *const stk) {
 
 void print_stack_trace(const uint8_t max_lines) {
     struct stack_trace *stack = stacktrace_top();
-    for (uint8_t i = 0; i != max_lines; i++, stack = stacktrace_next(stack)) {
+    for (uint8_t i = 0;
+         stack != NULL && i != max_lines;
+         i++, stack = stacktrace_next(stack))
+    {
         printk(LOGLEVEL_INFO, "\t%p\n", (void *)stack->rip);
     }
 }

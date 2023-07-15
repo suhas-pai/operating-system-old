@@ -44,7 +44,7 @@ run-hdd: run-hdd-$(ARCH)
 
 .PHONY: run-x86_64
 run-x86_64: ovmf-x86_64 $(IMAGE_NAME).iso
-	qemu-system-x86_64 -M q35 -cpu max -m 2G -bios ovmf-x86_64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m 4G -bios ovmf-x86_64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-hdd-x86_64
 run-hdd-x86_64: ovmf-x86_64 $(IMAGE_NAME).hdd

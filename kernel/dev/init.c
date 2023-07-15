@@ -5,10 +5,6 @@
 
 #include "acpi/api.h"
 
-#if defined(__x86_64__)
-    #include "apic/lapic.h"
-#endif /* defined(__x86_64__) */
-
 #include "dev/printk.h"
 #include "driver.h"
 
