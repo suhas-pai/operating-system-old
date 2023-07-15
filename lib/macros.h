@@ -23,6 +23,10 @@
         __attribute__((format(printf, last_arg_idx, list_idx)))
 #endif /* !defined(__printf_format) */
 
+#if !defined(__optimize)
+    #define __optimize(n) __attribute__((optimize(n)))
+#endif /* !defined(__printf_format) */
+
 #define LEN_OF(str) (sizeof(str) - 1)
 
 #define __VAR_CONCAT_IMPL(a, b) a##b

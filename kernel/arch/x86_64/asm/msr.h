@@ -38,20 +38,35 @@ enum ia32_msr {
     IA32_MSR_MTRR_PHYSBASE0 = 0x200,
     IA32_MSR_MTRR_PHYSMASK0 = 0x201,
     IA32_MSR_MTRR_PHYSBASE1 = 0x202,
+
+    IA32_MSR_MISC_ENABLE = 0x1a0
 };
 
 enum ia32_msr_efer_flags {
     /* System Call Extensions */
-    F_IA32_MSR_EFER_BIT_SCE = (1 << 0),
+    F_IA32_MSR_EFER_BIT_SCE = 1ull << 0,
 
     /* Long Mode Enable */
-    F_IA32_MSR_EFER_BIT_LME = (1 << 8),
+    F_IA32_MSR_EFER_BIT_LME = 1ull << 8,
 
     /* Long Mode Active */
-    F_IA32_MSR_EFER_BIT_LMA = (1 << 10),
+    F_IA32_MSR_EFER_BIT_LMA = 1ull << 10,
 
     /* No Execute Enable */
-    F_IA32_MSR_EFER_BIT_NXE = (1 << 11),
+    F_IA32_MSR_EFER_BIT_NXE = 1ull << 11,
+};
+
+enum ia32_msr_misc_flags {
+    F_IA32_MSR_MISC_FAST_STRING_ENABLE    = 1ull << 0,
+    F_IA32_MSR_MISC_POPCODE_COMPAT_ENABLE = 1ull << 2,
+    F_IA32_MSR_MISC_THERM_MONITOR_ENABLE  = 1ull << 3,
+    F_IA32_MSR_MISC_SPLIT_LOCK_ENABLE     = 1ull << 4,
+    F_IA32_MSR_MISC_BUS_LOCK_ENABLE       = 1ull << 8,
+    F_IA32_MSR_MISC_HW_PREFETCH_DISABLE   = 1ull << 9,
+    F_IA32_MSR_MISC_GV12_LEGACY_ENABLE    = 1ull << 15,
+    F_IA32_MSR_MISC_MONITOR_MWAIT_ENABLE  = 1ull << 18,
+
+    F_IA32_MSR_MISC_ADJC_SECT_PREFETCH_DISABLE = 1ull << 19
 };
 
 enum msr_pat_encoding {

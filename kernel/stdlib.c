@@ -102,39 +102,42 @@ char *strchr(const char *const str, const int ch) {
         return 0;                                                              \
     }
 
-#define DECL_MEM_COPY_FUNC(type) \
-    static inline unsigned long  \
-    VAR_CONCAT(_memcpy_, type)(void *dst,                  \
-                               const void *src,            \
-                               unsigned long n,            \
-                               void **const dst_out,       \
-                               const void **const src_out) \
-    {                                                                          \
-        while (n >= sizeof(type)) {                                            \
-            *(type *)dst = *(const type *)src;                                 \
-                                                                               \
-            dst += sizeof(type);                                               \
-            src += sizeof(type);                                               \
-                                                                               \
-            n -= sizeof(type);                                                 \
-        }                                                                      \
-                                                                               \
-        *dst_out = dst;                                                        \
-        *src_out = src;                                                        \
-                                                                               \
-        return n;                                                              \
-    }
-
 DECL_MEM_CMP_FUNC(uint8_t)
 DECL_MEM_CMP_FUNC(uint16_t)
 DECL_MEM_CMP_FUNC(uint32_t)
 DECL_MEM_CMP_FUNC(uint64_t)
 
-DECL_MEM_COPY_FUNC(uint8_t)
-DECL_MEM_COPY_FUNC(uint16_t)
-DECL_MEM_COPY_FUNC(uint32_t)
-DECL_MEM_COPY_FUNC(uint64_t)
+#if !defined(__x86_64__)
+    #define DECL_MEM_COPY_FUNC(type) \
+        static inline unsigned long  \
+        VAR_CONCAT(_memcpy_, type)(void *dst,                  \
+                                   const void *src,            \
+                                   unsigned long n,            \
+                                   void **const dst_out,       \
+                                   const void **const src_out) \
+        {                                                                      \
+            while (n >= sizeof(type)) {                                        \
+                *(type *)dst = *(const type *)src;                             \
+                                                                               \
+                dst += sizeof(type);                                           \
+                src += sizeof(type);                                           \
+                                                                               \
+                n -= sizeof(type);                                             \
+            }                                                                  \
+                                                                               \
+            *dst_out = dst;                                                    \
+            *src_out = src;                                                    \
+                                                                               \
+            return n;                                                          \
+        }
 
+    DECL_MEM_COPY_FUNC(uint8_t)
+    DECL_MEM_COPY_FUNC(uint16_t)
+    DECL_MEM_COPY_FUNC(uint32_t)
+    DECL_MEM_COPY_FUNC(uint64_t)
+#endif /* !defined(__x86_64__) */
+
+__optimize(3)
 int
 memcmp(const void *left,
        const void *right,
@@ -159,8 +162,13 @@ memcmp(const void *left,
     return res;
 }
 
+__optimize(3)
 void *memcpy(void *dst, const void *src, unsigned long n) {
     void *ret = dst;
+
+#if defined(__x86_64__)
+    asm volatile ("rep movsb" :: "D"(dst), "S"(src), "c"(n) : "memory");
+#else
     if (n >= sizeof(uint64_t)) {
         n = _memcpy_uint64_t(dst, src, n, &dst, &src);
         n = _memcpy_uint32_t(dst, src, n, &dst, &src);
@@ -182,35 +190,55 @@ void *memcpy(void *dst, const void *src, unsigned long n) {
     } else {
         _memcpy_uint8_t(dst, src, n, &dst, &src);
     }
+#endif /* defined(__x86_64__) */
 
     return ret;
 }
 
-#define DECL_MEM_COPY_BACK_FUNC(type) \
-    static inline unsigned long  \
-    VAR_CONCAT(_memcpy_bw_, type)(void *const dst, \
-                                  const void *src, \
-                                  const unsigned long n, \
-                                  void **const dst_out, \
-                                  const void **const src_out) \
-    {                                                                          \
-        for (int off = n - sizeof(type); off >= 0; off -= (int)sizeof(type)) { \
-            ((type *)dst)[off] = ((const type *)src)[off];                     \
-        }                                                                      \
+#if !defined(__x86_64__)
+    #define DECL_MEM_COPY_BACK_FUNC(type) \
+        static inline unsigned long  \
+        VAR_CONCAT(_memcpy_bw_, type)(void *const dst, \
+                                      const void *src, \
+                                      const unsigned long n, \
+                                      void **const dst_out, \
+                                      const void **const src_out) \
+        {                                                                      \
+            for (int off = n - sizeof(type);                                   \
+                 off >= 0;                                                     \
+                 off -= (int)sizeof(type)) {                                   \
+                ((type *)dst)[off] = ((const type *)src)[off];                 \
+            }                                                                  \
                                                                                \
-        *dst_out = dst;                                                        \
-        *src_out = src;                                                        \
+            *dst_out = dst;                                                    \
+            *src_out = src;                                                    \
                                                                                \
-        return n; \
-    }
+            return n; \
+        }
 
-DECL_MEM_COPY_BACK_FUNC(uint8_t)
-DECL_MEM_COPY_BACK_FUNC(uint16_t)
-DECL_MEM_COPY_BACK_FUNC(uint32_t)
-DECL_MEM_COPY_BACK_FUNC(uint64_t)
+    DECL_MEM_COPY_BACK_FUNC(uint8_t)
+    DECL_MEM_COPY_BACK_FUNC(uint16_t)
+    DECL_MEM_COPY_BACK_FUNC(uint32_t)
+    DECL_MEM_COPY_BACK_FUNC(uint64_t)
+#endif
 
+__optimize(3)
 void *memmove(void *dst, const void *src, unsigned long n) {
     void *ret = dst;
+
+#if defined(__x86_64__)
+    if (src > dst) {
+        memmove(dst, src, n);
+    } else {
+        void *dst_back = dst + (n - 1);
+        const void *src_back = src + (n - 1);
+
+        asm volatile ("std;"
+                      "rep movsb;"
+                      "cld"
+                      :: "D"(dst_back), "S"(src_back), "c"(n) : "memory");
+    }
+#else
     if (src > dst) {
         const uint64_t diff = (uint64_t)(src - dst);
         if (diff >= sizeof(uint64_t)) {
@@ -246,14 +274,20 @@ void *memmove(void *dst, const void *src, unsigned long n) {
             _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
         }
     }
+#endif /* defined(__x86_64__) */
 
     return ret;
 }
 
+__optimize(3)
 void *memset(void *const dst, const int val, const unsigned long n) {
+#if defined(__x86_64__)
+    asm volatile ("rep stosb" :: "D"(dst), "al"(val), "c"(n) : "memory");
+#else
     for (unsigned long i = 0; i != n; i++) {
         ((uint8_t *)dst)[i] = (uint8_t)val;
     }
+#endif /* defined(__x86_64__) */
 
     return dst;
 }

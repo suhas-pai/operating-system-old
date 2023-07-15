@@ -118,7 +118,7 @@ string_char_callback(struct printf_spec_info *const spec_info,
     (void)spec_info;
 
     struct string *const string = (struct string *)cb_info;
-    if (!string_append_ch(string, ch, amount)) {
+    if (!string_append_char(string, ch, amount)) {
         *cont_out = false;
         return 0;
     }

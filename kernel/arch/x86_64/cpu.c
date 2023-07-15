@@ -74,7 +74,7 @@ static void init_cpuid_features() {
               &edx);
 
         printk(LOGLEVEL_INFO,
-               "cpuid: get_features_extended_7: "
+               "cpuid: get_features_extended_7(ecx=0): "
                "eax: 0x%" PRIX64 " "
                "ebx: 0x%" PRIX64 " "
                "ecx: 0x%" PRIX64 " "
@@ -82,17 +82,41 @@ static void init_cpuid_features() {
                eax, ebx, ecx, edx);
 
         const uint32_t expected_ebx_features =
-            CPUID_FEAT_EXT_7_EBX_FSGSBASE |
-            CPUID_FEAT_EXT_7_EBX_BMI1 |
-            CPUID_FEAT_EXT_7_EBX_BMI2 |
-            CPUID_FEAT_EXT_7_EBX_REP_MOVSB_STOSB |
-            CPUID_FEAT_EXT_7_EBX_SMAP;
+            CPUID_FEAT_EXT7_ECX0_EBX_FSGSBASE |
+            CPUID_FEAT_EXT7_ECX0_EBX_BMI1 |
+            CPUID_FEAT_EXT7_ECX0_EBX_BMI2 |
+            CPUID_FEAT_EXT7_ECX0_EBX_REP_MOVSB_STOSB |
+            CPUID_FEAT_EXT7_ECX0_EBX_SMAP;
 
         assert((ebx & expected_ebx_features) == expected_ebx_features);
         if (!g_base_cpu_init) {
             g_cpu_capabilities.supports_avx512 =
-                (ebx & CPUID_FEAT_EXT_7_EBX_AVX512F);
+                (ebx & CPUID_FEAT_EXT7_ECX0_EBX_AVX512F);
         }
+    }
+    {
+        uint64_t eax, ebx, ecx = 1, edx;
+        cpuid(CPUID_GET_FEATURES_EXTENDED_7,
+              /*subleaf=*/1,
+              &eax,
+              &ebx,
+              &ecx,
+              &edx);
+
+        printk(LOGLEVEL_INFO,
+               "cpuid: get_features_extended_7(ecx=1): "
+               "eax: 0x%" PRIX64 " "
+               "ebx: 0x%" PRIX64 " "
+               "ecx: 0x%" PRIX64 " "
+               "edx: 0x%" PRIX64 "\n",
+               eax, ebx, ecx, edx);
+
+        const uint32_t expected_eax_features =
+            CPUID_FEAT_EXT7_ECX1_EAX_FAST_ZEROLEN_REP_MOVSB |
+            CPUID_FEAT_EXT7_ECX1_EAX_FAST_ZEROLEN_REP_STOSB |
+            CPUID_FEAT_EXT7_ECX1_EAX_FAST_SHORT_REP_CMPSB_SCASB;
+
+        assert((eax & expected_eax_features) == expected_eax_features);
     }
 
     write_cr0((read_cr0() | CR0_BIT_MP) & ~(uint64_t)CR0_BIT_EM);
@@ -108,9 +132,7 @@ static void init_cpuid_features() {
         CR4_BIT_SMAP |
         CR4_BIT_OSXSAVE;
 
-    printk(LOGLEVEL_DEBUG, "Wr\n");
     write_cr4(read_cr4() | cr4_bits);
-    printk(LOGLEVEL_DEBUG, "Wrote\n");
 
     /* Enable Syscalls, No-Execute, and Fast-FPU */
     write_msr(IA32_MSR_EFER,
@@ -124,6 +146,9 @@ static void init_cpuid_features() {
                (uint64_t)gdt_get_user_data_segment() << 48));
 
     write_msr(IA32_MSR_FMASK, 0);
+    write_msr(IA32_MSR_MISC_ENABLE,
+              (read_msr(IA32_MSR_MISC_ENABLE |
+               F_IA32_MSR_MISC_FAST_STRING_ENABLE)));
 }
 
 const struct cpu_info *get_base_cpu_info() {

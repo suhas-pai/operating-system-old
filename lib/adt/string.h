@@ -19,7 +19,7 @@ struct string {
 struct string string_create();
 struct string string_create_alloc(struct string_view sv);
 
-struct string *string_append_ch(struct string *string, char ch, uint32_t amt);
+struct string *string_append_char(struct string *string, char ch, uint32_t amt);
 struct string *string_append_sv(struct string *string, struct string_view sv);
 
 __printf_format(2, 3)

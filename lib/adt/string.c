@@ -43,9 +43,9 @@ static bool prepare_append(struct string *const string, uint32_t length) {
 }
 
 struct string *
-string_append_ch(struct string *const string,
-                 const char ch,
-                 const uint32_t amount)
+string_append_char(struct string *const string,
+                   const char ch,
+                   const uint32_t amount)
 {
     if (!prepare_append(string, amount)) {
         return NULL;
