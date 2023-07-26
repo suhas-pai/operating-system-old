@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include "lib/macros.h"
 
-#define PCI_MAX_BUS_COUNT 256 /* Maximum number of PCI Buses */
+#define PCI_MAX_BUS_COUNT 255 /* Maximum number of PCI Buses */
 #define PCI_MAX_DEVICE_COUNT 32 /* Each bus has upto 32 devices */
 #define PCI_MAX_FUNCTION_COUNT 8 /* Each device has upto 8 functions */
 
@@ -175,7 +175,7 @@ struct pci_spec_general_device_info {
 struct pci_spec_pci_to_pci_bridge_device_info {
     struct pci_spec_device_info base;
 
-    uint32_t base_address_list[2];
+    uint32_t bar_list[2];
     uint8_t primary_bus_number;
     uint8_t secondary_bus_number;
     uint8_t subordinate_bus_number;

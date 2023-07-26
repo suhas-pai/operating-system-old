@@ -61,6 +61,8 @@ pci_device_bar_read64(struct pci_device_bar_info *const bar,
 struct pci_device_info {
     struct list list;
     struct pci_config_space config_space;
+    struct pci_group *group;
+
     volatile const struct pci_spec_device_info *pcie_info;
 
     uint16_t id;
@@ -78,7 +80,6 @@ struct pci_device_info {
     uint8_t irq_pin;
 
     bool multifunction : 1;
-    bool has_no_irq_pin : 1;
     uint8_t max_bar_count : 3;
 
     enum pci_device_msi_support msi_support : 2;
@@ -118,12 +119,12 @@ struct pci_group {
     uint16_t segment;
 
     uint32_t
-    (*read)(const struct pci_config_space *s,
+    (*read)(const struct pci_device_info *s,
             uint32_t offset,
             uint8_t access_size);
 
     bool
-    (*write)(const struct pci_config_space *space,
+    (*write)(const struct pci_device_info *space,
              uint32_t offset,
              uint32_t value,
              uint8_t access_size);
@@ -135,4 +136,3 @@ pci_group_create_pcie(struct range bus_range,
                       uint16_t segment);
 
 void pci_init();
-void pci_add_group(struct pci_group *group);

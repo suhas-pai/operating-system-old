@@ -244,12 +244,12 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
     if (vma->prot != PROT_NONE) {
         const bool map_result =
             arch_make_mapping(pagemap,
-                            phys_addr,
-                            vma->range.front,
-                            vma->range.size,
-                            vma->prot,
-                            vma->cachekind,
-                            /*is_overwrite=*/false);
+                              phys_addr,
+                              vma->range.front,
+                              vma->range.size,
+                              vma->prot,
+                              vma->cachekind,
+                              /*is_overwrite=*/false);
 
         spin_release_with_irq(&pagemap->lock, flag);
         if (!map_result) {
@@ -282,12 +282,12 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
     if (vma->prot != PROT_NONE) {
         const bool map_result =
             arch_make_mapping(pagemap,
-                            phys_addr,
-                            vma->range.front,
-                            vma->range.size,
-                            vma->prot,
-                            vma->cachekind,
-                            /*is_overwrite=*/false);
+                              phys_addr,
+                              vma->range.front,
+                              vma->range.size,
+                              vma->prot,
+                              vma->cachekind,
+                              /*is_overwrite=*/false);
 
         spin_release_with_irq(&pagemap->lock, flag);
         if (!map_result) {

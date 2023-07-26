@@ -27,11 +27,11 @@ seek_to_config_space(const struct pci_config_space *const config_space,
 }
 
 uint32_t
-pci_read(const struct pci_config_space *const config_space,
+pci_read(const struct pci_device_info *const device,
          const uint32_t offset,
          const uint8_t access_size)
 {
-    seek_to_config_space(config_space, offset);
+    seek_to_config_space(&device->config_space, offset);
     switch (access_size) {
         case sizeof(uint8_t):
             return port_in8(PORT_PCI_CONFIG_DATA + (offset & 0b11));
@@ -45,12 +45,12 @@ pci_read(const struct pci_config_space *const config_space,
 }
 
 bool
-pci_write(const struct pci_config_space *const config_space,
+pci_write(const struct pci_device_info *const device,
           const uint32_t offset,
           const uint32_t value,
           const uint8_t access_size)
 {
-    seek_to_config_space(config_space, offset);
+    seek_to_config_space(&device->config_space, offset);
     switch (access_size) {
         case sizeof(uint8_t):
             port_out8(PORT_PCI_CONFIG_DATA + (offset & 0b11), value);
