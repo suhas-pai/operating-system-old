@@ -146,9 +146,9 @@ enum pt_walker_result
 ptwalker_next(struct pt_walker *const walker, struct pageop *const pageop) {
     return ptwalker_next_custom(walker,
                                 /*level=*/1,
-                                /*alloc_parents=*/false,
-                                /*alloc_level=*/false,
-                                /*should_ref=*/false,
+                                /*alloc_parents=*/true,
+                                /*alloc_level=*/true,
+                                /*should_ref=*/true,
                                 /*alloc_pgtable_cb_info=*/NULL,
                                 /*free_pgtable_cb_info=*/pageop);
 }
@@ -227,7 +227,7 @@ static enum pt_walker_result
 alloc_levels_down_to(struct pt_walker *const walker,
                      uint8_t parent_level,
                      uint8_t last_level,
-                     const bool alloc_level,
+                     const bool alloc_last_level,
                      const bool should_ref,
                      void *const alloc_pgtable_cb_info,
                      void *const free_pgtable_cb_info)
@@ -239,6 +239,13 @@ alloc_levels_down_to(struct pt_walker *const walker,
     pte_t *pte = ptwalker_pte_in_level(walker, parent_level);
 
     uint8_t level = parent_level - 1;
+    if (level == last_level) {
+        if (!alloc_last_level) {
+            walker->level = level + 1;
+            return E_PT_WALKER_OK;
+        }
+    }
+
     do {
         if (!alloc_single_pte(walker,
                               alloc_pgtable_cb_info,
@@ -258,7 +265,7 @@ alloc_levels_down_to(struct pt_walker *const walker,
 
         level--;
         if (level == last_level) {
-            if (!alloc_level) {
+            if (!alloc_last_level) {
                 break;
             }
         } else if (level < last_level) {
@@ -366,9 +373,9 @@ enum pt_walker_result
 ptwalker_prev(struct pt_walker *const walker, struct pageop *const pageop) {
     return ptwalker_prev_custom(walker,
                                 /*level=*/1,
-                                /*alloc_parents=*/false,
-                                /*alloc_level=*/false,
-                                /*should_ref=*/false,
+                                /*alloc_parents=*/true,
+                                /*alloc_level=*/true,
+                                /*should_ref=*/true,
                                 /*alloc_pgtable_cb_info=*/NULL,
                                 /*free_pgtable_cb_info=*/pageop);
 }

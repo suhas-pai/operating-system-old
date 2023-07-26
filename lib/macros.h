@@ -25,8 +25,9 @@
 
 #if !defined(__optimize)
     #define __optimize(n) __attribute__((optimize(n)))
-#endif /* !defined(__printf_format) */
+#endif /* !defined(__optimize) */
 
+#define sizeof_field(type, field) sizeof(((type *)0)->field)
 #define LEN_OF(str) (sizeof(str) - 1)
 
 #define __VAR_CONCAT_IMPL(a, b) a##b
@@ -61,9 +62,12 @@
     __a < __b ? __a : __b; \
 })
 
+#define reg_to_ptr(type, base, reg) \
+    ((volatile type *)((uint64_t)(base) + (reg)))
 #define get_to_within_size(x, size) ((x) % (size))
+
 #define distance(begin, end) ((uint64_t)(end) - (uint64_t)(begin))
-#define distance_inclusive(begin, end) distance(begin, end) + 1
+#define distance_incl(begin, end) (distance(begin, end) + 1)
 
 #define RAND_VAR_NAME() VAR_CONCAT(__random__, __LINE__)
 #define sizeof_bits(n) (sizeof(n) * 8)

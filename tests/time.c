@@ -8,7 +8,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "lib/parse_strftime.h"
+#include "lib/strftime.h"
 #include "lib/time.h"
 
 static struct tm *get_time_now() {

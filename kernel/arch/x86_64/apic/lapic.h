@@ -153,14 +153,10 @@ enum lapic_ipi {
     LAPIC_IPI_SIPI = 0x4600,
 };
 
-enum lapic_flags {
-    F_LAPIC_BUSY = 1 << 12
-};
-
 enum lapic_spurious_vector_flags {
-    F_LAPIC_SPUR_VECTOR_ENABLE         = 1 << 8,
-    F_LAPIC_SPUR_VECTOR_FOCUS_DISABLED = 1 << 9,
-    F_LAPIC_SPUR_VECTOR_EOI            = 1 << 11,
+    __LAPIC_SPURVEC_ENABLE         = 1 << 8,
+    __LAPIC_SPURVEC_FOCUS_DISABLED = 1 << 9,
+    __LAPIC_SPURVEC_EOI            = 1 << 11,
 };
 
 enum lapic_timer_mode {

@@ -11,7 +11,7 @@
 uint64_t HHDM_OFFSET = 0;
 
 void *phys_to_virt(const uint64_t phys) {
-    return (void *)chk_add_overflow_assert(HHDM_OFFSET, phys);
+    return (void *)check_add_assert(HHDM_OFFSET, phys);
 }
 
 uint64_t virt_to_phys(const void *const virt) {

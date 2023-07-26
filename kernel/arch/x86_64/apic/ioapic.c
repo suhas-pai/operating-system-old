@@ -73,8 +73,8 @@ redirect_irq(const uint8_t lapic_id,
      * the upper-32 bits.
      */
 
-    ioapic_write(ioapic->regs, reg, req_value);
-    ioapic_write(ioapic->regs, reg + 1, req_value >> 32);
+    ioapic_write(ioapic->regs_mmio->base, reg, req_value);
+    ioapic_write(ioapic->regs_mmio->base, reg + 1, req_value >> 32);
 }
 
 /******* PUBLIC APIs *******/

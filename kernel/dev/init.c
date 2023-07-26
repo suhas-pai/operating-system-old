@@ -5,7 +5,7 @@
 
 #include "acpi/api.h"
 
-#include "dev/printk.h"
+#include "dev/pci/pci.h"
 #include "driver.h"
 
 void serial_init() {
@@ -22,6 +22,11 @@ void serial_init() {
 
 void dev_init() {
     acpi_init();
+
+#if defined(__x86_64__)
+    pci_init();
+#endif /* defined(__x86_64__) */
+
     driver_foreach(iter) {
         switch (iter->kind) {
             case DRIVER_NONE:

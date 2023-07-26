@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "acpi/mcfg.h"
 #include "dev/printk.h"
 #include "mm/page.h"
 
@@ -59,6 +60,10 @@ static inline void acpi_init_each_sdt(const struct acpi_sdt *const sdt) {
         info.fadt = (const struct acpi_fadt *)sdt;
         return;
     }
+
+    if (memcmp(sdt->signature, "MCFG", 4) == 0) {
+        info.mcfg = (const struct acpi_mcfg *)sdt;
+    }
 }
 
 void acpi_init(void) {
@@ -86,7 +91,6 @@ void acpi_init(void) {
     printk(LOGLEVEL_INFO, "acpi: rsdt at %p\n", info.rsdt);
 
     acpi_recurse(acpi_init_each_sdt);
-
     if (get_acpi_info()->madt != NULL) {
         madt_init(get_acpi_info()->madt);
     }
@@ -94,6 +98,12 @@ void acpi_init(void) {
     if (get_acpi_info()->fadt != NULL) {
         fadt_init(get_acpi_info()->fadt);
     }
+
+#if defined(__x86_64__)
+    if (get_acpi_info()->mcfg != NULL) {
+        mcfg_init(get_acpi_info()->mcfg);
+    }
+#endif /* defined(__x86_64__) */
 }
 
 struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {

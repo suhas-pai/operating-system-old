@@ -48,3 +48,20 @@ void
 avltree_delete_node(struct avltree *tree,
                     struct avlnode *node,
                     avlnode_update_t update);
+
+enum avltree_traverse_next_kind {
+    AVLTREE_TRAVERSE_NEXT_LEFT,
+    AVLTREE_TRAVERSE_NEXT_RIGHT,
+    AVLTREE_TRAVERSE_NEXT_DONE,
+};
+
+typedef enum avltree_traverse_next_kind
+(*avltree_traverse_t)(struct avltree *tree,
+                      struct avlnode *node,
+                      struct avlnode **link,
+                      void *cb_info);
+
+struct avlnode *
+avltree_traverse(struct avltree *tree,
+                 avltree_traverse_t traverse_cb,
+                 void *cb_info);

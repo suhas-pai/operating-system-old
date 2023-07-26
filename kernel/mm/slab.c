@@ -17,7 +17,7 @@
 
 // Use space inside free slab objects to create a singly-linked list.
 struct free_slab_object {
-    int64_t next;
+    uint32_t next;
 };
 
 bool
@@ -90,7 +90,9 @@ static struct page *alloc_slab_page(struct slab_allocator *const alloc) {
         free_obj->next = i + 1;
     }
 
-    ((struct free_slab_object *)(page_virt + object_byte_index))->next = -1;
+    ((struct free_slab_object *)(page_virt + object_byte_index))->next =
+        UINT32_MAX;
+
     return head;
 }
 
@@ -104,8 +106,12 @@ get_free_index(struct page *const page,
 
 static inline void *
 get_free_ptr(struct page *const page, struct slab_allocator *const alloc) {
+    if (page->slab.head.first_free_index == UINT32_MAX) {
+        return NULL;
+    }
+
     const uint64_t byte_index =
-        chk_mul_overflow_assert(page->slab.head.first_free_index,
+        check_mul_assert(page->slab.head.first_free_index,
                                 alloc->object_size);
 
     return page_to_virt(page) + byte_index;
@@ -136,9 +142,7 @@ void *slab_alloc(struct slab_allocator *const alloc) {
     struct free_slab_object *const result = get_free_ptr(page, alloc);
     page->slab.head.first_free_index = result->next;
 
-    assert_msg(page->slab.head.first_free_index < 512, "page %p, pointer %p is the cause", page, &page->slab.head.first_free_index);
     spin_release_with_irq(&alloc->lock, flag);
-
     return result;
 }
 
@@ -162,8 +166,7 @@ void slab_free(void *const mem) {
     head->slab.head.free_obj_count += 1;
 
     if (head->slab.head.free_obj_count != 1) {
-        if (head->slab.head.free_obj_count == alloc->object_count_per_slab)
-        {
+        if (head->slab.head.free_obj_count == alloc->object_count_per_slab) {
             list_delete(&head->slab.head.slab_list);
 
             alloc->free_obj_count -= alloc->object_count_per_slab;

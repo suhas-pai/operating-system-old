@@ -33,7 +33,7 @@
         assert(count == (int)LEN_OF(expected));                                \
         memset(buffer, '\0', countof(buffer));                                 \
                                                                                \
-        string_free(&string);                                                  \
+        string_destroy(&string);                                               \
     } while (false)
 
 #define test_format_to_buffer_no_count(buffer_len, expected, str, ...)         \

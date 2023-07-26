@@ -8,19 +8,35 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "lib/inttypes.h"
+
 struct range {
     uint64_t front;
     uint64_t size;
 };
+
+#define RANGE_FMT "0x%" PRIx64 " - 0x%" PRIx64
+#define RANGE_FMT_ARGS(range) \
+    (range).front,                    \
+    ({                                \
+        uint64_t end = 0;             \
+        range_get_end((range), &end); \
+        end;                          \
+    })
 
 #define range_create_empty() ((struct range){ .front = 0, .size = 0 })
 #define range_create_max() ((struct range){ .front = 0, .size = UINT64_MAX })
 
 struct range range_create(uint64_t front, uint64_t size);
 struct range range_multiply(struct range range, uint64_t mult);
+struct range range_align_in(struct range range, uint64_t boundary);
+
+bool
+range_align_out(struct range range, uint64_t boundary, struct range *range_out);
 
 bool range_has_index(struct range range, uint64_t index);
 bool range_has_loc(struct range range,  uint64_t loc);
+bool range_has_end(struct range range,  uint64_t loc);
 bool range_get_end(struct range range, uint64_t *end_out);
 
 bool range_above(struct range range, struct range above);
@@ -38,4 +54,5 @@ uint64_t range_loc_for_index(struct range range, uint64_t index);
 uint64_t range_index_for_loc(struct range range, uint64_t loc);
 
 bool range_has(struct range range, struct range other);
+bool range_has_index_range(struct range range, struct range other);
 bool range_overlaps(struct range range, struct range other);

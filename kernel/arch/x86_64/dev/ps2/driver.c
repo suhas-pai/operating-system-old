@@ -7,8 +7,8 @@
 
 #include "dev/port.h"
 #include "dev/printk.h"
-
 #include "dev/ps2/keyboard.h"
+
 #include "driver.h"
 
 #define RETRY_LIMIT 10

@@ -33,16 +33,22 @@ _Static_assert(offsetof(struct pl011_device, cr_offset) == 0x030, "");
 _Static_assert(offsetof(struct pl011_device, imsc_offset) == 0x038, "");
 _Static_assert(offsetof(struct pl011_device, dmacr_offset) == 0x048, "");
 
-static const uint32_t FR_BUSY = (1 << 3);
+static const uint32_t FR_BUSY = 1 << 3;
 
-static const uint32_t CR_TXEN = (1 << 8);
-static const uint32_t CR_UARTEN = (1 << 0);
+static const uint32_t CR_TXEN = 1 << 8;
+static const uint32_t CR_UARTEN = 1 << 0;
 
-static const uint32_t LCR_FEN = (1 << 4);
-static const uint32_t LCR_STP2 = (1 << 3);
+static const uint32_t LCR_FEN = 1 << 4;
+static const uint32_t LCR_STP2 = 1 << 3;
+
+#define MAX_ATTEMPTS 10
 
 static void wait_tx_complete(const struct pl011_device *const dev) {
-    while ((dev->fr_offset & FR_BUSY) != 0) {}
+    for (uint64_t i = 0; i != MAX_ATTEMPTS; i++) {
+        if ((dev->fr_offset & FR_BUSY) == 0) {
+            return;
+        }
+    }
 }
 
 static void

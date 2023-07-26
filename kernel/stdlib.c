@@ -162,8 +162,7 @@ memcmp(const void *left,
     return res;
 }
 
-__optimize(3)
-void *memcpy(void *dst, const void *src, unsigned long n) {
+__optimize(3) void *memcpy(void *dst, const void *src, unsigned long n) {
     void *ret = dst;
 
 #if defined(__x86_64__)
@@ -222,8 +221,7 @@ void *memcpy(void *dst, const void *src, unsigned long n) {
     DECL_MEM_COPY_BACK_FUNC(uint64_t)
 #endif
 
-__optimize(3)
-void *memmove(void *dst, const void *src, unsigned long n) {
+__optimize(3) void *memmove(void *dst, const void *src, unsigned long n) {
     void *ret = dst;
 
 #if defined(__x86_64__)
@@ -240,7 +238,7 @@ void *memmove(void *dst, const void *src, unsigned long n) {
     }
 #else
     if (src > dst) {
-        const uint64_t diff = (uint64_t)(src - dst);
+        const uint64_t diff = distance(dst, src);
         if (diff >= sizeof(uint64_t)) {
             memcpy(dst, src, n);
         } else if (diff >= sizeof(uint32_t)) {
@@ -255,7 +253,7 @@ void *memmove(void *dst, const void *src, unsigned long n) {
             _memcpy_uint8_t(dst, src, n, &dst, &src);
         }
     } else {
-        const uint64_t diff = (uint64_t)(dst - src);
+        const uint64_t diff = distance(src, dst);
         if (diff >= sizeof(uint64_t)) {
             n = _memcpy_bw_uint64_t(dst, src, n, &dst, &src);
             n = _memcpy_bw_uint32_t(dst, src, n, &dst, &src);

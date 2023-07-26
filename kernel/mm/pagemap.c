@@ -15,7 +15,7 @@
 struct pagemap kernel_pagemap = {
     .root = NULL, // setup later
     .lock = SPINLOCK_INIT(),
-    .refcount = refcount_create(),
+    .refcount = refcount_create_max(),
     .vma_tree = {0},
     .vma_list = LIST_INIT(kernel_pagemap.vma_list)
 };
@@ -107,7 +107,7 @@ travserse_tree(struct pagemap *const pagemap,
                 }
 
                 uint64_t end = 0;
-                if (chk_add_overflow(aligned_result, size, &end)) {
+                if (check_add(aligned_result, size, &end)) {
                     *result_out = INVALID_ADDR;
                     return TRAVERSAL_DONE;
                 }
@@ -241,18 +241,22 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
                           &prev->vma_node.right,
                           vma_avltree_update);
 
-    const bool map_result =
-        arch_make_mapping(pagemap,
-                          phys_addr,
-                          vma->range.front,
-                          vma->range.size,
-                          vma->prot,
-                          vma->cachekind,
-                          /*is_overwrite=*/false);
+    if (vma->prot != PROT_NONE) {
+        const bool map_result =
+            arch_make_mapping(pagemap,
+                            phys_addr,
+                            vma->range.front,
+                            vma->range.size,
+                            vma->prot,
+                            vma->cachekind,
+                            /*is_overwrite=*/false);
 
-    spin_release_with_irq(&pagemap->lock, flag);
-    if (!map_result) {
-        return false;
+        spin_release_with_irq(&pagemap->lock, flag);
+        if (!map_result) {
+            return false;
+        }
+    } else {
+        spin_release_with_irq(&pagemap->lock, flag);
     }
 
     return true;
@@ -275,18 +279,22 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
                           &prev->vma_node.right,
                           vma_avltree_update);*/
 
-    const bool map_result =
-        arch_make_mapping(pagemap,
-                          phys_addr,
-                          vma->range.front,
-                          vma->range.size,
-                          vma->prot,
-                          vma->cachekind,
-                          /*is_overwrite=*/false);
+    if (vma->prot != PROT_NONE) {
+        const bool map_result =
+            arch_make_mapping(pagemap,
+                            phys_addr,
+                            vma->range.front,
+                            vma->range.size,
+                            vma->prot,
+                            vma->cachekind,
+                            /*is_overwrite=*/false);
 
-    spin_release_with_irq(&pagemap->lock, flag);
-    if (!map_result) {
-        return false;
+        spin_release_with_irq(&pagemap->lock, flag);
+        if (!map_result) {
+            return false;
+        }
+    } else {
+        spin_release_with_irq(&pagemap->lock, flag);
     }
 
     (void)in_range;

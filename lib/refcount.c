@@ -33,7 +33,7 @@ void refcount_increment(struct refcount *const ref, const int32_t amount) {
 
 bool refcount_decrement(struct refcount *const ref, const int32_t amount) {
     const int32_t old =
-        atomic_fetch_sub_explicit(&ref->count, 1, memory_order_relaxed);
+        atomic_fetch_sub_explicit(&ref->count, amount, memory_order_relaxed);
 
     if (old < 0 || old < amount) {
         panic("UAF in refcount_decrement()");

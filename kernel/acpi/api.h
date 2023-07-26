@@ -13,6 +13,8 @@
 #include "lib/adt/array.h"
 
 #if defined(__x86_64__)
+    #include "mm/mmio.h"
+
     struct lapic_info {
         uint8_t apic_id;
         uint8_t processor_id;
@@ -29,7 +31,7 @@
         uint8_t max_redirect_count;
 
         /* gsib = Global System Interrupt Base */
-        volatile struct ioapic_registers *regs;
+        struct mmio_region *regs_mmio;
     };
 #endif /* defined(__x86_64__) */
 
@@ -43,15 +45,14 @@ struct apic_iso_info {
 struct acpi_info {
     const struct acpi_madt *madt;
     const struct acpi_fadt *fadt;
+    const struct acpi_mcfg *mcfg;
 
     const struct acpi_rsdp *rsdp;
     const struct acpi_rsdt *rsdt;
 
 #if defined(__x86_64__)
-    volatile struct lapic_registers *lapic_regs;
-#endif /* defined(__x86_64__) */
+    struct mmio_region *lapic_regs;
 
-#if defined(__x86_64__)
     // Array of struct lapic_info
     struct array lapic_list;
     // Array of struct ioapic_info

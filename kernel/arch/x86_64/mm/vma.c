@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "dev/printk.h"
 #include "lib/align.h"
 
 #include "mm/pagemap.h"

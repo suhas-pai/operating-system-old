@@ -234,7 +234,6 @@ enum {
     CR4_BIT_KEY_LOCKER = (1ull << 19),
 
     /* Supervisor Mode Executions Protection Enable */
-
     CR4_BIT_SMEP = (1ull << 20),
 
     /* Supervisor Mode Access Protection Enable */

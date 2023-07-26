@@ -48,7 +48,7 @@ static void calibrate_timer() {
     pit_set_reload_value(0xFFFF);
 
     volatile struct lapic_registers *const lapic_regs =
-        get_acpi_info()->lapic_regs;
+        get_acpi_info()->lapic_regs->base;
 
     lapic_regs->timer_current_count = 0;
     lapic_regs->timer_divide_config = LAPIC_TIMER_DIV_CONFIG_BY_2;
@@ -95,8 +95,8 @@ void adjust_lint_nmi_value(uint64_t *const value_in) {
 }
 
 void lapic_enable() {
-    const uint64_t spur_vector_mask =
-        isr_get_spur_vector() | F_LAPIC_SPUR_VECTOR_ENABLE;
+    const uint32_t spur_vector_mask =
+        (uint32_t)isr_get_spur_vector() | __LAPIC_SPURVEC_ENABLE;
 
     if (get_acpi_info()->using_x2apic) {
         uint64_t lint0_value = lapic_read(X2APIC_LAPIC_REG_LVT_LINT0);
@@ -120,7 +120,7 @@ void lapic_enable() {
         lapic_write(X2APIC_LAPIC_REG_LVT_LINT1, lint1_value);
     } else {
         volatile struct lapic_registers *const lapic_regs =
-            get_acpi_info()->lapic_regs;
+            get_acpi_info()->lapic_regs->base;
 
         uint64_t lint0_value = lapic_regs->lvt_lint0;
         uint64_t lint1_value = lapic_regs->lvt_lint1;
@@ -135,7 +135,7 @@ void lapic_enable() {
 
         lapic_regs->lvt_lint0 = (uint32_t)lint0_value;
         lapic_regs->lvt_lint1 = (uint32_t)lint1_value;
-        lapic_regs->spurious_interrupt_vector |= spur_vector_mask;
+        lapic_regs->spur_int_vector |= spur_vector_mask;
     }
 
     printk(LOGLEVEL_INFO, "apic: lapic enabled\n");
@@ -145,7 +145,10 @@ void lapic_eoi() {
     if (get_acpi_info()->using_x2apic) {
         lapic_write(X2APIC_LAPIC_REG_EOI, 0);
     } else {
-        get_acpi_info()->lapic_regs->eoi = 0;
+        volatile struct lapic_registers *const lapic_regs =
+            get_acpi_info()->lapic_regs->base;
+
+        lapic_regs->eoi = 0;
     }
 }
 
@@ -154,7 +157,7 @@ void lapic_send_ipi(const uint32_t lapic_id, const uint32_t vector) {
         lapic_write(X2APIC_LAPIC_REG_ICR, (uint64_t)lapic_id << 32 | vector);
     } else {
         volatile struct lapic_registers *const lapic_regs =
-            get_acpi_info()->lapic_regs;
+            get_acpi_info()->lapic_regs->base;
 
         lapic_regs->icr[1].value = lapic_id << 24;
         lapic_regs->icr[0].value = vector | (1 << 14);
@@ -171,7 +174,7 @@ void lapic_send_self_ipi(const uint32_t vector) {
 
 void lapic_timer_start() {
     volatile struct lapic_registers *const lapic_regs =
-        get_acpi_info()->lapic_regs;
+        get_acpi_info()->lapic_regs->base;
 
     lapic_regs->timer_initial_count = 0xFFFFF;
     lapic_regs->lvt_timer =
@@ -182,7 +185,7 @@ void lapic_timer_start() {
 
 void lapic_timer_stop() {
     volatile struct lapic_registers *const lapic_regs =
-        get_acpi_info()->lapic_regs;
+        get_acpi_info()->lapic_regs->base;
 
     lapic_regs->timer_initial_count = 0;
     lapic_regs->lvt_timer =
@@ -201,7 +204,7 @@ void lapic_timer_one_shot(const uint64_t microseconds) {
         get_cpu_info()->lapic_timer_frequency / 1000000;
 
     volatile struct lapic_registers *const lapic_regs =
-        get_acpi_info()->lapic_regs;
+        get_acpi_info()->lapic_regs->base;
 
     lapic_regs->timer_initial_count =
         lapic_timer_freq_in_microseconds * microseconds;

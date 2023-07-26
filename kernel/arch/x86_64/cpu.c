@@ -152,14 +152,17 @@ static void init_cpuid_features() {
 }
 
 const struct cpu_info *get_base_cpu_info() {
+    assert(g_base_cpu_init);
     return &g_base_cpu_info;
 }
 
 const struct cpu_info *get_cpu_info() {
+    assert(g_base_cpu_init);
     return (const struct cpu_info *)read_gsbase();
 }
 
 struct cpu_info *get_cpu_info_mut() {
+    assert(g_base_cpu_init);
     return (struct cpu_info *)read_gsbase();
 }
 

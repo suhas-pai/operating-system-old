@@ -87,8 +87,8 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
         }
 
         printk(LOGLEVEL_WARN,
-                "Unrecognized e0 scan-code 0x%" PRIx8 "\n",
-                scan_code);
+               "ps2: unrecognized e0 scan-code 0x%" PRIx8 "\n",
+               scan_code);
         return;
     }
 

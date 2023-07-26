@@ -57,8 +57,7 @@ read_int_from_fmt_string(const char *const c_str, const char **const iter_out) {
             break;
         }
 
-        if (chk_mul_overflow(result, 10, &result) ||
-            chk_add_overflow(result, digit, &result))
+        if (check_mul(result, 10, &result) || check_add(result, digit, &result))
         {
             *iter_out = iter;
             return -1;

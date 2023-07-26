@@ -42,12 +42,12 @@ sv_create_nocheck(const char *const c_str, const uint64_t length) {
 static inline struct string_view
 sv_create_end(const char *const c_str, const char *const end) {
     assert(c_str <= end);
-    return sv_create_nocheck(c_str, (uint64_t)(end - c_str));
+    return sv_create_nocheck(c_str, distance(c_str, end));
 }
 
 static inline struct string_view
 sv_create_length(const char *const c_str, const uint64_t length) {
-    chk_add_overflow_assert((uint64_t)c_str, length);
+    check_add_assert((uint64_t)c_str, length);
     return sv_create_nocheck(c_str, length);
 }
 

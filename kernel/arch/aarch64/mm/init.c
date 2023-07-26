@@ -3,7 +3,9 @@
  * © suhas pai
  */
 
-#include "lib/assert.h"
+#include "lib/size.h"
+#include "mm/mm_types.h"
+
 #include "limine.h"
 
 static volatile struct limine_hhdm_request hhdm_request = {
@@ -32,4 +34,7 @@ void mm_init() {
     assert(paging_mode_request.response != NULL);
 
     HHDM_OFFSET = hhdm_request.response->offset;
+
+    MMIO_BASE = HHDM_OFFSET + kib(16);
+    MMIO_END = MMIO_BASE + gib(4);
 }

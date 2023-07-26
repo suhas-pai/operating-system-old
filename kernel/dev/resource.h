@@ -1,5 +1,5 @@
 /*
- * dev/resource.h
+ * kernel/dev/resource.h
  * © suhas pai
  */
 

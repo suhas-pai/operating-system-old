@@ -15,15 +15,15 @@ struct mutable_buffer {
 };
 
 #define MBUFFER_STATIC_STACK(name, size) \
-    char RAND_VAR_NAME()[size] = {0};     \
+    char RAND_VAR_NAME()[size] = {0};    \
     struct mutable_buffer name =         \
-        __mbuffer_open_static(RAND_VAR_NAME(), /*used=*/0, size)
+        mbuffer_open_static(RAND_VAR_NAME(), /*used=*/0, size)
 
 struct mutable_buffer
 mbuffer_open(void *buffer, uint64_t used, uint64_t capacity);
 
 struct mutable_buffer
-__mbuffer_open_static(void *buffer, uint64_t used, uint64_t capacity);
+mbuffer_open_static(void *buffer, uint64_t used, uint64_t capacity);
 
 void *mbuffer_get_current_ptr(struct mutable_buffer mbuffer);
 

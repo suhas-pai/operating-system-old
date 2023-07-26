@@ -22,8 +22,8 @@ struct vm_area {
     struct avlnode vma_node;
     struct list vma_list;
 
-    uint8_t prot;
-    enum vma_cachekind cachekind;
+    uint8_t prot : 3;
+    enum vma_cachekind cachekind : 2;
 
     // Helper variable used internally to quickly find a free area range.
     // Defined as the maximum of the left subtree, right subtree, and the

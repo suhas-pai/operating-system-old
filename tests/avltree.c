@@ -66,7 +66,6 @@ void test_avltree() {
     print_tree(&tree);
 
     avltree_delete(&tree, (void *)53, (avlnode_compare_key_t)identify, NULL);
-    print_tree(&tree);
     avltree_delete(&tree, (void *)11, (avlnode_compare_key_t)identify, NULL);
     avltree_delete(&tree, (void *)21, (avlnode_compare_key_t)identify, NULL);
     avltree_delete(&tree, (void *)9, (avlnode_compare_key_t)identify, NULL);

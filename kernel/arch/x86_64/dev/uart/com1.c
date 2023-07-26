@@ -3,8 +3,8 @@
  * © suhas pai
  */
 
-#include "dev/driver.h"
 #include "dev/uart/8250.h"
+#include "dev/driver.h"
 
 struct uart_driver com1_serial = {
     .base = 0x3f8,

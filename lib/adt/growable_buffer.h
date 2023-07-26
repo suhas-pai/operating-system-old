@@ -6,10 +6,6 @@
 #pragma once
 
 #include "mutable_buffer.h"
-#include "range.h"
-#include "string_view.h"
-
-#include "../alloc.h"
 
 struct growable_buffer {
     void *begin;
@@ -23,7 +19,8 @@ struct growable_buffer {
     ((struct growable_buffer){ \
         .begin = NULL,         \
         .index = 0,            \
-        .end = NULL            \
+        .end = NULL,           \
+        .is_alloc = false      \
     })
 
 struct growable_buffer gbuffer_alloc(uint64_t init_cap);
@@ -45,8 +42,7 @@ gbuffer_get_mutable_buffer(struct growable_buffer gbuffer);
 
 void *gbuffer_current_ptr(struct growable_buffer gbuffer);
 
-uint8_t *
-gbuffer_ptr_for_byte_index(struct growable_buffer gbuffer, uint64_t index);
+void *gbuffer_at(struct growable_buffer gbuffer, uint64_t index);
 
 uint64_t gbuffer_free_space(struct growable_buffer gbuffer);
 uint64_t gbuffer_used_size(struct growable_buffer gbuffer);
@@ -78,9 +74,7 @@ gbuffer_append_sv(struct growable_buffer *gbuffer, struct string_view sv);
 void gbuffer_remove_index(struct growable_buffer *gbuffer, uint64_t index);
 void gbuffer_remove_range(struct growable_buffer *gbuffer, struct range range);
 
-void
-gbuffer_truncate_to_byte_index(struct growable_buffer *gbuffer,
-                               uint64_t byte_index);
+void gbuffer_truncate(struct growable_buffer *gbuffer, uint64_t byte_index);
 
 void *gbuffer_take_data(struct growable_buffer *gbuffer);
 

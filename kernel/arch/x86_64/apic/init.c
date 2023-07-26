@@ -33,7 +33,8 @@ enum {
 
 void apic_init() {
     pic_disable();
-    volatile struct lapic_registers *const info = get_acpi_info()->lapic_regs;
+    volatile struct lapic_registers *const info =
+        get_acpi_info()->lapic_regs->base;
 
     printk(LOGLEVEL_INFO, "apic: local apic id: %x\n", info->id);
     printk(LOGLEVEL_INFO,

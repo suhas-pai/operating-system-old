@@ -636,16 +636,13 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
             break;
         }
 
-        /*
-         * Reset the unformat-buffer.
-         */
-
+        /* Reset the unformat-buffer. */
         if (valid_spec) {
             unformat_buffer_ptr = iter + 1;
             unformat_buffer_length = 0;
         } else {
             unformat_buffer_ptr = orig_iter;
-            unformat_buffer_length = distance_inclusive(iter, orig_iter);
+            unformat_buffer_length = distance_incl(iter, orig_iter);
         }
 
         /* Don't skip past the specifier, as the for-loop does that for us */

@@ -28,5 +28,5 @@ void write_msr(const enum ia32_msr msr, const uint64_t value) {
         :
         : "a" (eax), "d" (edx), "c" ((uint32_t)msr)
         : "memory"
-   );
+    );
 }

@@ -1,5 +1,5 @@
 /*
- * mm/kmalloc.c
+ * kernel/mm/kmalloc.c
  * © suhas pai
  */
 
@@ -38,7 +38,6 @@ void *kmalloc(const uint64_t size) {
                "kmalloc(): Can't allocate %" PRIu64 " bytes, max is 2048 "
                "bytes\n",
                size);
-
         return NULL;
     }
 

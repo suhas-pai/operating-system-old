@@ -178,8 +178,8 @@ convert_cstr_to_64int(const char *string,
         }
 
         found_digit = true;
-        if (chk_mul_overflow(*result_out, base, result_out) ||
-            chk_add_overflow(*result_out, digit, result_out))
+        if (check_mul(*result_out, base, result_out) ||
+            check_add(*result_out, digit, result_out))
         {
             return E_STR_TO_NUM_OVERFLOW;
         }
@@ -196,7 +196,7 @@ convert_cstr_to_64int(const char *string,
     }
 
     if (is_neg) {
-        if (chk_sub_overflow(0, *result_out, (int64_t *)result_out)) {
+        if (check_sub(0, *result_out, (int64_t *)result_out)) {
             return E_STR_TO_NUM_UNDERFLOW;
         }
     }
@@ -369,8 +369,8 @@ convert_sv_to_64int(struct string_view sv,
         }
 
         found_digit = true;
-        if (chk_mul_overflow(*result_out, base, result_out) ||
-            chk_add_overflow(*result_out, digit, result_out))
+        if (check_mul(*result_out, base, result_out) ||
+            check_add(*result_out, digit, result_out))
         {
             return E_STR_TO_NUM_OVERFLOW;
         }
@@ -387,7 +387,7 @@ convert_sv_to_64int(struct string_view sv,
     }
 
     if (is_negative) {
-        if (chk_sub_overflow(0, *result_out, (int64_t *)result_out)) {
+        if (check_sub(0, *result_out, (int64_t *)result_out)) {
             return E_STR_TO_NUM_UNDERFLOW;
         }
     }

@@ -4,11 +4,8 @@
  */
 
 #include "lib/align.h"
-#include "lib/assert.h"
 #include "lib/overflow.h"
 #include "lib/util.h"
-
-#include "range.h"
 
 struct range range_create(const uint64_t front, const uint64_t size) {
     return (struct range){
@@ -18,10 +15,31 @@ struct range range_create(const uint64_t front, const uint64_t size) {
 }
 
 struct range range_multiply(const struct range range, const uint64_t mult) {
-    return (struct range){
-        .front = chk_mul_overflow_assert(range.front, mult),
-        .size = chk_mul_overflow_assert(range.size, mult)
-    };
+    return range_create(check_mul_assert(range.front, mult),
+                        check_mul_assert(range.size, mult));
+}
+
+struct range range_align_in(struct range range, uint64_t boundary) {
+    return range_create(align_down(range.front, boundary),
+                        align_down(range.size, boundary));
+}
+
+bool
+range_align_out(const struct range range,
+                const uint64_t boundary,
+                struct range *const result_out)
+{
+    uint64_t front = 0;
+    uint64_t size = 0;
+
+    if (!align_up(range.front, boundary, &front) ||
+        !align_up(range.size, boundary, &size))
+    {
+        return false;
+    }
+
+    *result_out = range_create(front, size);
+    return true;
 }
 
 bool range_has_index(const struct range range, const uint64_t index) {
@@ -32,8 +50,12 @@ bool range_has_loc(const struct range range, const uint64_t loc) {
     return (loc >= range.front && (loc - range.front) < range.size);
 }
 
+bool range_has_end(const struct range range, const uint64_t loc) {
+    return (loc > range.front && (loc - range.front) <= range.size);
+}
+
 bool range_get_end(const struct range range, uint64_t *const end_out) {
-    return !chk_add_overflow(range.front, range.size, end_out);
+    return !check_add(range.front, range.size, end_out);
 }
 
 bool range_above(const struct range range, const struct range above) {
@@ -95,6 +117,14 @@ bool range_has(const struct range range, const struct range other) {
     }
 
     return range.size - index >= other.size;
+}
+
+bool range_has_index_range(struct range range, struct range other) {
+    if (!range_has_index(range, other.front)) {
+        return false;
+    }
+
+    return range.size - other.front >= other.size;
 }
 
 bool range_overlaps(const struct range range, const struct range other) {

@@ -108,7 +108,7 @@ int year_to_tm_year(const uint64_t year) {
 }
 
 uint64_t tm_year_to_year(const int tm_year) {
-    return chk_add_overflow_assert((uint64_t)tm_year, 1900);
+    return check_add_assert((uint64_t)tm_year, 1900);
 }
 
 enum weekday weekday_prev(const enum weekday weekday) {

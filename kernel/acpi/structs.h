@@ -602,3 +602,18 @@ struct acpi_fadt {
 enum acpi_fadt_pm2_control_registers {
     ACPI_FADT_PM2_CONTROL_ABR_DISABLE = 1 << 0,
 };
+
+struct acpi_mcfg_entry {
+    uint64_t base_addr;
+    uint16_t segment_num;
+
+    uint8_t bus_start_num;
+    uint8_t bus_end_num;
+} __packed;
+
+struct acpi_mcfg {
+    struct acpi_sdt sdt;
+    uint64_t reserved;
+
+    struct acpi_mcfg_entry entries[];
+} __packed;

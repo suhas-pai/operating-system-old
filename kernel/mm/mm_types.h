@@ -13,17 +13,17 @@
 #define SIZEOF_STRUCTPAGE (sizeof(uint64_t) * 5)
 #define PAGE_SIZE (1ull << PAGE_SHIFT)
 #define LARGEPAGE_SIZE(index) (1ull << LARGEPAGE_SHIFTS[index])
-#define PAGE_COUNT(size) (((uint64_t)(size) / PAGE_SIZE))
 
+#define PAGE_COUNT(size) (((uint64_t)(size) / PAGE_SIZE))
 #define PGT_COUNT (PAGE_SIZE/sizeof(pte_t))
+
+#define SECTION_SHIFT (sizeof(uint32_t) - sizeof(uint8_t))
+#define SECTION_MASK UINT8_MAX
 
 #define phys_to_pfn(phys) ((uint64_t)(phys) >> PAGE_SHIFT)
 #define pfn_to_phys(pfn) ((uint64_t)(pfn) << PAGE_SHIFT)
 #define pfn_to_page(pfn) \
     ((struct page *)(PAGE_OFFSET + (SIZEOF_STRUCTPAGE * (uint64_t)(pfn))))
-
-#define SECTION_SHIFT (sizeof(uint32_t) - sizeof(uint8_t))
-#define SECTION_MASK UINT8_MAX
 
 #define page_to_pfn(page) (((uint64_t)(page) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE)
 
@@ -55,6 +55,10 @@ extern const uint64_t PAGE_OFFSET;
 extern const uint64_t VMAP_BASE;
 extern const uint64_t VMAP_END;
 
+// The mmio range is reserved but not actually mapped
+extern uint64_t MMIO_BASE;
+extern uint64_t MMIO_END;
+
 enum prot_flags {
     PROT_NONE,
     PROT_READ = 1 << 0,
@@ -76,5 +80,5 @@ enum vma_cachekind {
     VMA_CACHEKIND_WRITECOMBINING,
     VMA_CACHEKIND_NO_CACHE,
 
-    VMA_CACHEKIND_MMIO = VMA_CACHEKIND_WRITETHROUGH
+    VMA_CACHEKIND_MMIO = VMA_CACHEKIND_NO_CACHE
 };

@@ -26,17 +26,17 @@ preprocess_for_append(struct mutable_buffer *const mbuffer,
 
 struct mutable_buffer
 mbuffer_open(void *const buffer, const uint64_t used, const uint64_t capacity) {
-    return __mbuffer_open_static(buffer, used, capacity);
+    return mbuffer_open_static(buffer, used, capacity);
 }
 
 struct mutable_buffer
-__mbuffer_open_static(void *const buffer,
-                      const uint64_t used,
-                      const uint64_t capacity)
+mbuffer_open_static(void *const buffer,
+                    const uint64_t used,
+                    const uint64_t capacity)
 {
     struct mutable_buffer mbuffer = {
         .begin = buffer,
-        .ptr = (void *)chk_add_overflow_assert((uint64_t)mbuffer.begin, used),
+        .ptr = (void *)check_add_assert((uint64_t)mbuffer.begin, used),
         .end = buffer + capacity
     };
 

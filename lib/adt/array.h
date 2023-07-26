@@ -17,7 +17,8 @@ struct array {
          item != VAR_CONCAT(__end__, __LINE__);                                \
          item = (type *)((uint64_t)item + (array)->object_size))
 
-#define ARRAY_INIT(size) ((struct array){ .gbuffer = {0}, .object_size = (size)})
+#define ARRAY_INIT(size) \
+    ((struct array){ .gbuffer = GBUFFER_INIT(), .object_size = (size)})
 
 void array_init(struct array *array, uint64_t object_size);
 struct array array_alloc(uint64_t object_size, uint64_t item_capacity);

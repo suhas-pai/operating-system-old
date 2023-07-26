@@ -435,15 +435,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
         panic("mm: failed to allocate root page for kernel-pagemap");
     }
 
-    // Identity map lower 2 mib (excluding NULL page)
-
     kernel_pagemap.root = phys_to_page(root);
-    map_into_kernel_pagemap(root,
-                            /*phys_addr=*/PAGE_SIZE,
-                            /*virt_addr=*/PAGE_SIZE,
-                            /*size=*/mib(2) - PAGE_SIZE,
-                            __PTE_WRITE | __PTE_NOEXEC);
-
     const struct limine_memmap_response *const resp = memmap_request.response;
 
     struct limine_memmap_entry *const *entries = resp->entries;
@@ -491,8 +483,6 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // to go through each table used, and setup all pgtable metadata inside a
     // struct page
 
-    // Refcount the lower 2 mib range
-    refcount_range(/*virt_addr=*/PAGE_SIZE, /*length=*/mib(2) - PAGE_SIZE);
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         const struct limine_memmap_entry *const memmap = *memmap_iter;
         if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
@@ -521,9 +511,10 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
                   PROT_NONE,
                   VMA_CACHEKIND_NO_CACHE);
 
-    struct vm_area *const lower_2_mib_mmio =
+    // This range was never mapped, but is still reserved.
+    struct vm_area *const mmio =
         vma_alloc(&kernel_pagemap,
-                  range_create(PAGE_SIZE, mib(2) - PAGE_SIZE),
+                  range_create(MMIO_BASE, (MMIO_END - MMIO_BASE)),
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_MMIO);
 
@@ -545,9 +536,9 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
                    vma_avltree_compare,
                    vma_avltree_update);
 
-    list_radd(&kernel_pagemap.vma_list, &lower_2_mib_mmio->vma_list);
+    list_radd(&kernel_pagemap.vma_list, &mmio->vma_list);
     avltree_insert(&kernel_pagemap.vma_tree,
-                   &lower_2_mib_mmio->vma_node,
+                   &mmio->vma_node,
                    vma_avltree_compare,
                    vma_avltree_update);
 
@@ -570,9 +561,10 @@ void mm_init() {
     assert(paging_mode_request.response != NULL);
 
     HHDM_OFFSET = hhdm_request.response->offset;
-    printk(LOGLEVEL_INFO,
-           "mm: hhdm at %p\n",
-           (void *)hhdm_request.response->offset);
+    MMIO_BASE = HHDM_OFFSET + kib(16);
+    MMIO_END = MMIO_BASE + gib(4);
+
+    printk(LOGLEVEL_INFO, "mm: hhdm at %p\n", (void *)HHDM_OFFSET);
 
     // Enable write-combining
     const uint64_t pat_msr =

@@ -123,34 +123,22 @@ void madt_init(const struct acpi_madt *const madt) {
                 assert_msg(has_align(hdr->base, PAGE_SIZE),
                            "io-apic base is not aligned on a page boundary");
 
-                // Avoid creating a vm_area for this mapping, as we likely
-                // are inside another vma.
-
-                const bool map_ioapic_base_result =
-                    arch_make_mapping(&kernel_pagemap,
-                                      /*phys_addr=*/hdr->base,
-                                      /*virt_addr=*/hdr->base,
-                                      PAGE_SIZE,
-                                      PROT_READ | PROT_WRITE,
-                                      VMA_CACHEKIND_MMIO,
-                                      /*is_overwrite=*/true);
-
-                assert_msg(map_ioapic_base_result,
-                           "Failed to map IO-APIC base");
 
                 struct ioapic_info info = {
                     .id = hdr->apic_id,
                     .gsi_base = hdr->gsib,
-                    .regs =
-                        (volatile struct ioapic_registers *)(uint64_t)hdr->base
+                    .regs_mmio =
+                        vmap_mmio(range_create(hdr->base, PAGE_SIZE),
+                                  PROT_READ | PROT_WRITE)
                 };
 
-                const uint32_t id_reg = ioapic_read(info.regs, IOAPIC_REG_ID);
+                const uint32_t id_reg =
+                    ioapic_read(info.regs_mmio->base, IOAPIC_REG_ID);
                 assert_msg(info.id == ioapic_id_reg_get_id(id_reg),
                            "io-apic ID in MADT doesn't match ID in MMIO");
 
                 const uint32_t ioapic_version_reg =
-                    ioapic_read(info.regs, IOAPIC_REG_VERSION);
+                    ioapic_read(info.regs_mmio->base, IOAPIC_REG_VERSION);
 
                 info.version =
                     ioapic_version_reg_get_version(ioapic_version_reg);
@@ -300,7 +288,6 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 printk(LOGLEVEL_INFO, "apic: found madt-entry local-x2apic\n");
                 printk(LOGLEVEL_INFO, "\tacpi id: %" PRIu32 "\n", hdr->acpi_id);
-
                 printk(LOGLEVEL_INFO,
                        "\tx2acpi id: %" PRIu32 "\n",
                        hdr->x2apic_id);
@@ -318,17 +305,9 @@ void madt_init(const struct acpi_madt *const madt) {
 
 #if defined(__x86_64__)
     assert_msg(local_apic_base != 0, "Failed to find local-apic registers");
-    const bool map_lapic_regs_result =
-        arch_make_mapping(&kernel_pagemap,
-                          /*phys_addr=*/local_apic_base,
-                          /*virt_addr=*/local_apic_base,
-                          PAGE_SIZE,
-                          PROT_READ | PROT_WRITE,
-                          VMA_CACHEKIND_MMIO,
-                          /*is_overwrite=*/true);
-
-    assert_msg(map_lapic_regs_result, "Failed to map lapic-regs");
-    get_acpi_info_mut()->lapic_regs = (volatile void *)local_apic_base;
+    get_acpi_info_mut()->lapic_regs =
+        vmap_mmio(range_create(local_apic_base, PAGE_SIZE),
+                    PROT_READ | PROT_WRITE);
 
     apic_init();
 #endif /* defined(__x86_64__) */

@@ -67,6 +67,14 @@ char *strchr(const char *const str, const int ch) {
 
 void *memzero(void *dst, unsigned long n) {
     void *const ret = dst;
+#if defined(__x86_64__)
+    if (n >= 256) {
+        asm volatile ("rep stosb" :: "D"(dst), "al"(0), "c"(n) : "memory");
+        return ret;
+    }
+
+#endif /* defined(__x86_64__) */
+
     while (n >= sizeof(uint64_t)) {
         *(uint64_t *)dst = 0;
 

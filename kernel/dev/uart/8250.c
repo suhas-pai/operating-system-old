@@ -35,13 +35,16 @@ get_reg(const port_t uart8250_base,
         const uint32_t num)
 {
     const uint32_t offset = num << info->reg_shift;
-    if (info->reg_width == 1) {
-        return port_in8(uart8250_base + offset);
-    } else if (info->reg_width == 2) {
-        return port_in16(uart8250_base + offset);
+    switch (info->reg_width) {
+        case sizeof(uint8_t):
+            return port_in8(uart8250_base + offset);
+        case sizeof(uint16_t):
+            return port_in16(uart8250_base + offset);
+        case sizeof(uint32_t):
+            return port_in32(uart8250_base + offset);
     }
 
-    return port_in32(uart8250_base + offset);
+    verify_not_reached();
 }
 
 static inline void
@@ -51,22 +54,34 @@ set_reg(const port_t uart8250_base,
         const uint32_t val)
 {
     const uint32_t offset = num << info->reg_shift;
-    if (info->reg_width == 1) {
-        port_out8(uart8250_base + offset, val);
-    } else if (info->reg_width == 2) {
-        port_out16(uart8250_base + offset, val);
-    } else {
-        port_out32(uart8250_base + offset, val);
+    switch (info->reg_width) {
+        case sizeof(uint8_t):
+            port_out8(uart8250_base + offset, val);
+            return;
+        case sizeof(uint16_t):
+            port_out16(uart8250_base + offset, val);
+            return;
+        case sizeof(uint32_t):
+            port_out32(uart8250_base + offset, val);
+            return;
     }
+
+    verify_not_reached();
 }
+
+#define MAX_ATTEMPTS 10
 
 static void
 uart8250_putc(const port_t base,
               struct uart8250_info *const info,
               const char ch)
 {
-    while ((get_reg(base, info, UART_LSR_OFFSET) & UART_LSR_THRE) == 0) {}
-    set_reg(base, info, UART_THR_OFFSET, ch);
+    for (uint64_t i = 0; i != MAX_ATTEMPTS; i++) {
+        if ((get_reg(base, info, UART_LSR_OFFSET) & UART_LSR_THRE) != 0) {
+            set_reg(base, info, UART_THR_OFFSET, ch);
+            return;
+        }
+    }
 }
 
 static void

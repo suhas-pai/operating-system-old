@@ -9,6 +9,12 @@
 #include "types.h"
 
 const uint64_t PAGE_OFFSET = 0xffffc00000000000;
+const uint64_t VMAP_BASE = 0xffffd00000000000;
+const uint64_t VMAP_END = 0xffffe00000000000;
+
+uint64_t MMIO_BASE = 0;
+uint64_t MMIO_END = 0;
+
 extern struct limine_paging_mode_request paging_mode_request;
 
 uint8_t pgt_get_top_level() {
