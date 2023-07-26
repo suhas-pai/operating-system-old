@@ -580,7 +580,9 @@ parse_function(struct pci_group *const group,
                        bar->is_prefetchable ?
                         "prefetchable" : "not-prefetchable",
                        bar->is_64_bit ? "64-bit" : "32-bit",
-                       bar->port_range.size);
+                       bar->is_mmio ?
+                        bar->mmio->size :
+                        bar->port_range.size);
             }
 
             break;
@@ -632,7 +634,9 @@ parse_function(struct pci_group *const group,
                        bar->is_prefetchable ?
                         "prefetchable" : "not-prefetchable",
                        bar->is_64_bit ? "64-bit" : "32-bit",
-                       bar->port_range.size);
+                       bar->is_mmio ?
+                        bar->mmio->size :
+                        bar->port_range.size);
             }
 
             const uint8_t secondary_bus_number =
@@ -686,8 +690,8 @@ void pci_parse_group(struct pci_group *const group) {
 
 struct pci_group *
 pci_group_create_pcie(struct range bus_range,
-                      struct mmio_region *const mmio,
-                      uint16_t segment)
+                      const uint64_t base_addr,
+                      const uint16_t segment)
 {
     struct pci_group *const group = kmalloc(sizeof(*group));
     if (group == NULL) {
@@ -697,10 +701,15 @@ pci_group_create_pcie(struct range bus_range,
     list_init(&group->list);
     list_init(&group->device_list);
 
-    group->bus_range = bus_range;
-    group->mmio = mmio;
-    group->segment = segment;
+    const struct range config_space_range =
+        range_create(base_addr,
+                     align_up_assert(bus_range.size << 20, PAGE_SIZE));
 
+    group->mmio = vmap_mmio(config_space_range, PROT_READ | PROT_WRITE);
+    assert_msg(group->mmio != NULL, "pcie: failed to mmio-map mcfg entry");
+
+    group->bus_range = bus_range;
+    group->segment = segment;
     group->read = pcie_read;
     group->write = pcie_write;
 

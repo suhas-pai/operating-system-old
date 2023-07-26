@@ -32,16 +32,6 @@ void mcfg_init(const struct acpi_mcfg *const mcfg) {
             range_create(iter->bus_start_num,
                          iter->bus_end_num - iter->bus_start_num);
 
-        const struct range config_space_range =
-            range_create(iter->base_addr,
-                         align_up_assert(bus_range.size << 20, PAGE_SIZE));
-
-        struct mmio_region *const mmio =
-            vmap_mmio(config_space_range, PROT_READ | PROT_WRITE);
-
-        assert_msg(mmio != NULL,
-                   "pcie: failed to mmio-map mcfg entry");
-
-        pci_group_create_pcie(bus_range, mmio, iter->segment_num);
+        pci_group_create_pcie(bus_range, iter->base_addr, iter->segment_num);
     }
 }

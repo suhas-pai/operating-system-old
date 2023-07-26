@@ -123,7 +123,6 @@ void madt_init(const struct acpi_madt *const madt) {
                 assert_msg(has_align(hdr->base, PAGE_SIZE),
                            "io-apic base is not aligned on a page boundary");
 
-
                 struct ioapic_info info = {
                     .id = hdr->apic_id,
                     .gsi_base = hdr->gsib,

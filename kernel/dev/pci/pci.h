@@ -132,7 +132,7 @@ struct pci_group {
 
 struct pci_group *
 pci_group_create_pcie(struct range bus_range,
-                      struct mmio_region *const mmio,
+                      uint64_t base_addr,
                       uint16_t segment);
 
 void pci_init();
