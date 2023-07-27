@@ -37,16 +37,21 @@
 typedef uint64_t pte_t;
 enum pte_flags {
     __PTE_VALID  = 1 << 0,
+    __PTE_4KPAGE = 1 << 1, // Valid only on ptes of a pml1 table
     __PTE_TABLE  = 1 << 1,
+    __PTE_FB     = 1 << 2,
     __PTE_USER   = 1 << 6,
     __PTE_RO     = 1 << 7,
 
-    __PTE_UNPREDICTABLE = 0b01 << 8,
+    __PTE_UNPREDICT = 0b01 << 8,
     __PTE_OUTER_SHARE = 0b10 << 8,
     __PTE_INNER_SHARE = 0b11 << 8,
 
     __PTE_ACCESS = 1ull << 10,
-    __PTE_NOEXEC = 1ull << 54
+    __PTE_NONGLOBAL = 1 << 11,
+
+    __PTE_PRIV_NOEXEC = 1ull << 53,
+    __PTE_UNPRIV_NOEXEC = 1ull << 54,
 };
 
 static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
@@ -58,4 +63,8 @@ static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
 static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
 
 #define PGT_FLAGS (__PTE_VALID | __PTE_TABLE)
+
+#define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
+#define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
+
 struct page;

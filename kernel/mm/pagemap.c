@@ -5,7 +5,9 @@
 
 #if defined(__x86_64__)
     #include "asm/regs.h"
-#endif /* defined(__x86_64__)*/
+#elif defined(__aarch64__)
+    #include "asm/ttbr.h"
+#endif /* defined(__x86_64__) */
 
 #include "lib/align.h"
 #include "lib/overflow.h"
@@ -13,23 +15,45 @@
 #include "pagemap.h"
 
 struct pagemap kernel_pagemap = {
+#if defined(__aarch64__)
+    .root = { NULL, NULL }, // setup later
+#else
     .root = NULL, // setup later
+#endif /* defined(__aarch64__)*/
+
     .lock = SPINLOCK_INIT(),
     .refcount = refcount_create_max(),
     .vma_tree = {0},
     .vma_list = LIST_INIT(kernel_pagemap.vma_list)
 };
 
-struct pagemap pagemap_create(struct page *const root) {
-    struct pagemap result = {
-        .root = root,
-    };
+#if defined(__aarch64__)
+    struct pagemap
+    pagemap_create(struct page *const higher_root,
+                   struct page *const lower_root)
+    {
+        struct pagemap result = {
+            .root[0] = higher_root,
+            .root[1] = lower_root
+        };
 
-    list_init(&result.vma_list);
-    refcount_init(&result.refcount);
+        list_init(&result.vma_list);
+        refcount_init(&result.refcount);
 
-    return result;
-}
+        return result;
+    }
+#else
+    struct pagemap pagemap_create(struct page *const root) {
+        struct pagemap result = {
+            .root = root,
+        };
+
+        list_init(&result.vma_list);
+        refcount_init(&result.refcount);
+
+        return result;
+    }
+#endif /* defined(__aarch64__) */
 
 #define INVALID_ADDR UINT64_MAX
 
@@ -304,9 +328,21 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
 }
 
 void switch_to_pagemap(const struct pagemap *const pagemap) {
+#if defined(__aarch64__)
+    assert(pagemap->root[0] != NULL);
+    assert(pagemap->root[1] != NULL);
+#else
     assert(pagemap->root != NULL);
+#endif /* defined(__aarch64__) */
 
 #if defined(__x86_64__)
     write_cr3(page_to_phys(pagemap->root));
+#elif defined(__aarch64__)
+    write_ttbr0_el1(page_to_phys(pagemap->root[0]));
+    write_ttbr1_el1(page_to_phys(pagemap->root[1]));
+
+    asm volatile ("dsb sy; isb" ::: "memory");
+#else
+    verify_not_reached();
 #endif /* defined(__x86_64__) */
 }

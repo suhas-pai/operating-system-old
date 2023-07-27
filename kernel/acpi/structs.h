@@ -62,8 +62,8 @@ enum acpi_madt_entry_kind {
     ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT_SRC,
     ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT,
     ACPI_MADT_ENTRY_KIND_LOCAL_APIC_ADDR_OVERRIDE,
-    ACPI_MADT_ENTRY_KIND_CPU_LOCAL_X2APIC,
-    ACPI_MADT_ENTRY_KIND_GIC_CPU_INTERFACE,
+    ACPI_MADT_ENTRY_KIND_CPU_LOCAL_X2APIC = 9,
+    ACPI_MADT_ENTRY_KIND_GIC_CPU_INTERFACE = 11,
     ACPI_MADT_ENTRY_KIND_GIC_DISTRIBUTOR,
     ACPI_MADT_ENTRY_KIND_GIC_MSI_FRAME,
     ACPI_MADT_ENTRY_KIND_GIC_REDISTRIBUTOR,
@@ -190,6 +190,24 @@ struct acpi_madt_entry_gic_distributor {
     uint16_t reserved;
     uint32_t gic_hardware_id;
     uint64_t phys_base_address;
+    uint32_t sys_vector_base;
+    uint8_t gic_version;
+    uint8_t reserved_2[3];
+} __packed;
+
+enum acpi_madt_entry_gic_msi_frame_flags {
+    __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR = 1 << 0,
+};
+
+struct acpi_madt_entry_gic_msi_frame {
+    struct acpi_madt_entry_header header;
+
+    uint16_t reserved;
+    uint32_t msi_frame_id;
+    uint64_t phys_base_address;
+    uint32_t flags;
+    uint16_t spi_count;
+    uint16_t spi_base;
 } __packed;
 
 enum acpi_fadt_gas_addr_space_kind {

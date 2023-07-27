@@ -31,13 +31,19 @@ ptwalker_free_pgtable_cb(struct pt_walker *const walker,
     pageop_free_table((struct pageop *)cb_info, page);
 }
 
-static inline uint64_t get_root_phys() {
+static inline uint64_t get_root_phys(const uint64_t virt_addr) {
 #if defined(__x86_64__)
+    (void)virt_addr;
     const uint64_t root_phys = read_cr3();
 #elif defined(__aarch64__)
-    // TODO: User pagemaps are in ttbr1_base_address()
-    const uint64_t root_phys = read_ttbr0_base_address();
+    uint64_t root_phys = 0;
+    if (virt_addr & (1ull << 63)) {
+        root_phys = read_ttbr1_el1();
+    } else {
+        root_phys = read_ttbr0_el1();
+    }
 #else
+    (void)virt_addr;
     const uint64_t root_phys = 0;
     verify_not_reached();
 #endif /* defined(__x86_64__) */
@@ -47,7 +53,9 @@ static inline uint64_t get_root_phys() {
 
 void
 ptwalker_default(struct pt_walker *const walker, const uint64_t virt_addr) {
-    return ptwalker_default_with_root(walker, get_root_phys(), virt_addr);
+    return ptwalker_default_with_root(walker,
+                                      get_root_phys(virt_addr),
+                                      virt_addr);
 }
 
 void
@@ -69,7 +77,7 @@ ptwalker_create(struct pt_walker *const walker,
                 const ptwalker_free_pgtable_t free_pgtable)
 {
     return ptwalker_create_customroot(walker,
-                                      get_root_phys(),
+                                      get_root_phys(virt_addr),
                                       virt_addr,
                                       alloc_pgtable,
                                       free_pgtable);
@@ -99,10 +107,16 @@ ptwalker_create_customroot(struct pt_walker *const walker,
     for (uint8_t level = walker->top_level - 1; level >= 1; level--) {
         pte_t *table = NULL;
         if (prev_table != NULL) {
-            const pte_t entry = prev_table[walker->indices[level]];
+            const uint8_t parent_level = level + 1;
+            const pte_t entry = prev_table[walker->indices[parent_level - 1]];
+
             if (pte_is_present(entry)) {
-                table = phys_to_virt(entry & PTE_PHYS_MASK);
-                walker->level = level;
+                if (!pte_is_large(entry, parent_level)) {
+                    table = phys_to_virt(entry & PTE_PHYS_MASK);
+                    walker->level = level;
+                } else {
+                    walker->level = parent_level;
+                }
             }
         }
 
@@ -145,7 +159,7 @@ ptwalker_pte_in_level(const struct pt_walker *const walker, const uint8_t level)
 enum pt_walker_result
 ptwalker_next(struct pt_walker *const walker, struct pageop *const pageop) {
     return ptwalker_next_custom(walker,
-                                /*level=*/1,
+                                /*level=*/walker->level,
                                 /*alloc_parents=*/true,
                                 /*alloc_level=*/true,
                                 /*should_ref=*/true,
@@ -163,11 +177,11 @@ reset_levels_lower_than(struct pt_walker *const walker, uint8_t level) {
 
 static void
 setup_levels_lower_than(struct pt_walker *const walker,
-                        const uint8_t orig_level,
+                        const uint8_t lowest_level,
                         pte_t *const first_pte)
 {
     pte_t *pte = first_pte;
-    uint8_t level = orig_level - 1;
+    uint8_t level = lowest_level - 1;
 
     while (true) {
         pte_t *const table = phys_to_virt(*pte & PTE_PHYS_MASK);
@@ -183,7 +197,7 @@ setup_levels_lower_than(struct pt_walker *const walker,
             break;
         }
 
-        if (!pte_is_present(*pte)) {
+        if (!pte_is_present(*pte) || pte_is_large(*pte, level)) {
             walker->level = level;
             break;
         }
@@ -311,28 +325,6 @@ ptwalker_next_custom(struct pt_walker *const walker,
         }
 
         if (level == orig_level) {
-            if (!alloc_level) {
-                return E_PT_WALKER_OK;
-            }
-
-            pte_t *const pte = ptwalker_pte_in_level(walker, level + 1);
-            if (pte_is_present(*pte)) {
-                return E_PT_WALKER_OK;
-            }
-
-            assert(walker->alloc_pgtable != NULL);
-            if (!alloc_single_pte(walker,
-                                  alloc_pgtable_cb_info,
-                                  free_pgtable_cb_info,
-                                  level,
-                                  pte))
-            {
-                walker->level = level + 1;
-                ptwalker_drop_lowest(walker, free_pgtable_cb_info);
-
-                return E_PT_WALKER_ALLOC_FAIL;
-            }
-
             return E_PT_WALKER_OK;
         }
 

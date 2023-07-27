@@ -4,22 +4,15 @@
  */
 
 #include "acpi/api.h"
-
 #include "dev/pci/pci.h"
-#include "dev/pci/structs.h"
 
 #include "dev/printk.h"
-
 #include "lib/align.h"
-#include "lib/assert.h"
-#include "lib/list.h"
 
 #include "mm/kmalloc.h"
 #include "mm/mm_types.h"
-#include "mm/mmio.h"
 
 #include "port.h"
-#include "read.h"
 
 static struct list group_list = LIST_INIT(group_list);
 static uint64_t group_count = 0;
@@ -40,10 +33,10 @@ pcie_read(const struct pci_device_info *const device,
 
     if (!range_has_index_range(mmio_range, access_range)) {
         printk(LOGLEVEL_WARN,
-                "pcie: attempting to read range " RANGE_FMT " which is "
-                "outside mmio range of pcie group, " RANGE_FMT "\n",
-                RANGE_FMT_ARGS(access_range),
-                RANGE_FMT_ARGS(mmio_range));
+               "pcie: attempting to read from index range " RANGE_FMT " which "
+               "is outside mmio range of pcie group, " RANGE_FMT "\n",
+               RANGE_FMT_ARGS(access_range),
+               RANGE_FMT_ARGS(mmio_range));
         return (uint32_t)-1;
     }
 
@@ -73,13 +66,12 @@ pcie_write(const struct pci_device_info *const device,
         ((uint64_t)device->config_space.function << 12);
 
     const struct range mmio_range = mmio_region_get_range(group->mmio);
-    const struct range access_range =
-        range_create(index + offset, access_size);
+    const struct range access_range = range_create(index + offset, access_size);
 
     if (!range_has_index_range(mmio_range, access_range)) {
         printk(LOGLEVEL_WARN,
-                "pcie: attempting to write to range " RANGE_FMT " which is "
-                "outside mmio range of pcie group, " RANGE_FMT "\n",
+                "pcie: attempting to write to index-range " RANGE_FMT " which "
+                "is outside mmio range of pcie group, " RANGE_FMT "\n",
                 RANGE_FMT_ARGS(access_range),
                 RANGE_FMT_ARGS(mmio_range));
         return (uint32_t)-1;
@@ -580,9 +572,7 @@ parse_function(struct pci_group *const group,
                        bar->is_prefetchable ?
                         "prefetchable" : "not-prefetchable",
                        bar->is_64_bit ? "64-bit" : "32-bit",
-                       bar->is_mmio ?
-                        bar->mmio->size :
-                        bar->port_range.size);
+                       bar->is_mmio ? bar->mmio->size : bar->port_range.size);
             }
 
             break;
@@ -634,9 +624,7 @@ parse_function(struct pci_group *const group,
                        bar->is_prefetchable ?
                         "prefetchable" : "not-prefetchable",
                        bar->is_64_bit ? "64-bit" : "32-bit",
-                       bar->is_mmio ?
-                        bar->mmio->size :
-                        bar->port_range.size);
+                       bar->is_mmio ? bar->mmio->size : bar->port_range.size);
             }
 
             const uint8_t secondary_bus_number =

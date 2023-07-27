@@ -9,7 +9,12 @@
 #include "vma.h"
 
 struct pagemap {
+#if defined(__aarch64__)
+    struct page *root[2];
+#else
     struct page *root;
+#endif /* defined(__aarch64__) */
+
     struct spinlock lock;
     struct refcount refcount;
 
@@ -17,7 +22,13 @@ struct pagemap {
     struct list vma_list;
 };
 
-struct pagemap pagemap_create(struct page *root);
+#if defined(__aarch64__)
+    struct pagemap
+    pagemap_create(struct page *higher_root, struct page *lower_root);
+#else
+    struct pagemap pagemap_create(struct page *root);
+#endif
+
 extern struct pagemap kernel_pagemap;
 
 bool

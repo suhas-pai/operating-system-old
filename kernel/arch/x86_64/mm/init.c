@@ -175,7 +175,7 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
         return phys_to_page(phys);
     }
 
-    panic("Failed to setup page-structs. Ran out of memory\n");
+    panic("mm: failed to setup page-structs, ran out of memory\n");
 }
 
 static void
@@ -184,7 +184,7 @@ setup_pagestructs_table(const uint64_t root_phys, const uint64_t byte_count) {
     uint64_t map_size = structpage_count * SIZEOF_STRUCTPAGE;
 
     if (!align_up(map_size, PAGE_SIZE, &map_size)) {
-        panic("Failed to initialize memory, overflow error when alighing");
+        panic("mm: failed to initialize memory, overflow error when aligning");
     }
 
     printk(LOGLEVEL_INFO,
@@ -213,7 +213,7 @@ setup_pagestructs_table(const uint64_t root_phys, const uint64_t byte_count) {
 
         if (walker_result != E_PT_WALKER_OK) {
         panic:
-            panic("Failed to setup page-structs. Ran out of memory\n");
+            panic("mm: failed to setup page-structs, ran out of memory\n");
         }
 
         do {
@@ -350,7 +350,7 @@ map_into_kernel_pagemap(const uint64_t root_phys,
     // TODO: The kernel+modules should be mapped 1gib large pages
     for (uint64_t i = 0; i < size; i += PAGE_SIZE) {
         if (ptwalker_result != E_PT_WALKER_OK) {
-            panic("Failed to setup kernel pagemap");
+            panic("mm: failed to setup kernel pagemap");
         }
 
         walker.tables[0][walker.indices[0]] =
@@ -392,12 +392,12 @@ static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
     // set ref_pages = true
 
     bool ref_pages = false;
-    for (uint64_t i = 0; i < length; i += PAGE_SIZE) {
+    for (uint64_t i = 0; i < length;) {
         const enum pt_walker_result advance_result =
             ptwalker_next(&walker, /*op=*/NULL);
 
         if (advance_result != E_PT_WALKER_OK) {
-            panic("Failed to setup kernel pagemap");
+            panic("mm: failed to setup kernel pagemap");
         }
 
         // When ref_pages is true, the lowest level will have an index 0
@@ -423,6 +423,17 @@ static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
         }
 
         ref_pages = walker.indices[walker.level - 1] == PGT_COUNT - 1;
+        switch (walker.level) {
+            case 1:
+                i += PAGE_SIZE;
+                break;
+            case 2:
+                i += PAGE_SIZE * PGT_COUNT;
+                break;
+            case 3:
+                i += PAGE_SIZE * PGT_COUNT * PGT_COUNT;
+                break;
+        }
     }
 }
 
@@ -648,7 +659,7 @@ void mm_init() {
         entries[memmap_last_repr_index];
 
     const uint64_t total_bytes_repr_by_structpage_table =
-        (last_repr_memmap->base + last_repr_memmap->length) - entries[0]->base;
+        last_repr_memmap->base + last_repr_memmap->length;
 
     uint64_t kernel_memmap_size = 0;
     setup_kernel_pagemap(total_bytes_repr_by_structpage_table,

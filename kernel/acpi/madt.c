@@ -36,7 +36,7 @@ void madt_init(const struct acpi_madt *const madt) {
             case ACPI_MADT_ENTRY_KIND_CPU_LOCAL_APIC: {
                 if (iter->length != sizeof(struct acpi_madt_entry_cpu_lapic)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: invalid local-apic madt entry at "
+                           "madt: invalid local-apic entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     continue;
@@ -47,7 +47,7 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_cpu_lapic *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: found madt-entry cpu local-apic\n");
+                       "madt: found madt-entry cpu local-apic\n");
 
                 printk(LOGLEVEL_INFO, "\tapic id: %" PRIu8 "\n", hdr->apic_id);
                 printk(LOGLEVEL_INFO,
@@ -67,7 +67,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 if (!lapic_info.enabled) {
                     if (lapic_info.online_capable) {
                         printk(LOGLEVEL_INFO,
-                               "apic: cpu #%" PRIu32 " (with processor "
+                               "madt: cpu #%" PRIu32 " (with processor "
                                "id: %" PRIu8 " and local-apic id: %" PRIu8
                                ") has flag bit 0 disabled, but CAN be "
                                "enabled\n",
@@ -76,7 +76,7 @@ void madt_init(const struct acpi_madt *const madt) {
                                hdr->apic_id);
                     } else {
                         printk(LOGLEVEL_INFO,
-                               "apic: \tcpu #%" PRIu32 " (with processor "
+                               "madt: \tcpu #%" PRIu32 " (with processor "
                                "id: %" PRIu8 " and local-apic id: %" PRIu8
                                ") CANNOT be enabled\n",
                                index,
@@ -85,7 +85,7 @@ void madt_init(const struct acpi_madt *const madt) {
                     }
                 } else {
                     printk(LOGLEVEL_INFO,
-                           "apic: cpu #%" PRIu32 " (with processor "
+                           "madt: cpu #%" PRIu32 " (with processor "
                            "id: %" PRIu8 " and local-apic id: %" PRIu8
                            ") CAN be enabled\n",
                            index,
@@ -103,7 +103,7 @@ void madt_init(const struct acpi_madt *const madt) {
             case ACPI_MADT_ENTRY_KIND_IO_APIC: {
                 if (iter->length != sizeof(struct acpi_madt_entry_ioapic)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: invalid io-apic madt entry at "
+                           "madt: invalid io-apic entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     continue;
@@ -113,7 +113,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_madt_entry_ioapic *const hdr =
                     (const struct acpi_madt_entry_ioapic *)iter;
 
-                printk(LOGLEVEL_INFO, "apic: found madt-entry io-apic\n");
+                printk(LOGLEVEL_INFO, "madt: found entry io-apic\n");
                 printk(LOGLEVEL_INFO, "\tapic id: %" PRIu8 "\n", hdr->apic_id);
                 printk(LOGLEVEL_INFO, "\tbase: 0x%" PRIx32 "\n", hdr->base);
                 printk(LOGLEVEL_INFO,
@@ -157,14 +157,14 @@ void madt_init(const struct acpi_madt *const madt) {
                     "Failed to add IO-APIC base to array");
             #else
                 printk(LOGLEVEL_WARN,
-                       "apic: found ioapic entry in madt. ignoring");
+                       "madt: found ioapic entry. ignoring");
             #endif /* defined(__x86_64__) */
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_INT_SRC_OVERRIDE: {
                 if (iter->length != sizeof(struct acpi_madt_entry_iso)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: invalid int-src override madt entry at "
+                           "madt: invalid int-src override entry at "
                            "index: %" PRIu32,
                            index);
                     continue;
@@ -174,7 +174,7 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_iso *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: found madt-entry interrupt source override\n");
+                       "madt: found entry interrupt source override\n");
                 printk(LOGLEVEL_INFO,
                        "\tbus source: %" PRIu8 "\n",
                        hdr->bus_source);
@@ -202,7 +202,7 @@ void madt_init(const struct acpi_madt *const madt) {
             case ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT_SRC: {
                 if (iter->length == sizeof(struct acpi_madt_entry_nmi_src)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: invalid nmi source madt entry at "
+                           "madt: invalid nmi source entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     continue;
@@ -212,7 +212,7 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_nmi_src *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: found madt-entry non-maskable interrupt "
+                       "madt: found entry non-maskable interrupt "
                        "source\n");
 
                 printk(LOGLEVEL_INFO, "\tsource: %" PRIu8 "\n", hdr->source);
@@ -226,7 +226,7 @@ void madt_init(const struct acpi_madt *const madt) {
             case ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT: {
                 if (iter->length != sizeof(struct acpi_madt_entry_nmi)) {
                     printk(LOGLEVEL_INFO,
-                           "apic: invalid nmi override madt entry at "
+                           "madt: invalid nmi override entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     continue;
@@ -236,7 +236,7 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_nmi *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: found madt-entry non-maskable interrupt\n");
+                       "madt: found entry non-maskable interrupt\n");
                 printk(LOGLEVEL_INFO,
                        "\tprocessor: %" PRIu8 "\n",
                        hdr->processor);
@@ -252,7 +252,7 @@ void madt_init(const struct acpi_madt *const madt) {
                         sizeof(struct acpi_madt_entry_lapic_addr_override))
                 {
                     printk(LOGLEVEL_INFO,
-                           "apic: invalid lapic addr override madt entry at "
+                           "madt: invalid lapic addr override entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     continue;
@@ -263,7 +263,7 @@ void madt_init(const struct acpi_madt *const madt) {
                     (const struct acpi_madt_entry_lapic_addr_override *)iter;
 
                 printk(LOGLEVEL_INFO,
-                       "apic: found madt-entry local-apic address override\n");
+                       "madt: found entry local-apic address override\n");
 
                 printk(LOGLEVEL_INFO, "\tbase: 0x%" PRIx64 "\n", hdr->base);
                 local_apic_base = hdr->base;
@@ -276,7 +276,7 @@ void madt_init(const struct acpi_madt *const madt) {
                         sizeof(struct acpi_madt_entry_cpu_local_x2apic))
                 {
                     printk(LOGLEVEL_INFO,
-                           "apic: invalid local x2apic madt entry at "
+                           "madt: invalid local x2apic entry at "
                            "index: %" PRIu32 "\n",
                            index);
                     continue;
@@ -285,7 +285,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_madt_entry_cpu_local_x2apic *const hdr =
                     (const struct acpi_madt_entry_cpu_local_x2apic *)iter;
 
-                printk(LOGLEVEL_INFO, "apic: found madt-entry local-x2apic\n");
+                printk(LOGLEVEL_INFO, "madt: found entry local-x2apic\n");
                 printk(LOGLEVEL_INFO, "\tacpi id: %" PRIu32 "\n", hdr->acpi_id);
                 printk(LOGLEVEL_INFO,
                        "\tx2acpi id: %" PRIu32 "\n",
@@ -294,9 +294,139 @@ void madt_init(const struct acpi_madt *const madt) {
                 printk(LOGLEVEL_INFO, "\tflags: 0x%" PRIx32 "\n", hdr->flags);
                 break;
             }
+            case ACPI_MADT_ENTRY_KIND_GIC_CPU_INTERFACE: {
+                if (iter->length !=
+                        sizeof(struct acpi_madt_entry_gic_cpu_interface))
+                {
+                    printk(LOGLEVEL_INFO,
+                           "madt: invalid gic cpu-interface entry at "
+                           "index: %" PRIu32 "\n",
+                           index);
+                    continue;
+                }
+            #if defined(__aarch64__)
+                const struct acpi_madt_entry_gic_cpu_interface *const cpu =
+                    (const struct acpi_madt_entry_gic_cpu_interface *)iter;
+
+                printk(LOGLEVEL_DEBUG,
+                       "madt: found gic cpu-interface:\n"
+                       "\tinterface number: %" PRIu32 "\n"
+                       "\tacpi processor id: %" PRIu32 "\n"
+                       "\tflags: 0x%" PRIx32 "\n"
+                       "\t\tcpu enabled: %s\n"
+                       "\t\tperf interrupt edge-triggered: %s\n"
+                       "\t\tvgic maintenance intr edge-triggered: %s\n"
+                       "\tparking protocol version: %" PRIu32 "\n"
+                       "\tperformance interrupt gsiv: %" PRIu32 "\n"
+                       "\tparked address: 0x%" PRIx64 "\n"
+                       "\tphys base address: 0x%" PRIx64 "\n"
+                       "\tgic virt cpu reg address: 0x%" PRIx64 "\n"
+                       "\tgic virt ctrl block address: 0x%" PRIx64 "\n"
+                       "\tvgic maintenance interrupt: %" PRIu32 "\n"
+                       "\tgicr phys base address: 0x%" PRIx64 "\n"
+                       "\tmpidr: 0x%" PRIx64 "\n"
+                       "\tprocessor power efficiency class: %" PRIu8 "\n"
+                       "\tspe overflow interrupt: %" PRIu16 "\n",
+                       cpu->cpu_interface_number,
+                       cpu->acpi_processor_id,
+                       cpu->flags,
+                       (cpu->flags & ACPI_MADT_ENTRY_GIC_CPU_ENABLED) != 0 ?
+                        "yes" : "no",
+                       (cpu->flags &
+                        ACPI_MADT_ENTRY_GIC_CPU_PERF_INTR_EDGE_TRIGGER) != 0 ?
+                        "yes" : "no",
+                       (cpu->flags &
+                        ACPI_MADT_ENTRY_GIC_CPU_VGIC_INTR_EDGE_TRIGGER) != 0 ?
+                        "yes" : "no",
+                       cpu->parking_protocol_version,
+                       cpu->perf_interrupt_gsiv,
+                       cpu->parked_address,
+                       cpu->phys_base_address,
+                       cpu->gic_virt_cpu_reg_address,
+                       cpu->gic_virt_ctrl_block_reg_address,
+                       cpu->vgic_maintenance_interrupt,
+                       cpu->gicr_phys_base_address,
+                       cpu->mpidr,
+                       cpu->processor_power_efficiency_class,
+                       cpu->spe_overflow_interrupt);
+            #else
+                printk(LOGLEVEL_WARN,
+                       "madt: found gic cpu-interface entry. ignoring");
+            #endif /* defined(__aarch64__) */
+
+                break;
+            }
+            case ACPI_MADT_ENTRY_KIND_GIC_DISTRIBUTOR: {
+                if (iter->length !=
+                        sizeof(struct acpi_madt_entry_gic_distributor))
+                {
+                    printk(LOGLEVEL_INFO,
+                           "madt: invalid gic distributor entry at "
+                           "index: %" PRIu32 "\n",
+                           index);
+                    continue;
+                }
+            #if defined(__aarch64__)
+                const struct acpi_madt_entry_gic_distributor *const dist =
+                    (const struct acpi_madt_entry_gic_distributor *)iter;
+
+                printk(LOGLEVEL_DEBUG,
+                       "madt: found gic distributor\n"
+                       "\tgic hardware id: %" PRIu32 "\n"
+                       "\tphys base address: 0x%" PRIx64 "\n"
+                       "\tsystem vector base: %" PRIu32 "\n"
+                       "\tgic version: %" PRIu8 "\n",
+                       dist->gic_hardware_id,
+                       dist->phys_base_address,
+                       dist->sys_vector_base,
+                       dist->gic_version);
+            #else
+                printk(LOGLEVEL_WARN,
+                       "madt: found gic distributor entry. ignoring");
+            #endif /* defined(__aarch64__) */
+
+                break;
+            }
+            case ACPI_MADT_ENTRY_KIND_GIC_MSI_FRAME: {
+                if (iter->length !=
+                        sizeof(struct acpi_madt_entry_gic_msi_frame))
+                {
+                    printk(LOGLEVEL_INFO,
+                           "madt: invalid gic msi-frame entry at "
+                           "index: %" PRIu32 "\n",
+                           index);
+                    continue;
+                }
+            #if defined(__aarch64__)
+                const struct acpi_madt_entry_gic_msi_frame *const frame =
+                    (const struct acpi_madt_entry_gic_msi_frame *)iter;
+
+                printk(LOGLEVEL_DEBUG,
+                       "madt: found msi-frame\n"
+                       "\tmsi frame id: %" PRIu32 "\n"
+                       "\tphys base address: 0x%" PRIx64 "\n"
+                       "\tflags: 0x%" PRIx8 "\n"
+                       "\t\toverride msi_typer: %s\n"
+                       "\tspi count: %" PRIu16 "\n"
+                       "\tspi base: %" PRIu16 "\n",
+                       frame->msi_frame_id,
+                       frame->phys_base_address,
+                       frame->flags,
+                       (frame->flags &
+                        __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR) != 0 ?
+                            "yes" : "no",
+                       frame->spi_count,
+                       frame->spi_base);
+            #else
+                printk(LOGLEVEL_WARN,
+                       "madt: found gic distributor entry. ignoring");
+            #endif /* defined(__aarch64__) */
+
+                break;
+            }
             default:
                 printk(LOGLEVEL_INFO,
-                       "apic: found invalid madt-entry: %" PRIu32 "\n",
+                       "madt: found invalid entry: %" PRIu32 "\n",
                        iter->kind);
                 continue;
         }

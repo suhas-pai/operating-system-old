@@ -6,16 +6,24 @@
 #pragma once
 #include <stdint.h>
 
-static inline uint64_t read_ttbr0_base_address() {
-    uint64_t val = 0;
-    asm volatile("mrs %0, ttbr0_el1" : "=r" (val));
+static inline uint64_t read_ttbr0_el1() {
+    uint64_t value = 0;
+    asm volatile("mrs %0, ttbr0_el1" : "=r" (value));
 
-    return (val & 0xffffffffffc0) | ((val & 0x3c) << 46);
+    return (value & 0xffffffffffc0) | ((value & 0x3c) << 46);
 }
 
-static inline uint64_t read_ttbr1_base_address() {
-    uint64_t val = 0;
-    asm volatile("mrs %0, ttbr1_el1" : "=r" (val));
+static inline uint64_t read_ttbr1_el1() {
+    uint64_t value = 0;
+    asm volatile("mrs %0, ttbr1_el1" : "=r" (value));
 
-    return (val & 0xffffffffffc0) | ((val & 0x3c) << 46);
+    return (value & 0xffffffffffc0) | ((value & 0x3c) << 46);
+}
+
+static inline void write_ttbr0_el1(const uint64_t value) {
+    asm volatile("msr ttbr0_el1, %0" :: "r" (value));
+}
+
+static inline void write_ttbr1_el1(const uint64_t value) {
+    asm volatile("msr ttbr1_el1, %0" :: "r" (value));
 }

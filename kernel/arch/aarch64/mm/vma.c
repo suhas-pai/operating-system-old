@@ -13,7 +13,7 @@ flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
     }
 
     if (!(prot & PROT_EXEC)) {
-        result |= __PTE_NOEXEC;
+        result |= __PTE_UNPRIV_NOEXEC | __PTE_PRIV_NOEXEC;
     }
 
     // TODO:
@@ -80,7 +80,8 @@ arch_make_mapping(struct pagemap *const pagemap,
             if (pte_is_present(entry)) {
                 const uint64_t flags_mask =
                     __PTE_VALID | __PTE_TABLE | __PTE_USER | __PTE_RO |
-                    __PTE_INNER_SHARE | __PTE_ACCESS | __PTE_NOEXEC;
+                    __PTE_INNER_SHARE | __PTE_ACCESS | __PTE_PRIV_NOEXEC |
+                    __PTE_UNPRIV_NOEXEC;
 
                 if ((entry & flags_mask) != (new_entry & flags_mask) ||
                     (entry & PTE_PHYS_MASK) != (new_entry & PTE_PHYS_MASK))
