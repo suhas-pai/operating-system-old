@@ -8,7 +8,8 @@
 
 void
 print_rhct_node(const struct acpi_rhct *const rhct,
-                struct acpi_rhct_node *const node)
+                struct acpi_rhct_node *const node,
+                const char *const prefix)
 {
     switch (node->kind) {
         case ACPI_RHCT_NODE_KIND_ISA_STRING: {
@@ -18,11 +19,12 @@ print_rhct_node(const struct acpi_rhct *const rhct,
                 sv_create_length(isa_str->isa_string, isa_str->isa_length);
 
             printk(LOGLEVEL_INFO,
-                    "rhct: found isa string:\n"
-                    "\tisa length: %" PRIu16 "\n"
-                    "\tisa string: \"" SV_FMT "\"\n",
-                    isa_str->isa_length,
-                    SV_FMT_ARGS(isa_sv));
+                    "%srhct: found isa string:\n"
+                    "%s\tisa length: %" PRIu16 "\n"
+                    "%s\tisa string: \"" SV_FMT "\"\n",
+                    prefix,
+                    prefix, isa_str->isa_length,
+                    prefix, SV_FMT_ARGS(isa_sv));
             break;
         }
         case ACPI_RHCT_NODE_KIND_HART_INFO: {
@@ -30,17 +32,18 @@ print_rhct_node(const struct acpi_rhct *const rhct,
                 (struct acpi_rhct_hart_info *)node;
 
             printk(LOGLEVEL_INFO,
-                    "rhct: found hart info:\n"
-                    "\toffset count: %" PRIu16 "\n"
-                    "\tacpi processor id: %" PRIu32 "\n",
-                    hart->offset_count,
-                    hart->acpi_processor_uid);
+                    "%srhct: found hart info:\n"
+                    "%s\toffset count: %" PRIu16 "\n"
+                    "%s\tacpi processor id: %" PRIu32 "\n",
+                    prefix,
+                    prefix, hart->offset_count,
+                    prefix, hart->acpi_processor_uid);
 
             for (uint16_t j = 0; j != hart->offset_count; j++) {
                 struct acpi_rhct_node *const hart_node =
                     reg_to_ptr(struct acpi_rhct_node, rhct, hart->offsets[j]);
 
-                print_rhct_node(rhct, hart_node);
+                print_rhct_node(rhct, hart_node, "\t\t");
             }
 
             break;
@@ -62,7 +65,7 @@ void acpi_rhct_init(const struct acpi_rhct *const rhct) {
         reg_to_ptr(struct acpi_rhct_node, rhct, rhct->node_offset);
 
     for (uint32_t i = 0; i != rhct->node_count; i++) {
-        print_rhct_node(rhct, node);
+        print_rhct_node(rhct, node, "");
         node = reg_to_ptr(struct acpi_rhct_node, node, node->length);
     }
 }
