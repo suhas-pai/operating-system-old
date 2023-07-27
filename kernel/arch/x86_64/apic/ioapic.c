@@ -53,7 +53,7 @@ redirect_irq(const uint8_t lapic_id,
 {
     const struct ioapic_info *const ioapic = ioapic_info_for_gsi(/*gsi=*/irq);
     assert_msg(ioapic != NULL,
-               "Failed to find I/O APIC for requested IRQ: %" PRIu8,
+               "mm: failed to find i/o apic for requested IRQ: %" PRIu8,
                irq);
 
     const uint8_t redirect_table_index = irq - ioapic->gsi_base;

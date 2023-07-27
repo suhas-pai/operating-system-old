@@ -1,5 +1,5 @@
 /*
- * kernel/arch/riscv64/dev/uart/uart8250.c
+ * kernel/arch/riscv64/dev/uart/serial.c
  * © suhas pai
  */
 

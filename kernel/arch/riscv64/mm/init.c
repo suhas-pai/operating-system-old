@@ -191,7 +191,6 @@ map_region(const uint64_t root_phys,
                                /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
                                /*free_pgtable=*/NULL);
 
-#if 0
     if (map_size >= PAGE_SIZE_1GIB && (virt_addr & (PAGE_SIZE_1GIB - 1)) == 0) {
         walker_result =
             ptwalker_fill_in_to(&pt_walker,
@@ -215,8 +214,8 @@ map_region(const uint64_t root_phys,
             }
 
             *ptwalker_pte_in_level(&pt_walker, /*level=*/3) =
-                page | pte_flags | __PTE_VALID | __PTE_ACCESS |
-                __PTE_INNER_SHARE;
+                phys_create_pte(page) | pte_flags | __PTE_VALID | __PTE_READ |
+                __PTE_ACCESSED | __PTE_DIRTY;
 
             walker_result =
                 ptwalker_next_custom(&pt_walker,
@@ -261,8 +260,8 @@ map_region(const uint64_t root_phys,
             }
 
             *ptwalker_pte_in_level(&pt_walker, /*level=*/2) =
-                page | pte_flags | __PTE_VALID | __PTE_ACCESS |
-                __PTE_INNER_SHARE;
+                phys_create_pte(page) | pte_flags | __PTE_VALID | __PTE_READ |
+                __PTE_ACCESSED | __PTE_DIRTY;
 
             walker_result =
                 ptwalker_next_custom(&pt_walker,
@@ -285,7 +284,6 @@ map_region(const uint64_t root_phys,
             virt_addr += PAGE_SIZE_2MIB;
         } while (true);
     }
-#endif
 
     if (map_size >= PAGE_SIZE) {
         walker_result =
@@ -296,8 +294,7 @@ map_region(const uint64_t root_phys,
                                 /*free_pgtable_cb_info=*/NULL);
 
         if (walker_result != E_PT_WALKER_OK) {
-        panic:
-            panic("mm: failed to setup page-structs, ran out of memory\n");
+            goto panic;
         }
 
         do {

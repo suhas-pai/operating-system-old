@@ -132,7 +132,7 @@ struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {
     }
 
     printk(LOGLEVEL_WARN,
-           "acpi: Failed to find entry with signature \"" SV_FMT "\"\n",
+           "acpi: failed to find entry with signature \"" SV_FMT "\"\n",
            SV_FMT_ARGS(sv_create_nocheck(signature, 4)));
 
     return NULL;

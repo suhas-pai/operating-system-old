@@ -187,7 +187,7 @@ void ps2_keyboard_init(const enum ps2_device_id device_id) {
 
     if (get_response != PS2_RESPONSE_ACKNOWLEDGE) {
         printk(LOGLEVEL_WARN,
-               "ps2: Failed to get 'ACK' from keyboard scan-code get\n");
+               "ps2: failed to get 'ACK' from keyboard scan-code get\n");
         return;
     }
 

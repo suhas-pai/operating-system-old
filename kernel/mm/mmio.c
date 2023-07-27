@@ -28,7 +28,7 @@ vmap_mmio(const struct range phys_range,
                "attempting to map mmio range with execute permissions");
 
     struct mmio_region *const mmio = kmalloc(sizeof(*mmio));
-    assert_msg(mmio != NULL, "Failed to allocate mmio_region");
+    assert_msg(mmio != NULL, "mmio: failed to allocate mmio_region");
 
     uint64_t virt_addr = MMIO_BASE;
     if (!list_empty(&mmio_list)) {
@@ -57,7 +57,7 @@ vmap_mmio(const struct range phys_range,
                           VMA_CACHEKIND_MMIO,
                           /*is_overwrite=*/false);
 
-    assert_msg(map_success, "Failed to map mmio range");
+    assert_msg(map_success, "mmio: failed to map mmio range");
 
     mmio->base = (volatile void *)virt_addr;
     mmio->size = phys_range.size;

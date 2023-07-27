@@ -96,7 +96,7 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 assert_msg(
                     array_append(&get_acpi_info_mut()->lapic_list, &lapic_info),
-                    "Failed to add Local APIC info to array");
+                    "madt: failed to add local-apic info to array");
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found local-apic entry. ignoring");
@@ -160,7 +160,7 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 assert_msg(
                     array_append(&get_acpi_info_mut()->ioapic_list, &info),
-                    "Failed to add IO-APIC base to array");
+                    "madt: failed to add io-apic base to array");
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found ioapic entry. ignoring");
@@ -204,7 +204,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 };
 
                 assert_msg(array_append(&get_acpi_info_mut()->iso_list, &info),
-                           "Failed to add APIC ISO-Info to array");
+                           "madt: failed to add apic iso-info to array");
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT_SRC: {
@@ -486,7 +486,9 @@ void madt_init(const struct acpi_madt *const madt) {
     }
 
 #if defined(__x86_64__)
-    assert_msg(local_apic_base != 0, "Failed to find local-apic registers");
+    assert_msg(local_apic_base != 0,
+               "madt: failed to find local-apic registers");
+
     get_acpi_info_mut()->lapic_regs =
         vmap_mmio(range_create(local_apic_base, PAGE_SIZE),
                   PROT_READ | PROT_WRITE,
