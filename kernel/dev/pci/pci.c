@@ -423,7 +423,7 @@ static void
 parse_function(struct pci_group *const group,
                const struct pci_config_space *const config_space)
 {
-    struct pci_device_info info = {};
+    struct pci_device_info info = { .group = group };
     volatile struct pci_spec_device_info *device = NULL;
     uint8_t hdrkind = 0;
 
@@ -664,7 +664,6 @@ pci_parse_bus(struct pci_group *const group,
 }
 
 void pci_parse_group(struct pci_group *const group) {
-    printk(LOGLEVEL_DEBUG, "pcie: mmio=%p\n", group->mmio->base);
     struct pci_config_space config_space = {
         .group_segment = group->segment,
         .bus = 0,
@@ -694,8 +693,16 @@ pci_group_create_pcie(struct range bus_range,
         range_create(base_addr,
                      align_up_assert(bus_range.size << 20, PAGE_SIZE));
 
+#if !(defined(__riscv) && defined(__LP64__))
     group->mmio =
         vmap_mmio(config_space_range, PROT_READ | PROT_WRITE, /*flags=*/0);
+#else
+    group->mmio = kmalloc(sizeof(*group->mmio));
+    assert(group->mmio != NULL);
+
+    group->mmio->base = (volatile void *)config_space_range.front;
+    group->mmio->size = config_space_range.size;
+#endif /* !(defined(__riscv) && defined(__LP64__)) */
 
     assert_msg(group->mmio != NULL, "pcie: failed to mmio-map mcfg entry");
 
@@ -722,8 +729,17 @@ pci_write(const struct pci_device_info *dev,
           uint8_t access_size);
 
 void pci_init() {
-    if (get_acpi_info()->mcfg == NULL) {
-        struct pci_device_info dev_0 = {};
+#if defined(__riscv) && defined(__LP64__)
+    pci_group_create_pcie(range_create(0, 255),
+                          /*base_addr=*/0x30000000,
+                          /*segment=*/0);
+#endif /* defined(__riscv) && defined(__LP64__) */
+
+    if (list_empty(&group_list)) {
+        struct pci_group *const root_group = kmalloc(sizeof(*root_group));
+        assert_msg(root_group != NULL, "failed to allocate pci root group");
+
+        struct pci_device_info dev_0 = { .group = root_group, .pcie_info = (port_t)0x30000000 };
         const uint32_t dev_0_first_dword =
             pci_read(&dev_0,
                     offsetof(struct pci_spec_device_info, vendor_id),
@@ -734,9 +750,6 @@ void pci_init() {
                    "pci: failed to scan pci bus. aborting init\n");
             return;
         }
-
-        struct pci_group *const root_group = kmalloc(sizeof(*root_group));
-        assert_msg(root_group != NULL, "failed to allocate pci root group");
 
         list_init(&root_group->list);
         list_init(&root_group->device_list);

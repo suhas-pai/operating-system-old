@@ -120,7 +120,7 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
             g_kbd_state.caps_lock = !g_kbd_state.caps_lock;
             return;
         case PS2_SCANCODE_NUMLOCK:
-            printk(LOGLEVEL_DEBUG, "ps2: got numlock\n");
+            printk(LOGLEVEL_INFO, "ps2: got numlock\n");
             return;
     }
 

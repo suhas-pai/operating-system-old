@@ -3,13 +3,14 @@
  * © suhas pai
  */
 
+#include "acpi/api.h"
 #include "acpi/structs.h"
+
 #if defined(__x86_64__)
     #include "apic/ioapic.h"
     #include "apic/init.h"
 #endif /* defined(__x86_64__) */
 
-#include "acpi/api.h"
 #include "dev/printk.h"
 
 #include "lib/align.h"
@@ -360,7 +361,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_madt_entry_gic_cpu_interface *const cpu =
                     (const struct acpi_madt_entry_gic_cpu_interface *)iter;
 
-                printk(LOGLEVEL_DEBUG,
+                printk(LOGLEVEL_INFO,
                        "madt: found gic cpu-interface:\n"
                        "\tinterface number: %" PRIu32 "\n"
                        "\tacpi processor id: %" PRIu32 "\n"
@@ -422,7 +423,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_madt_entry_gic_distributor *const dist =
                     (const struct acpi_madt_entry_gic_distributor *)iter;
 
-                printk(LOGLEVEL_DEBUG,
+                printk(LOGLEVEL_INFO,
                        "madt: found gic distributor\n"
                        "\tgic hardware id: %" PRIu32 "\n"
                        "\tphys base address: 0x%" PRIx64 "\n"
@@ -453,7 +454,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_madt_entry_gic_msi_frame *const frame =
                     (const struct acpi_madt_entry_gic_msi_frame *)iter;
 
-                printk(LOGLEVEL_DEBUG,
+                printk(LOGLEVEL_INFO,
                        "madt: found msi-frame\n"
                        "\tmsi frame id: %" PRIu32 "\n"
                        "\tphys base address: 0x%" PRIx64 "\n"

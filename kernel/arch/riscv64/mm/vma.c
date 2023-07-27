@@ -76,7 +76,7 @@ arch_make_mapping(struct pagemap *const pagemap,
                     __PTE_READ | __PTE_WRITE | __PTE_EXEC | __PTE_USER;
 
                 if ((old_entry & flags_mask) != (new_entry & flags_mask) ||
-                    (old_entry & PTE_PHYS_MASK) != (new_entry & PTE_PHYS_MASK))
+                    pte_to_phys(old_entry) != pte_to_phys(new_entry))
                 {
                     pageop_flush(&pageop, virt_addr + i);
                 }

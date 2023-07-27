@@ -34,6 +34,9 @@
 #define PML4(phys) (((phys) >> PML4_SHIFT) & PML4_MASK)
 #define PML5(phys) (((phys) >> PML5_SHIFT) & PML5_MASK)
 
+#define pte_to_phys(pte) (((pte) & PTE_PHYS_MASK) << 2)
+#define phys_create_pte(phys) ((pte_t)(phys) >> 2)
+
 typedef uint64_t pte_t;
 enum pte_flags {
     __PTE_VALID    = 1 << 0,
@@ -51,7 +54,14 @@ static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
 static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
     { PML1_SHIFT, PML2_SHIFT, PML3_SHIFT, PML4_SHIFT, PML5_SHIFT };
 
-static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
+static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT, PML4_SHIFT };
 
 #define PGT_FLAGS (__PTE_VALID)
+
+#define PAGE_SIZE_512GIB (1ull << LARGEPAGE_SHIFTS[2])
+#define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
+#define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
+
 struct page;
+
+extern uint64_t PAGING_MODE;

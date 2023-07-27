@@ -343,6 +343,9 @@ void switch_to_pagemap(const struct pagemap *const pagemap) {
 
     asm volatile ("dsb sy; isb" ::: "memory");
 #else
-    verify_not_reached();
+    const uint64_t satp =
+        (PAGING_MODE + 8) << 60 | (page_to_phys(pagemap->root) >> PML1_SHIFT);
+
+    asm volatile ("csrw satp, %0; sfence.vma" :: "r"(satp) : "memory");
 #endif /* defined(__x86_64__) */
 }

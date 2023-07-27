@@ -10,7 +10,9 @@
 #endif /* defined(__x86_64__) */
 
 #include "lib/align.h"
-#include "mm/pagemap.h"
+
+#include "mm_types.h"
+#include "pagemap.h"
 
 #include "walker.h"
 
@@ -44,11 +46,8 @@ get_root_phys(const struct pagemap *const pagemap, const uint64_t virt_addr) {
         root_phys = page_to_phys(pagemap->root[0]);
     }
 #else
-    (void)pagemap;
     (void)virt_addr;
-
-    const uint64_t root_phys = 0;
-    verify_not_reached();
+    const uint64_t root_phys = page_to_phys(pagemap->root);
 #endif /* defined(__x86_64__) */
 
     return root_phys;
@@ -115,7 +114,7 @@ ptwalker_create_customroot(struct pt_walker *const walker,
 
             if (pte_is_present(entry)) {
                 if (!pte_is_large(entry, parent_level)) {
-                    table = phys_to_virt(entry & PTE_PHYS_MASK);
+                    table = pte_to_virt(entry);
                     walker->level = level;
                 } else {
                     walker->level = parent_level;
@@ -187,7 +186,7 @@ setup_levels_lower_than(struct pt_walker *const walker,
     uint8_t level = lowest_level - 1;
 
     while (true) {
-        pte_t *const table = phys_to_virt(*pte & PTE_PHYS_MASK);
+        pte_t *const table = pte_to_virt(*pte);
 
         walker->tables[level - 1] = table;
         walker->indices[level - 1] = 0;
@@ -235,7 +234,7 @@ alloc_single_pte(struct pt_walker *const walker,
     }
 
     walker->tables[level - 1] = page_to_virt(pt);
-    *pte = page_to_phys(pt) | PGT_FLAGS;
+    *pte = phys_create_pte(page_to_phys(pt)) | PGT_FLAGS;
 
     return true;
 }
@@ -477,7 +476,7 @@ ptwalker_fill_in_lowest(struct pt_walker *const walker, struct page *const page)
 
     *pte = page_to_phys(page) | PGT_FLAGS;
 
-    ref_up(&phys_to_page(*pte & PTE_PHYS_MASK)->table.refcount);
+    ref_up(&phys_to_page(pte_to_phys(*pte))->table.refcount);
     ref_up(&page->table.refcount);
 }
 

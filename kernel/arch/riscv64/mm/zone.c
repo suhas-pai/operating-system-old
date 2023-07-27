@@ -14,7 +14,7 @@ static struct page_zone zone_default = {
 };
 
 static struct page_zone zone_highmem = {
-    .fallback_zone = &zone_highmem
+    .fallback_zone = &zone_default
 };
 
 struct page_zone *page_to_zone(struct page *const page) {

@@ -33,3 +33,6 @@ bool pte_is_large(const pte_t pte, const uint8_t level) {
            ((pte & (__PTE_VALID | __PTE_TABLE)) == __PTE_VALID);
 }
 
+uint64_t pte_get_addr(const pte_t pte) {
+    return pte & PTE_PHYS_MASK;
+}
