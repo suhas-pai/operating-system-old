@@ -63,7 +63,8 @@ enum acpi_madt_entry_kind {
     ACPI_MADT_ENTRY_KIND_NON_MASKABLE_INT,
     ACPI_MADT_ENTRY_KIND_LOCAL_APIC_ADDR_OVERRIDE,
     ACPI_MADT_ENTRY_KIND_CPU_LOCAL_X2APIC = 9,
-    ACPI_MADT_ENTRY_KIND_GIC_CPU_INTERFACE = 11,
+    ACPI_MADT_ENTRY_KIND_CPU_LOCAL_X2APIC_NMI,
+    ACPI_MADT_ENTRY_KIND_GIC_CPU_INTERFACE,
     ACPI_MADT_ENTRY_KIND_GIC_DISTRIBUTOR,
     ACPI_MADT_ENTRY_KIND_GIC_MSI_FRAME,
     ACPI_MADT_ENTRY_KIND_GIC_REDISTRIBUTOR,
@@ -97,8 +98,8 @@ struct acpi_madt_entry_ioapic {
 } __packed;
 
 enum acpi_madt_entry_iso_flags {
-    F_ACPI_MADT_ENTRY_ISO_ACTIVE_LOW = 1 << 1,
-    F_ACPI_MADT_ENTRY_ISO_LEVEL_TRIGGERED = 1 << 4,
+    __ACPI_MADT_ENTRY_ISO_ACTIVE_LOW = 1 << 1,
+    __ACPI_MADT_ENTRY_ISO_LEVEL_TRIGGER = 0b11 << 2,
 };
 
 struct acpi_madt_entry_iso {
@@ -108,6 +109,11 @@ struct acpi_madt_entry_iso {
     uint32_t gsi; /* gsi = "Global System Interrupt" */
     uint16_t flags;
 } __packed;
+
+enum acpi_madt_entry_nmi_src_flags {
+    __ACPI_MADT_ENTRY_NMI_SRC_ACTIVE_LOW = 1 << 1,
+    __ACPI_MADT_ENTRY_NMI_SRC_LEVEL_TRIGGER = 1 << 4,
+};
 
 struct acpi_madt_entry_nmi_src {
     struct acpi_madt_entry_header header;
@@ -134,7 +140,15 @@ struct acpi_madt_entry_cpu_local_x2apic {
     uint16_t reserved;
     uint32_t x2apic_id;
     uint32_t flags;
-    uint32_t acpi_id;
+    uint32_t acpi_uid;
+} __packed;
+
+struct acpi_madt_entry_cpu_local_x2apic_nmi {
+    uint16_t reserved;
+    uint32_t flags;
+    uint32_t acpi_uid;
+    uint8_t local_x2apic_lint;
+    uint8_t reserved_2[3];
 } __packed;
 
 enum acpi_madt_entry_gic_cpu_flags {

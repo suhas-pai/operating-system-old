@@ -7,7 +7,6 @@
 #include "lib/align.h"
 
 #include "mm/pagemap.h"
-#include "mm/walker.h"
 
 static inline uint64_t
 flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
@@ -74,7 +73,7 @@ arch_make_mapping(struct pagemap *const pagemap,
     pageop_init(&pageop);
 
     struct pt_walker walker;
-    ptwalker_default_with_root(&walker, page_to_phys(pagemap->root), virt_addr);
+    ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
 
     enum pt_walker_result ptwalker_result =
         ptwalker_fill_in_to(&walker,

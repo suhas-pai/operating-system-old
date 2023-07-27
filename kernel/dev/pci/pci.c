@@ -242,7 +242,9 @@ mmio_map:
     }
 
     struct mmio_region *const mmio =
-        vmap_mmio(aligned_range, PROT_READ | PROT_WRITE);
+        vmap_mmio(aligned_range,
+                  PROT_READ | PROT_WRITE,
+                  !bar->is_64_bit ? __VMAP_MMIO_LOW4G : 0);
 
     assert_msg(mmio != NULL,
                "pcie: failed to mmio map bar %" PRIu8 " at phys "
@@ -421,8 +423,7 @@ static void
 parse_function(struct pci_group *const group,
                const struct pci_config_space *const config_space)
 {
-
-    struct pci_device_info info = {0};
+    struct pci_device_info info = {};
     volatile struct pci_spec_device_info *device = NULL;
     uint8_t hdrkind = 0;
 
@@ -693,7 +694,9 @@ pci_group_create_pcie(struct range bus_range,
         range_create(base_addr,
                      align_up_assert(bus_range.size << 20, PAGE_SIZE));
 
-    group->mmio = vmap_mmio(config_space_range, PROT_READ | PROT_WRITE);
+    group->mmio =
+        vmap_mmio(config_space_range, PROT_READ | PROT_WRITE, /*flags=*/0);
+
     assert_msg(group->mmio != NULL, "pcie: failed to mmio-map mcfg entry");
 
     group->bus_range = bus_range;
@@ -719,18 +722,19 @@ pci_write(const struct pci_device_info *dev,
           uint8_t access_size);
 
 void pci_init() {
-    struct pci_device_info dev_0 = {};
-    const uint32_t dev_0_first_dword =
-        pci_read(&dev_0,
-                 offsetof(struct pci_spec_device_info, vendor_id),
-                 sizeof_field(struct pci_spec_device_info, vendor_id));
-
-    if (dev_0_first_dword == (uint32_t)-1) {
-        printk(LOGLEVEL_WARN, "pci: failed to scan pci bus. aborting init\n");
-        return;
-    }
-
     if (get_acpi_info()->mcfg == NULL) {
+        struct pci_device_info dev_0 = {};
+        const uint32_t dev_0_first_dword =
+            pci_read(&dev_0,
+                    offsetof(struct pci_spec_device_info, vendor_id),
+                    sizeof_field(struct pci_spec_device_info, vendor_id));
+
+        if (dev_0_first_dword == (uint32_t)-1) {
+            printk(LOGLEVEL_WARN,
+                   "pci: failed to scan pci bus. aborting init\n");
+            return;
+        }
+
         struct pci_group *const root_group = kmalloc(sizeof(*root_group));
         assert_msg(root_group != NULL, "failed to allocate pci root group");
 

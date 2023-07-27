@@ -4,6 +4,8 @@
  */
 
 #include "lib/assert.h"
+#include "mm/mm_types.h"
+
 #include "limine.h"
 
 static volatile struct limine_hhdm_request hhdm_request = {
@@ -23,8 +25,6 @@ volatile struct limine_paging_mode_request paging_mode_request = {
     .revision = 0,
     .response = NULL
 };
-
-extern uint64_t HHDM_OFFSET;
 
 void mm_init() {
     assert(hhdm_request.response != NULL);

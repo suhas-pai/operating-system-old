@@ -44,6 +44,8 @@ bool pte_is_large(pte_t pte, uint8_t level);
 void *phys_to_virt(uint64_t phys);
 uint64_t virt_to_phys(const void *phys);
 
+extern uint64_t HHDM_OFFSET;
+
 void pagezones_init();
 
 static inline
@@ -69,7 +71,11 @@ enum prot_flags {
     PROT_WX = PROT_WRITE | PROT_EXEC,
     PROT_RX = PROT_READ | PROT_EXEC,
 
-    PROT_RWX = PROT_READ | PROT_WRITE | PROT_EXEC
+    PROT_RWX = PROT_READ | PROT_WRITE | PROT_EXEC,
+
+#if defined(__aarch64__)
+    PROT_DEVICE = 1 << 4
+#endif
 };
 
 enum vma_cachekind {
@@ -80,5 +86,9 @@ enum vma_cachekind {
     VMA_CACHEKIND_WRITECOMBINING,
     VMA_CACHEKIND_NO_CACHE,
 
-    VMA_CACHEKIND_MMIO = VMA_CACHEKIND_NO_CACHE
+#if defined(__aarch64__)
+    VMA_CACHEKIND_MMIO,
+#else
+    VMA_CACHEKIND_MMIO = VMA_CACHEKIND_NO_CACHE,
+#endif /* defined(__x86_64__) */
 };

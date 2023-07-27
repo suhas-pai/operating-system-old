@@ -4,6 +4,7 @@
  */
 
 #include "lib/overflow.h"
+#include "lib/size.h"
 
 #include "kmalloc.h"
 #include "mmio.h"
@@ -12,13 +13,19 @@
 static struct list mmio_list = LIST_INIT(mmio_list);
 
 struct mmio_region *
-vmap_mmio(const struct range phys_range, const uint8_t prot) {
+vmap_mmio(const struct range phys_range,
+          const uint8_t prot,
+          const uint64_t flags)
+{
     assert_msg(range_has_align(phys_range, PAGE_SIZE),
                "mmio phys-range (" RANGE_FMT ") isn't aligned to the page size",
                RANGE_FMT_ARGS(phys_range));
 
     assert_msg(prot != PROT_NONE,
                "attempting to map mmio range w/o access permissions");
+
+    assert_msg((prot & PROT_EXEC) == 0,
+               "attempting to map mmio range with execute permissions");
 
     struct mmio_region *const mmio = kmalloc(sizeof(*mmio));
     assert_msg(mmio != NULL, "Failed to allocate mmio_region");
@@ -30,6 +37,10 @@ vmap_mmio(const struct range phys_range, const uint8_t prot) {
 
         virt_addr =
             check_add_assert((uint64_t)prev_mmio->base, prev_mmio->size);
+    }
+
+    if (flags & __VMAP_MMIO_LOW4G) {
+        virt_addr -= HHDM_OFFSET;
     }
 
     uint64_t virt_end = 0;

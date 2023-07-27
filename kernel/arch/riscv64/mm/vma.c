@@ -50,7 +50,7 @@ arch_make_mapping(struct pagemap *const pagemap,
     pageop_init(&pageop);
 
     struct pt_walker walker;
-    ptwalker_default_with_root(&walker, page_to_phys(pagemap->root), virt_addr);
+    ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
 
     enum pt_walker_result ptwalker_result =
         ptwalker_fill_in_to(&walker,

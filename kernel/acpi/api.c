@@ -99,11 +99,9 @@ void acpi_init(void) {
         fadt_init(get_acpi_info()->fadt);
     }
 
-#if defined(__x86_64__)
     if (get_acpi_info()->mcfg != NULL) {
         mcfg_init(get_acpi_info()->mcfg);
     }
-#endif /* defined(__x86_64__) */
 }
 
 struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {

@@ -22,10 +22,9 @@ void serial_init() {
 
 void dev_init() {
     acpi_init();
-
-#if defined(__x86_64__)
+#if !(defined(__riscv) && defined(__LP64__))
     pci_init();
-#endif /* defined(__x86_64__) */
+#endif /* !(defined(__riscv) && defined(__LP64__)) */
 
     driver_foreach(iter) {
         switch (iter->kind) {

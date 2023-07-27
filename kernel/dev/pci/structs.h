@@ -121,7 +121,7 @@ enum pci_spec_device_status_flags {
 
 enum pci_spec_dev_memspace_bar_kind {
     __PCI_DEVBAR_MEMSPACE_32B = 0,
-    __PCI_DEVBAR_MEMSPACE_64B = 0b11,
+    __PCI_DEVBAR_MEMSPACE_64B = 2,
 };
 
 enum pci_spec_device_bar_flags {

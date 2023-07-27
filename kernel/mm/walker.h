@@ -39,10 +39,11 @@ struct pt_walker {
 
 void ptwalker_default(struct pt_walker *walker, uint64_t virt_addr);
 
+struct pagemap;
 void
-ptwalker_default_with_root(struct pt_walker *walker,
-                           uint64_t root_phys,
-                           uint64_t virt_addr);
+ptwalker_default_for_pagemap(struct pt_walker *walker,
+                             struct pagemap *pagemap,
+                             uint64_t virt_addr);
 
 void
 ptwalker_create(struct pt_walker *walker,

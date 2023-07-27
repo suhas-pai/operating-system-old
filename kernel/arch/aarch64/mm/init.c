@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "asm/mair.h"
 #include "asm/ttbr.h"
 
 #include "lib/align.h"
@@ -15,7 +16,6 @@
 #include "mm/pagemap.h"
 
 #include "limine.h"
-#include "mm/types.h"
 
 static volatile struct limine_hhdm_request hhdm_request = {
     .id = LIMINE_HHDM_REQUEST,
@@ -35,7 +35,6 @@ volatile struct limine_paging_mode_request paging_mode_request = {
     .response = NULL
 };
 
-extern uint64_t HHDM_OFFSET;
 #define KERNEL_BASE 0xffffffff80000000
 
 struct freepages_info {
@@ -95,7 +94,7 @@ static uint64_t early_alloc_page() {
     return free_page;
 }
 
-__unused static uint64_t alloc_cont_pages(const uint32_t amount) {
+static uint64_t alloc_cont_pages(const uint32_t amount) {
     if (list_empty(&freepages_list)) {
         printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
         return 0;
@@ -103,7 +102,7 @@ __unused static uint64_t alloc_cont_pages(const uint32_t amount) {
 
     struct freepages_info *info = NULL;
 
-    uint64_t free_page = 0;
+    uint64_t free_page = INVALID_PHYS;
     bool is_in_middle = false;
 
     list_foreach(info, &freepages_list, list_entry) {
@@ -181,34 +180,21 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
 }
 
 static void
-setup_pagestructs_table(const uint64_t higher_root_phys,
-                        const uint64_t byte_count)
+map_region(const uint64_t root_phys,
+           uint64_t virt_addr,
+           uint64_t map_size,
+           const uint64_t pte_flags)
 {
-    const uint64_t structpage_count = PAGE_COUNT(byte_count);
-    uint64_t map_size = structpage_count * SIZEOF_STRUCTPAGE;
-
-    if (!align_up(map_size, PAGE_SIZE, &map_size)) {
-        panic("mm: failed to initialize memory, overflow error when aligning");
-    }
-
-    printk(LOGLEVEL_INFO,
-           "mm: structpage table is %" PRIu64 " bytes\n",
-           map_size);
-
-    // Map struct page table
-    struct pt_walker pt_walker = {0};
-    const uint64_t pte_flags =
-        __PTE_VALID | __PTE_INNER_SHARE | __PTE_ACCESS | __PTE_PRIV_NOEXEC |
-        __PTE_UNPRIV_NOEXEC;
-
     enum pt_walker_result walker_result = E_PT_WALKER_OK;
+    struct pt_walker pt_walker = {0};
+
     ptwalker_create_customroot(&pt_walker,
-                               higher_root_phys,
-                               /*virt_addr=*/PAGE_OFFSET,
+                               root_phys,
+                               virt_addr,
                                /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
                                /*free_pgtable=*/NULL);
 
-    if (map_size >= PAGE_SIZE_1GIB) {
+    if (map_size >= PAGE_SIZE_1GIB && (virt_addr & (PAGE_SIZE_1GIB - 1)) == 0) {
         walker_result =
             ptwalker_fill_in_to(&pt_walker,
                                 /*level=*/3,
@@ -230,7 +216,10 @@ setup_pagestructs_table(const uint64_t higher_root_phys,
                 break;
             }
 
-            *ptwalker_pte_in_level(&pt_walker, /*level=*/3) = page | pte_flags;
+            *ptwalker_pte_in_level(&pt_walker, /*level=*/3) =
+                page | pte_flags | __PTE_VALID | __PTE_ACCESS |
+                __PTE_INNER_SHARE;
+
             walker_result =
                 ptwalker_next_custom(&pt_walker,
                                      /*level=*/3,
@@ -245,10 +234,15 @@ setup_pagestructs_table(const uint64_t higher_root_phys,
             }
 
             map_size -= PAGE_SIZE_1GIB;
-        } while (map_size >= PAGE_SIZE_1GIB);
+            if (map_size < PAGE_SIZE_1GIB) {
+                break;
+            }
+
+            virt_addr += PAGE_SIZE_1GIB;
+        } while (true);
     }
 
-    if (map_size >= PAGE_SIZE_2MIB) {
+    if (map_size >= PAGE_SIZE_2MIB && (virt_addr & (PAGE_SIZE_2MIB - 1)) == 0) {
         walker_result =
             ptwalker_fill_in_to(&pt_walker,
                                 /*level=*/2,
@@ -268,7 +262,10 @@ setup_pagestructs_table(const uint64_t higher_root_phys,
                 break;
             }
 
-            *ptwalker_pte_in_level(&pt_walker, /*level=*/2) = page | pte_flags;
+            *ptwalker_pte_in_level(&pt_walker, /*level=*/2) =
+                page | pte_flags | __PTE_VALID | __PTE_ACCESS |
+                __PTE_INNER_SHARE;
+
             walker_result =
                 ptwalker_next_custom(&pt_walker,
                                      /*level=*/2,
@@ -283,7 +280,12 @@ setup_pagestructs_table(const uint64_t higher_root_phys,
             }
 
             map_size -= PAGE_SIZE_2MIB;
-        } while (map_size >= PAGE_SIZE_2MIB);
+            if (map_size < PAGE_SIZE_2MIB) {
+                break;
+            }
+
+            virt_addr += PAGE_SIZE_2MIB;
+        } while (true);
     }
 
     if (map_size >= PAGE_SIZE) {
@@ -307,7 +309,8 @@ setup_pagestructs_table(const uint64_t higher_root_phys,
             }
 
             *ptwalker_pte_in_level(&pt_walker, /*level=*/1) =
-                page | pte_flags | __PTE_4KPAGE;
+                page | pte_flags | __PTE_VALID | __PTE_4KPAGE | __PTE_ACCESS |
+                __PTE_INNER_SHARE;
 
             walker_result =
                 ptwalker_next_custom(&pt_walker,
@@ -323,12 +326,37 @@ setup_pagestructs_table(const uint64_t higher_root_phys,
             }
 
             map_size -= PAGE_SIZE;
-        } while (map_size >= PAGE_SIZE);
+            if (map_size < PAGE_SIZE) {
+                break;
+            }
+
+            virt_addr += PAGE_SIZE;
+        } while (true);
     }
 }
 
-__unused static void
-map_into_kernel_pagemap(const uint64_t higher_root_phys,
+static void
+setup_pagestructs_table(const uint64_t higher_root_phys,
+                        const uint64_t byte_count)
+{
+    const uint64_t structpage_count = PAGE_COUNT(byte_count);
+    uint64_t map_size = structpage_count * SIZEOF_STRUCTPAGE;
+
+    if (!align_up(map_size, PAGE_SIZE, &map_size)) {
+        panic("mm: failed to initialize memory, overflow error when aligning");
+    }
+
+    printk(LOGLEVEL_INFO,
+           "mm: structpage table is %" PRIu64 " bytes\n",
+           map_size);
+
+    // Map struct page table
+    const uint64_t pte_flags = __PTE_PRIV_NOEXEC | __PTE_UNPRIV_NOEXEC;
+    map_region(higher_root_phys, PAGE_OFFSET, map_size, pte_flags);
+}
+
+static void
+map_into_kernel_pagemap(const uint64_t root_phys,
                         const uint64_t phys_addr,
                         const uint64_t virt_addr,
                         const uint64_t size,
@@ -336,7 +364,7 @@ map_into_kernel_pagemap(const uint64_t higher_root_phys,
 {
     struct pt_walker walker = {0};
     ptwalker_create_customroot(&walker,
-                               higher_root_phys,
+                               root_phys,
                                virt_addr,
                                ptwalker_alloc_pgtable_cb,
                                /*free_pgtable=*/NULL);
@@ -443,9 +471,13 @@ static void
 setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
                      uint64_t *const kernel_memmap_size_out)
 {
-    const uint64_t lower_root = read_ttbr0_el1();
-    const uint64_t higher_root = early_alloc_page();
+    const uint64_t lower_root = early_alloc_page();
+    if (lower_root == INVALID_PHYS) {
+        panic("mm: failed to allocate lower-half root page for the "
+              "kernel-pagemap");
+    }
 
+    const uint64_t higher_root = early_alloc_page();
     if (higher_root == INVALID_PHYS) {
         panic("mm: failed to allocate higher-half root page for the "
               "kernel-pagemap");
@@ -480,7 +512,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
         } else {
             uint64_t flags = __PTE_PRIV_NOEXEC | __PTE_UNPRIV_NOEXEC;
             if (memmap->type == LIMINE_MEMMAP_FRAMEBUFFER) {
-                flags |= __PTE_FB;
+                flags |= __PTE_WC;
             }
 
             map_into_kernel_pagemap(higher_root,
@@ -494,6 +526,12 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     *kernel_memmap_size_out = kernel_memmap_size;
 
     setup_pagestructs_table(higher_root, total_bytes_repr_by_structpage_table);
+    map_into_kernel_pagemap(lower_root,
+                            /*phys_addr=*/MMIO_BASE - HHDM_OFFSET,
+                            /*virt_addr=*/MMIO_BASE - HHDM_OFFSET,
+                            (MMIO_END - MMIO_BASE),
+                            __PTE_WC);
+
     switch_to_pagemap(&kernel_pagemap);
 
     // All 'good' memmaps use pages with associated struct pages to them,
@@ -575,6 +613,32 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
                    vma_avltree_update);
 }
 
+static void setup_mair() {
+    // Device nGnRnE
+    const uint64_t device_uncacheable_encoding = 0b00000000;
+
+    // Device GRE
+    const uint64_t device_write_combining_encoding = 0b00001100;
+
+    // Normal memory, inner and outer non-cacheable
+    const uint64_t memory_uncacheable_encoding = 0b01000100;
+
+    // Normal memory inner and outer writethrough, non-transient
+    const uint64_t memory_writethrough_encoding = 0b10111011;
+
+    // Normal memory, inner and outer write-back, non-transient
+    const uint64_t memory_write_back_encoding = 0b11111111;
+
+    const uint64_t mair_value =
+        memory_write_back_encoding |
+        device_write_combining_encoding << 8 |
+        memory_writethrough_encoding << 16 |
+        device_uncacheable_encoding << 24 |
+        memory_uncacheable_encoding << 32;
+
+    write_mair_el1(mair_value);
+}
+
 void mm_init() {
     assert(hhdm_request.response != NULL);
     assert(memmap_request.response != NULL);
@@ -582,10 +646,11 @@ void mm_init() {
 
     HHDM_OFFSET = hhdm_request.response->offset;
 
-    MMIO_BASE = HHDM_OFFSET + kib(16);
+    MMIO_BASE = HHDM_OFFSET + mib(2);
     MMIO_END = MMIO_BASE + gib(4);
 
     printk(LOGLEVEL_INFO, "mm: hhdm at %p\n", (void *)HHDM_OFFSET);
+    setup_mair();
 
     const struct limine_memmap_response *const resp = memmap_request.response;
 

@@ -31,19 +31,22 @@ ptwalker_free_pgtable_cb(struct pt_walker *const walker,
     pageop_free_table((struct pageop *)cb_info, page);
 }
 
-static inline uint64_t get_root_phys(const uint64_t virt_addr) {
+static inline uint64_t
+get_root_phys(const struct pagemap *const pagemap, const uint64_t virt_addr) {
 #if defined(__x86_64__)
     (void)virt_addr;
-    const uint64_t root_phys = read_cr3();
+    const uint64_t root_phys = page_to_phys(pagemap->root);
 #elif defined(__aarch64__)
     uint64_t root_phys = 0;
     if (virt_addr & (1ull << 63)) {
-        root_phys = read_ttbr1_el1();
+        root_phys = page_to_phys(pagemap->root[1]);
     } else {
-        root_phys = read_ttbr0_el1();
+        root_phys = page_to_phys(pagemap->root[0]);
     }
 #else
+    (void)pagemap;
     (void)virt_addr;
+
     const uint64_t root_phys = 0;
     verify_not_reached();
 #endif /* defined(__x86_64__) */
@@ -53,18 +56,18 @@ static inline uint64_t get_root_phys(const uint64_t virt_addr) {
 
 void
 ptwalker_default(struct pt_walker *const walker, const uint64_t virt_addr) {
-    return ptwalker_default_with_root(walker,
-                                      get_root_phys(virt_addr),
-                                      virt_addr);
+    return ptwalker_default_for_pagemap(walker,
+                                        &kernel_pagemap,
+                                        virt_addr);
 }
 
 void
-ptwalker_default_with_root(struct pt_walker *const walker,
-                           const uint64_t root_phys,
-                           const uint64_t virt_addr)
+ptwalker_default_for_pagemap(struct pt_walker *const walker,
+                             struct pagemap *const pagemap,
+                             const uint64_t virt_addr)
 {
     return ptwalker_create_customroot(walker,
-                                      root_phys,
+                                      get_root_phys(pagemap, virt_addr),
                                       virt_addr,
                                       ptwalker_alloc_pgtable_cb,
                                       ptwalker_free_pgtable_cb);
@@ -77,7 +80,7 @@ ptwalker_create(struct pt_walker *const walker,
                 const ptwalker_free_pgtable_t free_pgtable)
 {
     return ptwalker_create_customroot(walker,
-                                      get_root_phys(virt_addr),
+                                      get_root_phys(&kernel_pagemap, virt_addr),
                                       virt_addr,
                                       alloc_pgtable,
                                       free_pgtable);

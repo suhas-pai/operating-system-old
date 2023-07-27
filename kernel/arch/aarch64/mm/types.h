@@ -39,7 +39,11 @@ enum pte_flags {
     __PTE_VALID  = 1 << 0,
     __PTE_4KPAGE = 1 << 1, // Valid only on ptes of a pml1 table
     __PTE_TABLE  = 1 << 1,
-    __PTE_FB     = 1 << 2,
+
+    __PTE_WC = 1 << 2,
+    __PTE_WT = 2 << 2,
+    __PTE_MMIO = 3 << 2,
+
     __PTE_USER   = 1 << 6,
     __PTE_RO     = 1 << 7,
 

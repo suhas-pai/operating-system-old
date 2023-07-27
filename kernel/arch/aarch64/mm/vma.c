@@ -4,10 +4,14 @@
  */
 
 #include "mm/pagemap.h"
+#include "mm/types.h"
+#include "mm/walker.h"
 
 static inline uint64_t
 flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
-    uint64_t result = __PTE_VALID | __PTE_INNER_SHARE | __PTE_ACCESS;
+    uint64_t result =
+        __PTE_VALID | __PTE_INNER_SHARE | __PTE_ACCESS | __PTE_4KPAGE;
+
     if (!(prot & PROT_WRITE)) {
         result |= __PTE_RO;
     }
@@ -16,8 +20,22 @@ flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
         result |= __PTE_UNPRIV_NOEXEC | __PTE_PRIV_NOEXEC;
     }
 
-    // TODO:
-    (void)cachekind;
+    switch (cachekind) {
+        case VMA_CACHEKIND_WRITEBACK:
+            break;
+        case VMA_CACHEKIND_WRITETHROUGH:
+            result |= __PTE_WT;
+            break;
+        case VMA_CACHEKIND_WRITECOMBINING:
+            result |= __PTE_WC;
+            break;
+        case VMA_CACHEKIND_NO_CACHE:
+            result |= __PTE_UNPREDICT;
+            break;
+        case VMA_CACHEKIND_MMIO:
+            break;
+    }
+
     return result;
 }
 
@@ -56,7 +74,7 @@ arch_make_mapping(struct pagemap *const pagemap,
     pageop_init(&pageop);
 
     struct pt_walker walker;
-    ptwalker_default_with_root(&walker, page_to_phys(pagemap->root), virt_addr);
+    ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
 
     enum pt_walker_result ptwalker_result =
         ptwalker_fill_in_to(&walker,
