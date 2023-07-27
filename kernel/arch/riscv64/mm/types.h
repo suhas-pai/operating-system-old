@@ -44,6 +44,7 @@ enum pte_flags {
     __PTE_WRITE    = 1 << 2,
     __PTE_EXEC     = 1 << 3,
     __PTE_USER     = 1 << 4,
+    __PTE_GLOBAL   = 1 << 5,
     __PTE_ACCESSED = 1 << 6,
     __PTE_DIRTY    = 1 << 7,
 };

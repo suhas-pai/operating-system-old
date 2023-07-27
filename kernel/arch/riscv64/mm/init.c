@@ -346,7 +346,8 @@ setup_pagestructs_table(const uint64_t root_phys, const uint64_t byte_count) {
            map_size);
 
     // Map struct page table
-    map_region(root_phys, PAGE_OFFSET, map_size, /*pte_flags=*/__PTE_WRITE);
+    const uint64_t pte_flags = __PTE_WRITE | __PTE_GLOBAL;
+    map_region(root_phys, PAGE_OFFSET, map_size, pte_flags);
 }
 
 static void
@@ -378,7 +379,7 @@ map_into_kernel_pagemap(const uint64_t root_phys,
 
         walker.tables[0][walker.indices[0]] =
             phys_create_pte(phys_addr + i) | pte_flags | __PTE_VALID |
-            __PTE_READ | __PTE_ACCESSED | __PTE_DIRTY;
+            __PTE_READ | __PTE_ACCESSED | __PTE_DIRTY | __PTE_GLOBAL;
 
         ptwalker_result =
             ptwalker_next_custom(&walker,
