@@ -1,5 +1,5 @@
 /*
- * kernel/gdt.c
+ * kernel/arch/x86_64/sys/gdt.c
  * © suhas pai
  */
 

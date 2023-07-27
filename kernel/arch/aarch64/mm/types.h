@@ -45,10 +45,10 @@ enum pte_flags {
 
     __PTE_WC = 1 << 2,
     __PTE_WT = 2 << 2,
-    __PTE_MMIO = 3 << 2,
 
-    __PTE_USER   = 1 << 6,
-    __PTE_RO     = 1 << 7,
+    __PTE_MMIO = 3 << 2, // Device uncacheable memory
+    __PTE_USER = 1 << 6,
+    __PTE_RO = 1 << 7,
 
     __PTE_UNPREDICT = 0b01 << 8,
     __PTE_OUTER_SHARE = 0b10 << 8,
@@ -57,8 +57,8 @@ enum pte_flags {
     __PTE_ACCESS = 1ull << 10,
     __PTE_NONGLOBAL = 1 << 11,
 
-    __PTE_PRIV_NOEXEC = 1ull << 53,
-    __PTE_UNPRIV_NOEXEC = 1ull << 54,
+    __PTE_PXN = 1ull << 53,
+    __PTE_UXN = 1ull << 54,
 };
 
 static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =

@@ -266,7 +266,7 @@ pci_device_bar_read8(struct pci_device_bar_info *const bar,
 {
     return
         bar->is_mmio ?
-            *reg_to_ptr(const uint8_t,
+            *reg_to_ptr(volatile const uint8_t,
                         bar->mmio->base + bar->index_in_mmio,
                         offset) :
             port_in8((port_t)(bar->port_range.front + offset));
@@ -278,7 +278,7 @@ pci_device_bar_read16(struct pci_device_bar_info *const bar,
 {
     return
         bar->is_mmio ?
-            *reg_to_ptr(const uint16_t,
+            *reg_to_ptr(volatile const uint16_t,
                         bar->mmio->base + bar->index_in_mmio,
                         offset) :
             port_in16((port_t)(bar->port_range.front + offset));
@@ -290,7 +290,7 @@ pci_device_bar_read32(struct pci_device_bar_info *const bar,
 {
     return
         bar->is_mmio ?
-            *reg_to_ptr(const uint32_t,
+            *reg_to_ptr(volatile const uint32_t,
                         bar->mmio->base + bar->index_in_mmio,
                         offset) :
             port_in32((port_t)(bar->port_range.front + offset));
@@ -303,13 +303,13 @@ pci_device_bar_read64(struct pci_device_bar_info *const bar,
 #if defined(__x86_64__)
     assert(bar->is_mmio);
     return
-        *reg_to_ptr(const uint64_t,
+        *reg_to_ptr(volatile const uint64_t,
                     bar->mmio->base + bar->index_in_mmio,
                     offset);
 #else
     return
         (bar->is_mmio) ?
-            *reg_to_ptr(const uint64_t,
+            *reg_to_ptr(volatile const uint64_t,
                         bar->mmio->base + bar->index_in_mmio,
                         offset) :
             port_in64((port_t)(bar->port_range.front + offset));
@@ -355,7 +355,9 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                          sizeof_field(struct pci_spec_capability, field))
 
         volatile struct pci_spec_capability *const capability =
-            reg_to_ptr(struct pci_spec_capability, dev->pcie_msi, cap_offset);
+            reg_to_ptr(volatile struct pci_spec_capability,
+                       dev->pcie_msi,
+                       cap_offset);
 
         const uint8_t id = read_cap_field(id);
         switch (id) {
@@ -671,6 +673,17 @@ void pci_parse_group(struct pci_group *const group) {
         .function = 0,
     };
 
+    static uint64_t index = 0;
+    printk(LOGLEVEL_INFO,
+           "pci: group #%" PRIu64 ": mmio at %p, first bus=%" PRIu64 ", "
+           "end bus=%" PRIu64 ", segment: %" PRIu32 "\n",
+           index + 1,
+           group->mmio->base,
+           group->bus_range.front,
+           range_get_end_assert(group->bus_range),
+           group->segment);
+
+    index++;
     for (uint16_t i = 0; i != PCI_MAX_BUS_COUNT; i++) {
         pci_parse_bus(group, &config_space, /*bus=*/i);
     }

@@ -1,10 +1,9 @@
 /*
- * kernel/gdt.h
+ * kernel/arch/x86_64/sys/gdt.h
  * © suhas pai
  */
 
 #pragma once
-
 #include <stdint.h>
 
 void gdt_load();

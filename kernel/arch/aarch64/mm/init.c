@@ -351,7 +351,7 @@ setup_pagestructs_table(const uint64_t higher_root_phys,
            map_size);
 
     // Map struct page table
-    const uint64_t pte_flags = __PTE_PRIV_NOEXEC | __PTE_UNPRIV_NOEXEC;
+    const uint64_t pte_flags = __PTE_PXN | __PTE_UXN;
     map_region(higher_root_phys, PAGE_OFFSET, map_size, pte_flags);
 }
 
@@ -383,8 +383,8 @@ map_into_kernel_pagemap(const uint64_t root_phys,
         }
 
         walker.tables[0][walker.indices[0]] =
-            (phys_addr + i) | __PTE_VALID | __PTE_4KPAGE | __PTE_INNER_SHARE |
-            __PTE_ACCESS | pte_flags;
+            phys_create_pte(phys_addr + i) | __PTE_VALID | __PTE_4KPAGE |
+            __PTE_INNER_SHARE | __PTE_ACCESS | pte_flags;
 
         ptwalker_result =
             ptwalker_next_custom(&walker,
@@ -458,10 +458,10 @@ static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
                 i += PAGE_SIZE;
                 break;
             case 2:
-                i += PAGE_SIZE * PGT_COUNT;
+                i += PAGE_SIZE_2MIB;
                 break;
             case 3:
-                i += PAGE_SIZE * PGT_COUNT * PGT_COUNT;
+                i += PAGE_SIZE_1GIB;
                 break;
         }
     }
@@ -510,7 +510,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
                                     memmap->length,
                                     /*pte_flags=*/0);
         } else {
-            uint64_t flags = __PTE_PRIV_NOEXEC | __PTE_UNPRIV_NOEXEC;
+            uint64_t flags = __PTE_PXN | __PTE_UXN;
             if (memmap->type == LIMINE_MEMMAP_FRAMEBUFFER) {
                 flags |= __PTE_WC;
             }
@@ -747,12 +747,6 @@ void mm_init() {
         struct limine_memmap_entry *const memmap = entries[i];
         if (memmap->type == LIMINE_MEMMAP_USABLE) {
             continue;
-        }
-
-        // Don't claim bootloader reclaimable entires because that's where our
-        // stack is.
-        if (memmap->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE) {
-            claim_pages(memmap->base, memmap->length);
         }
 
         struct page *page = phys_to_page(memmap->base);

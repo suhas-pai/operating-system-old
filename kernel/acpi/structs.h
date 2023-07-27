@@ -70,6 +70,10 @@ enum acpi_madt_entry_kind {
     ACPI_MADT_ENTRY_KIND_GIC_REDISTRIBUTOR,
     ACPI_MADT_ENTRY_KIND_GIC_INTR_TRANSLATE_SERVICE,
     ACPI_MADT_ENTRY_KIND_MULTIPROCESSOR_WAKEUP_SERVICE,
+
+#if defined(__riscv) && defined(__LP64__)
+    ACPI_MADT_ENTRY_KIND_RISCV_HART_IRQ_CNTRLR = 24
+#endif /* defined(__riscv) && defined(__LP64__) */
 };
 
 struct acpi_madt_entry_header {

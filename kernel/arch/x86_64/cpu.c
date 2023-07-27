@@ -9,9 +9,9 @@
 #include "asm/msr.h"
 
 #include "dev/printk.h"
+#include "sys/gdt.h"
 
 #include "cpu.h"
-#include "gdt.h"
 
 static bool g_base_cpu_init = false;
 static struct cpu_capabilities g_cpu_capabilities = {0};

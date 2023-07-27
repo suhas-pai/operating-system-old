@@ -91,7 +91,7 @@ arch_make_mapping(struct pagemap *const pagemap,
     if (is_overwrite) {
         for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
             const pte_t entry = walker.tables[0][walker.indices[0]];
-            const pte_t new_entry = (phys_addr + i) | flags;
+            const pte_t new_entry = phys_create_pte(phys_addr + i) | flags;
 
             walker.tables[0][walker.indices[0]] = new_entry;
             if (pte_is_present(entry)) {
@@ -114,9 +114,10 @@ arch_make_mapping(struct pagemap *const pagemap,
         }
     } else {
         for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
-            walker.tables[0][walker.indices[0]] = (phys_addr + i) | flags;
-            ptwalker_result = ptwalker_next(&walker, &pageop);
+            walker.tables[0][walker.indices[0]] =
+                phys_create_pte(phys_addr + i) | flags;
 
+            ptwalker_result = ptwalker_next(&walker, &pageop);
             if (ptwalker_result != E_PT_WALKER_OK) {
                 undo_changes(&walker, &pageop, i);
                 pageop_finish(&pageop);

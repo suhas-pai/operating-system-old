@@ -1,5 +1,5 @@
 /*
- * kernel/cpu/pic.c
+ * kernel/arch/x86_64/sys/pic.c
  * © suhas pai
  */
 

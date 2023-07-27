@@ -7,6 +7,8 @@
 
 #if defined(__x86_64__)
     #include "apic/structs.h"
+#elif defined(__riscv) && defined(__LP64__)
+    #include "acpi/extra_structs.h"
 #endif /* defined(__x86_64__) */
 
 #include "acpi/structs.h"
@@ -49,6 +51,10 @@ struct acpi_info {
 
     const struct acpi_rsdp *rsdp;
     const struct acpi_rsdt *rsdt;
+
+#if defined(__riscv) && defined(__LP64__)
+    const struct acpi_rhct *rhct;
+#endif /* defined(__riscv) && defined(__LP64__) */
 
 #if defined(__x86_64__)
     struct mmio_region *lapic_regs;

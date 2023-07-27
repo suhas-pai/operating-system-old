@@ -9,7 +9,7 @@
 #include "asm/irq_context.h"
 
 #if defined(__x86_64__)
-    #include "idt.h"
+    #include "sys/idt.h"
     typedef idt_vector_t isr_vector_t;
 #else
     typedef uint16_t isr_vector_t;

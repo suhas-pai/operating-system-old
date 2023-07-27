@@ -12,9 +12,9 @@
 
 #include "cpu/isr.h"
 #include "dev/printk.h"
+#include "sys/pic.h"
 
 #include "cpu.h"
-#include "pic.h"
 
 void lapic_timer_irq_callback() {
     get_cpu_info_mut()->timer_ticks++;

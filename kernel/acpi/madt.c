@@ -477,6 +477,41 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 break;
             }
+        #if defined(__riscv) && defined(__LP64__)
+            case ACPI_MADT_ENTRY_KIND_RISCV_HART_IRQ_CNTRLR: {
+                if (iter->length !=
+                        sizeof(struct acpi_madt_riscv_hart_irq_cntrlr))
+                {
+                    printk(LOGLEVEL_INFO,
+                           "madt: invalid riscv-hart irq-controllers at "
+                           "index: %" PRIu32 "\n",
+                           index);
+                    continue;
+                }
+
+                const struct acpi_madt_riscv_hart_irq_cntrlr *const cntrl =
+                    (const struct acpi_madt_riscv_hart_irq_cntrlr *)iter;
+
+                printk(LOGLEVEL_INFO,
+                       "madt: found riscv hart irq controller\n"
+                       "\tversion: %" PRIu8 "\n"
+                       "\tflags: 0x%" PRIx32 "\n"
+                       "\t\tenabled: %s\n"
+                       "\t\tonline capable: %s\n"
+                       "\thart id: %" PRIu64 "\n"
+                       "\tacpi processor uid: %" PRIu32 "\n",
+                       cntrl->version,
+                       cntrl->flags,
+                        (cntrl->flags &
+                         ACPI_MADT_RISCV_HART_IRQ_CNTRLR_ENABLED) != 0 ?
+                            "yes" : "no",
+                        (cntrl->flags &
+                         ACPI_MADT_RISCV_HART_IRQ_ONLINE_CAPABLE) != 0 ?
+                            "yes" : "no",
+                       cntrl->hart_id,
+                       cntrl->acpi_proc_uid);
+            }
+        #endif /* defined(__riscv) && defined(__LP64__) */
             default:
                 printk(LOGLEVEL_INFO,
                        "madt: found invalid entry: %" PRIu32 "\n",

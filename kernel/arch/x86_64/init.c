@@ -5,9 +5,10 @@
 
 #include "mm/init.h"
 
+#include "sys/gdt.h"
+#include "sys/idt.h"
+
 #include "cpu.h"
-#include "gdt.h"
-#include "idt.h"
 
 void arch_init() {
     gdt_load();

@@ -4,6 +4,10 @@
  */
 
 #include "acpi/mcfg.h"
+#if defined(__riscv) && defined (__LP64__)
+    #include "acpi/rhct.h"
+#endif /* defined(__riscv) && defined (__LP64__) */
+
 #include "dev/printk.h"
 #include "mm/page.h"
 
@@ -64,6 +68,12 @@ static inline void acpi_init_each_sdt(const struct acpi_sdt *const sdt) {
     if (memcmp(sdt->signature, "MCFG", 4) == 0) {
         info.mcfg = (const struct acpi_mcfg *)sdt;
     }
+
+#if defined(__riscv) && defined(__LP64__)
+    if (memcmp(sdt->signature, "RHCT", 4) == 0) {
+        info.rhct = (const struct acpi_rhct *)sdt;
+    }
+#endif /* defined(__riscv) && defined(__LP64__) */
 }
 
 void acpi_init(void) {
@@ -91,6 +101,12 @@ void acpi_init(void) {
     printk(LOGLEVEL_INFO, "acpi: rsdt at %p\n", info.rsdt);
 
     acpi_recurse(acpi_init_each_sdt);
+#if defined(__riscv) && defined(__LP64__)
+    if (get_acpi_info()->rhct != NULL) {
+        acpi_rhct_init(get_acpi_info()->rhct);
+    }
+#endif /* defined(__riscv) && defined(__LP64__) */
+
     if (get_acpi_info()->madt != NULL) {
         madt_init(get_acpi_info()->madt);
     }
@@ -102,6 +118,7 @@ void acpi_init(void) {
     if (get_acpi_info()->mcfg != NULL) {
         mcfg_init(get_acpi_info()->mcfg);
     }
+
 }
 
 struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {

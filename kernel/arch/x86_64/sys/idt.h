@@ -1,5 +1,5 @@
 /*
- * kernel/idt.h
+ * kernel/arch/x86_64/sys/idt.h
  * © suhas pai
  */
 

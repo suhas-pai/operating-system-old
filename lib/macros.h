@@ -62,8 +62,7 @@
     __a < __b ? __a : __b; \
 })
 
-#define reg_to_ptr(type, base, reg) \
-    ((volatile type *)((uint64_t)(base) + (reg)))
+#define reg_to_ptr(type, base, reg) ((type *)((uint64_t)(base) + (reg)))
 #define get_to_within_size(x, size) ((x) % (size))
 
 #define distance(begin, end) ((uint64_t)(end) - (uint64_t)(begin))

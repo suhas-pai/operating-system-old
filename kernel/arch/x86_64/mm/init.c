@@ -378,7 +378,7 @@ map_into_kernel_pagemap(const uint64_t root_phys,
         }
 
         walker.tables[0][walker.indices[0]] =
-            (phys_addr + i) | __PTE_PRESENT | pte_flags;
+            phys_create_pte(phys_addr + i) | __PTE_PRESENT | pte_flags;
 
         ptwalker_result =
             ptwalker_next_custom(&walker,
@@ -704,12 +704,6 @@ void mm_init() {
         struct limine_memmap_entry *const memmap = entries[i];
         if (memmap->type == LIMINE_MEMMAP_USABLE) {
             continue;
-        }
-
-        // Don't claim bootloader reclaimable entires because that's where our
-        // stack is.
-        if (memmap->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE) {
-            claim_pages(memmap->base, memmap->length);
         }
 
         struct page *page = phys_to_page(memmap->base);

@@ -452,10 +452,10 @@ static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
                 i += PAGE_SIZE;
                 break;
             case 2:
-                i += PAGE_SIZE * PGT_COUNT;
+                i += PAGE_SIZE_2MIB;
                 break;
             case 3:
-                i += PAGE_SIZE * PGT_COUNT * PGT_COUNT;
+                i += PAGE_SIZE_1GIB;
                 break;
         }
     }
@@ -701,12 +701,6 @@ void mm_init() {
         struct limine_memmap_entry *const memmap = entries[i];
         if (memmap->type == LIMINE_MEMMAP_USABLE) {
             continue;
-        }
-
-        // Don't claim bootloader reclaimable entires because that's where our
-        // stack is.
-        if (memmap->type == LIMINE_MEMMAP_ACPI_RECLAIMABLE) {
-            claim_pages(memmap->base, memmap->length);
         }
 
         struct page *page = phys_to_page(memmap->base);
