@@ -4,8 +4,6 @@
  */
 
 #include "mm/pagemap.h"
-#include "mm/types.h"
-#include "mm/walker.h"
 
 static inline uint64_t
 flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {

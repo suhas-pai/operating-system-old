@@ -407,28 +407,6 @@ ptwalker_prev_custom(struct pt_walker *const walker,
         }
 
         if (level == orig_level) {
-            if (!alloc_level) {
-                return E_PT_WALKER_OK;
-            }
-
-            pte_t *const pte = ptwalker_pte_in_level(walker, level + 1);
-            if (pte_is_present(*pte)) {
-                return E_PT_WALKER_OK;
-            }
-
-            assert(walker->alloc_pgtable != NULL);
-            if (!alloc_single_pte(walker,
-                                  alloc_pgtable_cb_info,
-                                  free_pgtable_cb_info,
-                                  level,
-                                  pte))
-            {
-                walker->level = level + 1;
-                ptwalker_drop_lowest(walker, free_pgtable_cb_info);
-
-                return E_PT_WALKER_ALLOC_FAIL;
-            }
-
             return E_PT_WALKER_OK;
         }
 
@@ -436,6 +414,7 @@ ptwalker_prev_custom(struct pt_walker *const walker,
         const pte_t entry = *pte;
 
         if (!pte_is_present(entry)) {
+            reset_levels_lower_than(walker, level);
             break;
         }
 

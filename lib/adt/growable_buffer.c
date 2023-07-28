@@ -243,7 +243,7 @@ void gbuffer_destroy(struct growable_buffer *const gb) {
         free(gb->begin);
     } else {
         /* Even if just a stack buffer, clear out memory for safety */
-        memzero(gb->begin, gbuffer_capacity(*gb));
+        bzero(gb->begin, gbuffer_capacity(*gb));
     }
 
     gb->begin = NULL;

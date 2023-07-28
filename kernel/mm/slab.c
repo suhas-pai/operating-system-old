@@ -159,7 +159,7 @@ void slab_free(void *const mem) {
     struct page *const head = slab_head_of(mem);
     struct slab_allocator *const alloc = head->slab.head.allocator;
 
-    memzero(mem, alloc->object_size);
+    bzero(mem, alloc->object_size);
     const int flag = spin_acquire_with_irq(&alloc->lock);
 
     alloc->free_obj_count += 1;

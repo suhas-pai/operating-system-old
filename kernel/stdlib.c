@@ -3,11 +3,7 @@
  * © suhas pai
  */
 
-#include <stdint.h>
-
 #include "dev/printk.h"
-#include "lib/macros.h"
-#include "lib/string.h"
 
 size_t strlen(const char *str) {
     size_t result = 0;
@@ -226,7 +222,7 @@ __optimize(3) void *memmove(void *dst, const void *src, unsigned long n) {
 
 #if defined(__x86_64__)
     if (src > dst) {
-        memmove(dst, src, n);
+        memcpy(dst, src, n);
     } else {
         void *dst_back = dst + (n - 1);
         const void *src_back = src + (n - 1);
@@ -288,4 +284,40 @@ void *memset(void *const dst, const int val, const unsigned long n) {
 #endif /* defined(__x86_64__) */
 
     return dst;
+}
+
+__optimize(3) void bzero(void *dst, unsigned long n) {
+#if defined(__x86_64__)
+    if (n >= 256) {
+        asm volatile ("rep stosb" :: "D"(dst), "al"(0), "c"(n) : "memory");
+        return;
+    }
+#endif
+    while (n >= sizeof(uint64_t)) {
+        *(uint64_t *)dst = 0;
+
+        dst += sizeof(uint64_t);
+        n -= sizeof(uint64_t);
+    }
+
+    while (n >= sizeof(uint32_t)) {
+        *(uint32_t *)dst = 0;
+
+        dst += sizeof(uint32_t);
+        n -= sizeof(uint32_t);
+    }
+
+    while (n >= sizeof(uint16_t)) {
+        *(uint16_t *)dst = 0;
+
+        dst += sizeof(uint16_t);
+        n -= sizeof(uint16_t);
+    }
+
+    while (n >= sizeof(uint8_t)) {
+        *(uint8_t *)dst = 0;
+
+        dst += sizeof(uint8_t);
+        n -= sizeof(uint8_t);
+    }
 }

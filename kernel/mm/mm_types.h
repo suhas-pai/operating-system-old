@@ -13,6 +13,7 @@
 #define SIZEOF_STRUCTPAGE (sizeof(uint64_t) * 5)
 #define PAGE_SIZE (1ull << PAGE_SHIFT)
 #define LARGEPAGE_SIZE(index) (1ull << LARGEPAGE_SHIFTS[index])
+#define INVALID_PHYS (uint64_t)-1
 
 #define PAGE_COUNT(size) (((uint64_t)(size) / PAGE_SIZE))
 #define PGT_COUNT (PAGE_SIZE/sizeof(pte_t))

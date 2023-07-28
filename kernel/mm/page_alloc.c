@@ -105,7 +105,7 @@ struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
     return NULL;
 done:
     if (alloc_flags & __ALLOC_ZERO) {
-        memzero(page_to_virt(page), PAGE_SIZE);
+        bzero(page_to_virt(page), PAGE_SIZE);
     }
 
     if (alloc_flags & __ALLOC_TABLE) {

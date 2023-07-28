@@ -19,12 +19,12 @@ print_rhct_node(const struct acpi_rhct *const rhct,
                 sv_create_length(isa_str->isa_string, isa_str->isa_length);
 
             printk(LOGLEVEL_INFO,
-                    "%srhct: found isa string:\n"
-                    "%s\tisa length: %" PRIu16 "\n"
-                    "%s\tisa string: \"" SV_FMT "\"\n",
-                    prefix,
-                    prefix, isa_str->isa_length,
-                    prefix, SV_FMT_ARGS(isa_sv));
+                   "%srhct: found isa string:\n"
+                   "%s\tisa length: %" PRIu16 "\n"
+                   "%s\tisa string: \"" SV_FMT "\"\n",
+                   prefix,
+                   prefix, isa_str->isa_length,
+                   prefix, SV_FMT_ARGS(isa_sv));
             break;
         }
         case ACPI_RHCT_NODE_KIND_HART_INFO: {
@@ -32,12 +32,12 @@ print_rhct_node(const struct acpi_rhct *const rhct,
                 (struct acpi_rhct_hart_info *)node;
 
             printk(LOGLEVEL_INFO,
-                    "%srhct: found hart info:\n"
-                    "%s\toffset count: %" PRIu16 "\n"
-                    "%s\tacpi processor uid: %" PRIu32 "\n",
-                    prefix,
-                    prefix, hart->offset_count,
-                    prefix, hart->acpi_processor_uid);
+                   "%srhct: found hart info:\n"
+                   "%s\toffset count: %" PRIu16 "\n"
+                   "%s\tacpi processor uid: %" PRIu32 "\n",
+                   prefix,
+                   prefix, hart->offset_count,
+                   prefix, hart->acpi_processor_uid);
 
             for (uint16_t j = 0; j != hart->offset_count; j++) {
                 struct acpi_rhct_node *const hart_node =

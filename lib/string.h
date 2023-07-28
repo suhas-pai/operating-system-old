@@ -25,9 +25,9 @@
     void *memcpy(void *dst, const void *src, unsigned long n);
     void *memset(void *dst, int val, unsigned long n);
     void *memmove(void *dst, const void *src, unsigned long n);
+
+    void bzero(void *dst, unsigned long n);
 #else
     #include <stdlib.h>
     #include <string.h>
 #endif /* defined(BUILD_TEST) */
-
-void *memzero(void *dst, unsigned long n);

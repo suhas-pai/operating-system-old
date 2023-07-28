@@ -5,9 +5,11 @@
 
 #include "asm/irqs.h"
 #include "cpu/isr.h"
+
 #include "dev/init.h"
 #include "dev/printk.h"
 
+#include "mm/early.h"
 #include "limine.h"
 
 // The Limine requests can be placed anywhere, but it is important that
@@ -55,6 +57,8 @@ void _start(void) {
     // We're done, just hang...
     serial_init();
     printk(LOGLEVEL_INFO, "Console is working?\n");
+
+    mm_early_init();
 
     arch_init();
     isr_init();
