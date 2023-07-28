@@ -34,7 +34,7 @@ print_rhct_node(const struct acpi_rhct *const rhct,
             printk(LOGLEVEL_INFO,
                     "%srhct: found hart info:\n"
                     "%s\toffset count: %" PRIu16 "\n"
-                    "%s\tacpi processor id: %" PRIu32 "\n",
+                    "%s\tacpi processor uid: %" PRIu32 "\n",
                     prefix,
                     prefix, hart->offset_count,
                     prefix, hart->acpi_processor_uid);

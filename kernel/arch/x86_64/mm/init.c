@@ -378,7 +378,8 @@ map_into_kernel_pagemap(const uint64_t root_phys,
         }
 
         walker.tables[0][walker.indices[0]] =
-            phys_create_pte(phys_addr + i) | __PTE_PRESENT | pte_flags;
+            phys_create_pte(phys_addr + i) | __PTE_PRESENT | __PTE_GLOBAL |
+            pte_flags;
 
         ptwalker_result =
             ptwalker_next_custom(&walker,
@@ -493,9 +494,9 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
                                     /*phys_addr=*/memmap->base,
                                     /*virt_addr=*/KERNEL_BASE,
                                     memmap->length,
-                                    __PTE_WRITE | __PTE_GLOBAL);
+                                    __PTE_WRITE);
         } else {
-            uint64_t flags = __PTE_WRITE | __PTE_NOEXEC | __PTE_GLOBAL;
+            uint64_t flags = __PTE_WRITE | __PTE_NOEXEC;
             if (memmap->type == LIMINE_MEMMAP_FRAMEBUFFER) {
                 flags |= __PTE_PAT;
             }

@@ -458,6 +458,9 @@ static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
             case 3:
                 i += PAGE_SIZE_1GIB;
                 break;
+            case 4:
+                i += PAGE_SIZE_512GIB;
+                break;
         }
     }
 }

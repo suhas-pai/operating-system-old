@@ -472,7 +472,7 @@ void madt_init(const struct acpi_madt *const madt) {
                        frame->spi_base);
             #else
                 printk(LOGLEVEL_WARN,
-                       "madt: found gic distributor entry. ignoring");
+                       "madt: found gic msi-frame entry. ignoring");
             #endif /* defined(__aarch64__) */
 
                 break;
@@ -510,6 +510,8 @@ void madt_init(const struct acpi_madt *const madt) {
                             "yes" : "no",
                        cntrl->hart_id,
                        cntrl->acpi_proc_uid);
+
+                break;
             }
         #endif /* defined(__riscv) && defined(__LP64__) */
             default:

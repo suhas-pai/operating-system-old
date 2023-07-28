@@ -752,7 +752,7 @@ void pci_init() {
         struct pci_group *const root_group = kmalloc(sizeof(*root_group));
         assert_msg(root_group != NULL, "failed to allocate pci root group");
 
-        struct pci_device_info dev_0 = { .group = root_group, .pcie_info = (port_t)0x30000000 };
+        struct pci_device_info dev_0 = { .group = root_group };
         const uint32_t dev_0_first_dword =
             pci_read(&dev_0,
                     offsetof(struct pci_spec_device_info, vendor_id),
