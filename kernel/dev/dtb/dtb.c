@@ -122,7 +122,7 @@ dtb_get_reg_entries(const void *const dtb,
 
     for (struct dtb_reg_entry *entry = entries_out;
          entry != entries_out + entry_spaces;
-         entry++, regs_iter++)
+         entry++)
     {
         if (addr_shift != sizeof_bits(uint64_t)) {
             for (int i = 0; i != addr_cells; i++) {
