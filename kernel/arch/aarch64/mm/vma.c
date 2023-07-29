@@ -31,6 +31,7 @@ flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
             result |= __PTE_UNPREDICT;
             break;
         case VMA_CACHEKIND_MMIO:
+            result |= __PTE_MMIO;
             break;
     }
 
