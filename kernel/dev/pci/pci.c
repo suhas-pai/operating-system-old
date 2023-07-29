@@ -363,7 +363,7 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
         const uint8_t id = read_cap_field(id);
         const char *kind = "unknown";
 
-        switch ((enum pci_spec_capability_id)id) {
+        switch ((enum pci_spec_cap_id)id) {
             case PCI_SPEC_CAP_ID_AGP:
                 kind = "advanced-graphics-port";
                 break;

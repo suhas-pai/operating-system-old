@@ -12,9 +12,9 @@
 #if defined(__x86_64__)
     static void
     bind_msi_to_vector(const struct pci_device_info *const device,
-                    const uint64_t address,
-                    const isr_vector_t vector,
-                    const bool masked)
+                       const uint64_t address,
+                       const isr_vector_t vector,
+                       const bool masked)
     {
         volatile struct pci_spec_cap_msi *const msi = device->pcie_msi;
         const uint16_t msg_control = msi->msg_control;
@@ -70,8 +70,8 @@
 
         if (msix_vector == FIND_BIT_INVALID) {
             printk(LOGLEVEL_WARN,
-                "pcie: no free msix table entry found for binding msix "
-                "vector\n");
+                   "pcie: no free msix table entry found for binding msix "
+                   "vector\n");
             return;
         }
 
@@ -91,19 +91,20 @@
 
         if (!index_in_bounds(bar_index, device->max_bar_count)) {
             printk(LOGLEVEL_WARN,
-                "pcie: got invalid bar index while trying to bind address %p "
-                "to msix vector " ISR_VECTOR_FMT "\n",
-                (void *)address,
-                vector);
+                   "pcie: got invalid bar index while trying to bind address "
+                   "%p to msix vector " ISR_VECTOR_FMT "\n",
+                   (void *)address,
+                   vector);
             return;
         }
 
         if (!device->bar_list[bar_index].is_present) {
             printk(LOGLEVEL_WARN,
-                "pcie: encountered invalid bar index for msix table while "
-                "trying to bind address %p to msix vector " ISR_VECTOR_FMT "\n",
-                (void *)address,
-                vector);
+                   "pcie: encountered invalid bar index for msix table while "
+                   "trying to bind address %p to msix "
+                   "vector " ISR_VECTOR_FMT "\n",
+                   (void *)address,
+                   vector);
             return;
         }
 
@@ -112,11 +113,11 @@
         const uint64_t bar_address = (uint64_t)bar->mmio->base;
         const uint64_t table_addr = bar_address + table_offset;
 
-        volatile struct pci_spec_capability_msix_table_entry *const table =
-            (volatile struct pci_spec_capability_msix_table_entry *)table_addr;
+        volatile struct pci_spec_cap_msix_table_entry *const table =
+            (volatile struct pci_spec_cap_msix_table_entry *)table_addr;
 
         table[msix_vector].msg_address_lower32 = (uint32_t)address;
-        table[msix_vector].msg_address_upper32 = 0;
+        table[msix_vector].msg_address_upper32 = (uint32_t)(address >> 32);
         table[msix_vector].data = vector;
         table[msix_vector].control = masked;
 

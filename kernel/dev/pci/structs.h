@@ -199,7 +199,7 @@ struct pci_spec_pci_to_pci_bridge_device_info {
     uint16_t bridge_control;
 } __packed;
 
-enum pci_spec_capability_id {
+enum pci_spec_cap_id {
     PCI_SPEC_CAP_ID_POWER_MANAGEMENT = 0x1,
     PCI_SPEC_CAP_ID_AGP,
     PCI_SPEC_CAP_ID_VPD,
@@ -228,7 +228,7 @@ struct pci_spec_capability {
     uint8_t offset_to_next;
 } __packed;
 
-enum pci_spec_capability_msi_control_flags {
+enum pci_spec_cap_msi_control_flags {
     __PCI_CAPMSI_CTRL_ENABLE = 1 << 0,
     __PCI_CAPMSI_CTRL_MULTIMSG_CAPABLE = 0b111 << 1,
     __PCI_CAPMSI_CTRL_MULTIMSG_ENABLE = 0b111 << 4,
@@ -237,12 +237,12 @@ enum pci_spec_capability_msi_control_flags {
     __PCI_CAPMSI_CTRL_PER_VECTOR_MASK = 1 << 8
 };
 
-enum pci_spec_capability_msix_control_flags {
+enum pci_spec_cap_msix_control_flags {
     __PCI_CAPMSIX_TABLE_SIZE_MASK = (1ull << 10) - 1,
     __PCI_MSIXCAP_CTRL_ENABLE = 1 << 15
 };
 
-struct pci_spec_capability_msix_table_entry {
+struct pci_spec_cap_msix_table_entry {
     uint32_t msg_address_lower32;
     uint32_t msg_address_upper32;
     uint32_t data;
