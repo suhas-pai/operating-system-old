@@ -363,7 +363,16 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
         const uint8_t id = read_cap_field(id);
         const char *kind = "unknown";
 
-        switch (id) {
+        switch ((enum pci_spec_capability_id)id) {
+            case PCI_SPEC_CAP_ID_AGP:
+                kind = "advanced-graphics-port";
+                break;
+            case PCI_SPEC_CAP_ID_VPD:
+                kind = "vital-product-data";
+                break;
+            case PCI_SPEC_CAP_ID_SLOT_ID:
+                kind = "slot-identification";
+                break;
             case PCI_SPEC_CAP_ID_MSI:
                 if (dev->msi_support == PCI_DEVICE_MSI_SUPPORT_MSIX) {
                     break;
@@ -398,10 +407,58 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
 
                 kind = "msix";
                 break;
-        }
+            case PCI_SPEC_CAP_ID_POWER_MANAGEMENT:
+                kind = "power-management";
+                break;
+            case PCI_SPEC_CAP_ID_VENDOR_SPECIFIC:
+                kind = "vendor-specific";
+                break;
+            case PCI_SPEC_CAP_ID_PCI_X:
+                kind = "pci-x";
+                break;
+            case PCI_SPEC_CAP_ID_DEBUG_PORT:
+                kind = "debug-port";
+                break;
+            case PCI_SPEC_CAP_ID_SATA:
+                kind = "sata";
+                break;
+            case PCI_SPEC_CAP_ID_COMPACT_PCI_HOT_SWAP:
+                kind = "compact-pci-hot-swap";
+                break;
+            case PCI_SPEC_CAP_ID_HYPER_TRANSPORT:
+                kind = "hyper-transport";
+                break;
+            case PCI_SPEC_CAP_ID_COMPACT_PCI_CENTRAL_RSRC_CNTRL:
+                kind = "compact-pci-central-resource-control";
+                break;
+            case PCI_SPEC_CAP_ID_PCI_HOTPLUG:
+                kind = "pci-hotplug";
+                break;
+            case PCI_SPEC_CAP_ID_PCI_BRIDGE_SYS_VENDOR_ID:
+                kind = "pci-bridge-system-vendor-id";
+                break;
+            case PCI_SPEC_CAP_ID_AGP_8X:
+                kind = "advanced-graphics-port-8x";
+                break;
+            case PCI_SPEC_CAP_ID_SECURE_DEVICE:
+                kind = "secure-device";
+                break;
+            case PCI_SPEC_CAP_ID_PCI_EXPRESS:
+                kind = "pci-express";
+                break;
+            case PCI_SPEC_CAP_ID_ADV_FEATURES:
+                kind = "advanced-features";
+                break;
+            case PCI_SPEC_CAP_ID_ENHANCED_ALLOCS:
+                kind = "enhanced-allocations";
+                break;
+            case PCI_SPEC_CAP_ID_FLAT_PORTAL_BRIDGE:
+                kind = "flattening-portal-bridge";
+                break;
+            }
 
         printk(LOGLEVEL_INFO,
-               "\t\tfound capability: %s (id: %" PRIu8 ") at offset "
+               "\t\tfound capability: %s (id: 0x%" PRIx8 ") at offset "
                "0x%" PRIx8 "\n",
                kind,
                id,

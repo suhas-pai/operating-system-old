@@ -72,7 +72,7 @@ int dtb_node_get_parent(const void *const dtb, const int nodeoff) {
         depth = new_depth;
     }
 
-    if ((offset == -FDT_ERR_NOTFOUND) || offset >= 0) {
+    if (offset == -FDT_ERR_NOTFOUND || offset >= 0) {
         return -FDT_ERR_BADOFFSET;
     }
 
