@@ -80,9 +80,9 @@ void acpi_init(void) {
     struct limine_rsdp_response *const response = rsdp_request.response;
     if (response == NULL || response->address == NULL) {
     #if !(defined(__riscv) && defined(__LP64__))
-        panic("acpi is not supported on this machine\n");
+        panic("acpi: not found\n");
     #else
-        printk(LOGLEVEL_WARN, "acpi: does not exist\n");
+        printk(LOGLEVEL_WARN, "acpi: does not exist. exiting init\n");
         return;
     #endif /* !(defined(__riscv) && defined(__LP64__)) */
     }
