@@ -15,7 +15,7 @@
 #include "mm/mmio.h"
 
 struct pci_config_space {
-    uint16_t group_segment; /* PCIe only. 0 for PCI Local bus */
+    uint16_t domain_segment; /* PCIe only. 0 for PCI Local bus */
 
     uint8_t bus;
     uint8_t device_slot;
@@ -60,7 +60,7 @@ pci_device_bar_read64(struct pci_device_bar_info *const bar,
                      const uint32_t offset);
 
 struct pci_device_info;
-struct pci_group {
+struct pci_domain {
     struct list list;
     struct list device_list;
 
@@ -84,7 +84,7 @@ struct pci_group {
 struct pci_device_info {
     struct list list;
     struct pci_config_space config_space;
-    struct pci_group *group;
+    struct pci_domain *domain;
 
     volatile struct pci_spec_device_info *pcie_info;
 

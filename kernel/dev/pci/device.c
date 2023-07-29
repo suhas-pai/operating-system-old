@@ -172,7 +172,7 @@ void pci_device_enable_bus_mastering(struct pci_device_info *const device) {
         device->pcie_info->command |= __PCI_DEVCMDREG_BUS_MASTER;
     } else {
         const uint16_t old_command =
-            device->group->read(
+            device->domain->read(
                 device,
                 offsetof(struct pci_spec_device_info, command),
                 sizeof_field(struct pci_spec_device_info, command));
@@ -180,9 +180,9 @@ void pci_device_enable_bus_mastering(struct pci_device_info *const device) {
         const uint16_t new_command =
             old_command | __PCI_DEVCMDREG_BUS_MASTER;
 
-        device->group->write(device,
-                             offsetof(struct pci_device_info, command),
-                             new_command,
-                             sizeof(uint32_t));
+        device->domain->write(device,
+                              offsetof(struct pci_device_info, command),
+                              new_command,
+                              sizeof(uint32_t));
     }
 }

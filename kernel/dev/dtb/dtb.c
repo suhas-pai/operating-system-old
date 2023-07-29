@@ -84,11 +84,11 @@ int dtb_node_get_parent(const void *const dtb, const int nodeoff) {
 }
 
 bool
-dtb_get_reg_entries(const void *const dtb,
-                    const int nodeoff,
-                    const uint32_t start_index,
-                    uint32_t *const entry_count_in,
-                    struct dtb_reg_entry *const entries_out)
+dtb_get_reg_pairs(const void *const dtb,
+                  const int nodeoff,
+                  const uint32_t start_index,
+                  uint32_t *const entry_count_in,
+                  struct dtb_addr_size_pair *const pairs_out)
 {
     const int parent_off = dtb_node_get_parent(dtb, nodeoff);
     if (parent_off < 0) {
@@ -102,52 +102,58 @@ dtb_get_reg_entries(const void *const dtb,
         return false;
     }
 
-    const fdt32_t *regs = NULL;
-    uint32_t regs_length = 0;
+    const fdt32_t *reg = NULL;
+    uint32_t reg_length = 0;
 
-    if (!dtb_get_array_prop(dtb, nodeoff, "reg", &regs, &regs_length)) {
+    if (!dtb_get_array_prop(dtb, nodeoff, /*key=*/"reg", &reg, &reg_length)) {
         return false;
     }
 
-    if (regs_length == 0) {
+    if (reg_length == 0) {
         return false;
     }
 
-    if ((regs_length % (uint32_t)(addr_cells + size_cells)) != 0) {
+    if ((reg_length % (uint32_t)(addr_cells + size_cells)) != 0) {
         return false;
     }
 
-    const fdt32_t *regs_iter =
-        regs + ((uint32_t)(addr_cells + size_cells) * start_index);
+    const fdt32_t *const reg_end = (const void *)reg + reg_length;
+    const fdt32_t *reg_iter =
+        reg + ((uint32_t)(addr_cells + size_cells) * start_index);
 
     const uint32_t entry_spaces = *entry_count_in;
     const uint32_t addr_shift = sizeof_bits(uint64_t) / (uint32_t)addr_cells;
     const uint32_t size_shift = sizeof_bits(uint64_t) / (uint32_t)size_cells;
 
-    for (struct dtb_reg_entry *entry = entries_out;
-         entry != entries_out + entry_spaces;
+    for (struct dtb_addr_size_pair *entry = pairs_out;
+         entry != pairs_out + entry_spaces;
          entry++)
     {
         if (addr_shift != sizeof_bits(uint64_t)) {
             for (int i = 0; i != addr_cells; i++) {
                 entry->address =
-                    entry->address << addr_shift | fdt32_to_cpu(*regs_iter);
-                regs_iter++;
+                    entry->address << addr_shift | fdt32_to_cpu(*reg_iter);
+                reg_iter++;
             }
         } else {
-            entry->address = fdt32_to_cpu(*regs_iter);
-            regs_iter++;
+            entry->address = fdt32_to_cpu(*reg_iter);
+            reg_iter++;
         }
 
         if (addr_shift != sizeof_bits(uint64_t)) {
             for (int i = 0; i != size_cells; i++) {
                 entry->size =
-                    entry->size << size_shift | fdt32_to_cpu(*regs_iter);
-                regs_iter++;
+                    entry->size << size_shift | fdt32_to_cpu(*reg_iter);
+                reg_iter++;
             }
         } else {
-            entry->size = fdt32_to_cpu(*regs_iter);
-            regs_iter++;
+            entry->size = fdt32_to_cpu(*reg_iter);
+            reg_iter++;
+        }
+
+        if (reg_iter == reg_end) {
+            *entry_count_in = (uint32_t)(entry - pairs_out);
+            break;
         }
     }
 

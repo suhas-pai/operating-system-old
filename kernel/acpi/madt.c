@@ -9,6 +9,8 @@
 #if defined(__x86_64__)
     #include "apic/ioapic.h"
     #include "apic/init.h"
+#elif defined(__aarch64__)
+    #include "mm/mmio.h"
 #endif /* defined(__x86_64__) */
 
 #include "dev/printk.h"
@@ -432,6 +434,15 @@ void madt_init(const struct acpi_madt *const madt) {
                        dist->phys_base_address,
                        dist->sys_vector_base,
                        dist->gic_version);
+
+                if (!has_align(dist->phys_base_address, PAGE_SIZE)) {
+                    printk(LOGLEVEL_WARN,
+                           "madt: gic msi frame's physical base address (%p) "
+                           "is not aligned to the page-size (%" PRIu32 ")\n",
+                           (void *)dist->phys_base_address,
+                           (uint32_t)PAGE_SIZE);
+                    continue;
+                }
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found gic distributor entry. ignoring");
@@ -469,6 +480,42 @@ void madt_init(const struct acpi_madt *const madt) {
                             "yes" : "no",
                        frame->spi_count,
                        frame->spi_base);
+
+                if (!has_align(frame->phys_base_address, PAGE_SIZE)) {
+                    printk(LOGLEVEL_WARN,
+                           "madt: gic msi frame's physical base address (%p) "
+                           "is not aligned to the page-size (%" PRIu32 ")\n",
+                           (void *)frame->phys_base_address,
+                           (uint32_t)PAGE_SIZE);
+                    continue;
+                }
+
+                struct mmio_region *const mmio =
+                    vmap_mmio(
+                        range_create(frame->phys_base_address, PAGE_SIZE),
+                        PROT_READ | PROT_WRITE,
+                        /*flags=*/0);
+
+                if (mmio == NULL) {
+                    printk(LOGLEVEL_WARN,
+                           "madt: failed to mmio-map msi-frame at phys "
+                           "address %p\n",
+                           (void *)frame->phys_base_address);
+                    continue;
+                }
+
+                const struct acpi_msi_frame msi_frame = {
+                    .mmio = mmio,
+                    .overriden_msi_typerr =
+                        frame->flags &
+                        __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR,
+                    .spi_base = frame->spi_base,
+                    .spi_count = frame->spi_count
+                };
+
+                assert_msg(array_append(&get_acpi_info_mut()->msi_frame_list,
+                                        &msi_frame),
+                           "madt: failed to append msi-frame to array");
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found gic msi-frame entry. ignoring");

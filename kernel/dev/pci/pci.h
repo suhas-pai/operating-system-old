@@ -6,9 +6,9 @@
 #pragma once
 #include "device.h"
 
-struct pci_group *
-pci_group_create_pcie(struct range bus_range,
-                      uint64_t base_addr,
-                      uint16_t segment);
+struct pci_domain *
+pci_add_pcie_domain(struct range bus_range,
+                    uint64_t base_addr,
+                    uint16_t segment);
 
 void pci_init();

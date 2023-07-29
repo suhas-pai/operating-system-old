@@ -37,6 +37,17 @@
     };
 #endif /* defined(__x86_64__) */
 
+#if defined(__aarch64__)
+    struct acpi_msi_frame {
+        struct mmio_region *mmio;
+
+        uint16_t spi_count;
+        uint16_t spi_base;
+
+        bool overriden_msi_typerr : 1;
+    };
+#endif /* defined(__aarch64__) */
+
 struct apic_iso_info {
     uint8_t bus_src;
     uint8_t irq_src;
@@ -63,6 +74,9 @@ struct acpi_info {
     struct array lapic_list;
     // Array of struct ioapic_info
     struct array ioapic_list;
+#elif defined(__aarch64__)
+    // Array of struct acpi_msi_frame
+    struct array msi_frame_list;
 #endif /* defined(__x86_64__) */
     struct array iso_list;
 

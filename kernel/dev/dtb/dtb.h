@@ -28,14 +28,14 @@ dtb_get_array_prop(const void *dtb,
 
 int dtb_node_get_parent(const void *const dtb, const int nodeoff);
 
-struct dtb_reg_entry {
+struct dtb_addr_size_pair {
     uint64_t address;
     uint64_t size;
 };
 
 bool
-dtb_get_reg_entries(const void *dtb,
-                    int nodeoff,
-                    uint32_t start_index,
-                    uint32_t *entry_count_in,
-                    struct dtb_reg_entry *const entries_out);
+dtb_get_reg_pairs(const void *dtb,
+                  int nodeoff,
+                  uint32_t start_index,
+                  uint32_t *entry_count_in,
+                  struct dtb_addr_size_pair *pairs_out);

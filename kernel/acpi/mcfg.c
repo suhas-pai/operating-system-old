@@ -32,6 +32,6 @@ void mcfg_init(const struct acpi_mcfg *const mcfg) {
             range_create(iter->bus_start_num,
                          iter->bus_end_num - iter->bus_start_num);
 
-        pci_group_create_pcie(bus_range, iter->base_addr, iter->segment_num);
+        pci_add_pcie_domain(bus_range, iter->base_addr, iter->segment_num);
     }
 }
