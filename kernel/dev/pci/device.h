@@ -64,7 +64,6 @@ struct pci_group {
     struct list list;
     struct list device_list;
 
-    // Only valid for PCIe
     struct range bus_range;
     struct mmio_region *mmio;
 
@@ -131,7 +130,7 @@ struct pci_device_info {
     (device)->subclass
 
 #if defined(__x86_64__)
-    void
+    bool
     pci_device_bind_msi_to_vector(struct pci_device_info *device,
                                   const struct cpu_info *cpu,
                                   isr_vector_t vector,

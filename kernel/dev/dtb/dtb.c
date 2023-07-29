@@ -109,6 +109,10 @@ dtb_get_reg_entries(const void *const dtb,
         return false;
     }
 
+    if (regs_length == 0) {
+        return false;
+    }
+
     if ((regs_length % (uint32_t)(addr_cells + size_cells)) != 0) {
         return false;
     }
@@ -131,10 +135,8 @@ dtb_get_reg_entries(const void *const dtb,
                 regs_iter++;
             }
         } else {
-            for (int i = 0; i != addr_cells; i++) {
-                entry->address = fdt32_to_cpu(*regs_iter);
-                regs_iter++;
-            }
+            entry->address = fdt32_to_cpu(*regs_iter);
+            regs_iter++;
         }
 
         if (addr_shift != sizeof_bits(uint64_t)) {
@@ -144,10 +146,8 @@ dtb_get_reg_entries(const void *const dtb,
                 regs_iter++;
             }
         } else {
-            for (int i = 0; i != size_cells; i++) {
-                entry->size = fdt32_to_cpu(*regs_iter);
-                regs_iter++;
-            }
+            entry->size = fdt32_to_cpu(*regs_iter);
+            regs_iter++;
         }
     }
 

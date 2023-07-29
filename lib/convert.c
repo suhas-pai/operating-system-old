@@ -637,7 +637,8 @@ signed_to_string_view(int64_t number,
 }
 
 
-unsigned long int strtoul(const char* str, char** endptr, int base) {
+unsigned long int
+strtoul(const char *const str, char **const endptr, const int base) {
     uint64_t result = 0;
     struct str_to_num_options options = {
         .default_base = (enum numeric_base)base,
@@ -671,8 +672,8 @@ unsigned long int strtoul(const char* str, char** endptr, int base) {
             break;
         case 16:
             options.dont_allow_base_2 = true;
+            options.dont_allow_base_8 = true;
             options.dont_allow_base_10 = true;
-            options.dont_allow_base_16 = true;
             options.dont_allow_0o_prefix = true;
 
             break;

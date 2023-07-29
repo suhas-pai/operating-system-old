@@ -36,7 +36,7 @@ find_multiple_unset(struct bitmap *const bitmap,
     void *const begin = bitmap->gbuffer.begin;
     const void *const end = bitmap->gbuffer.end;
 
-    void *ptr = begin + (start_index / sizeof_bits(uint8_t));
+    void *ptr = begin + bits_to_bytes_roundup(start_index);
     start_index = (start_index % sizeof_bits(uint8_t));
 
     /*
@@ -142,7 +142,7 @@ find_multiple_set(struct bitmap *const bitmap,
     void *const begin = bitmap->gbuffer.begin;
     const void *const end = bitmap->gbuffer.end;
 
-    void *ptr = begin + (start_index / sizeof_bits(uint8_t));
+    void *ptr = begin + bits_to_bytes_noround(start_index);
     start_index = (start_index % sizeof_bits(uint8_t));
 
     /*
@@ -247,7 +247,7 @@ find_single_unset(struct bitmap *const bitmap,
     void *const begin = bitmap->gbuffer.begin;
     const void *const end = bitmap->gbuffer.end;
 
-    void *ptr = begin + (start_index / sizeof_bits(uint8_t));
+    void *ptr = begin + bits_to_bytes_noround(start_index);
     start_index = (start_index % sizeof_bits(uint8_t));
 
     uint64_t bit_index_in_word = 0;
@@ -286,7 +286,7 @@ find_single_set(struct bitmap *const bitmap,
     void *const begin = bitmap->gbuffer.begin;
     const void *const end = bitmap->gbuffer.end;
 
-    void *ptr = begin + (start_index / sizeof_bits(uint8_t));
+    void *ptr = begin + bits_to_bytes_noround(start_index);
     start_index = (start_index % sizeof_bits(uint8_t));
 
     uint64_t bit_index_in_word = 0;
@@ -320,7 +320,7 @@ done:
 uint64_t
 bitmap_find(struct bitmap *const bitmap,
             const uint64_t count,
-            uint64_t start_index,
+            const uint64_t start_index,
             const bool expected_value,
             const bool invert)
 {
@@ -349,7 +349,7 @@ find_unset_at_mult(struct bitmap *const bitmap,
     void *const begin = bitmap->gbuffer.begin;
     const void *const end = bitmap->gbuffer.end;
 
-    void *ptr = begin + (start_index / sizeof_bits(uint8_t));
+    void *ptr = begin + bits_to_bytes_noround(start_index);
     start_index = start_index % sizeof_bits(uint8_t);
 
     if (!round_up(start_index, mult, &start_index)) {
@@ -464,7 +464,7 @@ find_set_at_mult(struct bitmap *const bitmap,
     void *const begin = bitmap->gbuffer.begin;
     const void *const end = bitmap->gbuffer.end;
 
-    void *ptr = begin + (start_index / sizeof_bits(uint8_t));
+    void *ptr = begin + bits_to_bytes_noround(start_index);
     start_index = (start_index % sizeof_bits(uint8_t));
 
     if (!round_up(start_index, mult, &start_index)) {
@@ -586,7 +586,7 @@ bitmap_find_at_mult(struct bitmap *const bitmap,
 
 bool bitmap_at(const struct bitmap *const bitmap, uint64_t index) {
     void *const begin = bitmap->gbuffer.begin;
-    void *ptr = begin + (index / sizeof_bits(uint8_t));
+    void *ptr = begin + bits_to_bytes_noround(index);
 
     index = (index % sizeof_bits(uint8_t));
     return *(uint8_t *)ptr & (1 << index);
@@ -609,7 +609,7 @@ bitmap_has(const struct bitmap *const bitmap,
      */
 
     void *const begin = bitmap->gbuffer.begin;
-    void *ptr = begin + (range.front / sizeof(uint8_t));
+    void *ptr = begin + bits_to_bytes_noround(range.front);
 
     uint64_t count = range.size;
 
@@ -687,7 +687,7 @@ bitmap_has(const struct bitmap *const bitmap,
 
 void bitmap_set(struct bitmap *const bitmap, uint64_t index, const bool value) {
     void *const begin = bitmap->gbuffer.begin;
-    void *ptr = begin + (index / sizeof_bits(uint8_t));
+    void *ptr = begin + bits_to_bytes_noround(index);
 
     index = (index % sizeof_bits(uint8_t));
     set_bits_for_mask((uint8_t *)ptr, 1ull << index, value);
@@ -711,7 +711,7 @@ bitmap_set_range(struct bitmap *const bitmap,
      * writing to the bitmap.
      */
 
-    void *ptr = bitmap->gbuffer.begin + (bit_index / sizeof(uint8_t));
+    void *ptr = bitmap->gbuffer.begin + bits_to_bytes_roundup(bit_index);
     uint64_t bits_left = range.size;
 
     /*

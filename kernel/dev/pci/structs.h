@@ -200,7 +200,8 @@ struct pci_spec_pci_to_pci_bridge_device_info {
 } __packed;
 
 enum pci_spec_cap_id {
-    PCI_SPEC_CAP_ID_POWER_MANAGEMENT = 0x1,
+    PCI_SPEC_CAP_ID_NULL,
+    PCI_SPEC_CAP_ID_POWER_MANAGEMENT,
     PCI_SPEC_CAP_ID_AGP,
     PCI_SPEC_CAP_ID_VPD,
     PCI_SPEC_CAP_ID_SLOT_ID,
@@ -238,8 +239,8 @@ enum pci_spec_cap_msi_control_flags {
 };
 
 enum pci_spec_cap_msix_control_flags {
-    __PCI_CAPMSIX_TABLE_SIZE_MASK = (1ull << 10) - 1,
-    __PCI_MSIXCAP_CTRL_ENABLE = 1 << 15
+    __PCI_MSIX_CAP_TABLE_SIZE_MASK = (1ull << 10) - 1,
+    __PCI_MSIX_CAP_CTRL_ENABLE = 1 << 15
 };
 
 struct pci_spec_cap_msix_table_entry {
@@ -272,7 +273,7 @@ struct pci_spec_cap_msi {
 } __packed;
 
 enum pci_spec_bar_table_offset_flags {
-    F_PCI_SPEC_BAR_TABLE_OFFSET_BIR = 0b111
+    __PCI_BARSPEC_TABLE_OFFSET_BIR = 0b111
 };
 
 struct pci_spec_cap_msix {

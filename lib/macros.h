@@ -70,8 +70,11 @@
 
 #define RAND_VAR_NAME() VAR_CONCAT(__random__, __LINE__)
 
-#define bits_to_bytes_roundup(bits) (((bits) % 8) ? (((bits) / 8) + 1) : ((bits) / 8))
-#define bits_to_bytes_noround(bits) ((bits) / 8)
+#define bits_to_bytes_roundup(bits) \
+    (((bits) % sizeof_bits(uint8_t)) ? \
+        (((bits) / sizeof_bits(uint8_t)) + 1) : ((bits) / sizeof_bits(uint8_t)))
+
+#define bits_to_bytes_noround(bits) ((bits) / sizeof_bits(uint8_t))
 #define bytes_to_bits(bits) ((bits) * 8)
 
 #define sizeof_bits(n) bytes_to_bits(sizeof(n))

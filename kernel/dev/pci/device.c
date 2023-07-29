@@ -4,7 +4,6 @@
  */
 
 #include "dev/printk.h"
-#include "lib/bits.h"
 
 #include "device.h"
 #include "structs.h"
@@ -23,9 +22,9 @@
             (msg_control & __PCI_CAPMSI_CTRL_64BIT_CAPABLE) != 0;
 
         /*
-        * If we're supposed to mask the vector, but masking isn't supported,
-        * then simply bail.
-        */
+         * If we're supposed to mask the vector, but masking isn't supported,
+         * then simply bail.
+         */
 
         const bool supports_masking =
             (msg_control & __PCI_CAPMSI_CTRL_PER_VECTOR_MASK) != 0;
@@ -60,7 +59,6 @@
                         const isr_vector_t vector,
                         const bool masked)
     {
-        volatile struct pci_spec_cap_msix *const msix = device->pcie_msix;
         const uint64_t msix_vector =
             bitmap_find(&device->msix_table,
                         /*count=*/1,
@@ -70,24 +68,38 @@
 
         if (msix_vector == FIND_BIT_INVALID) {
             printk(LOGLEVEL_WARN,
-                   "pcie: no free msix table entry found for binding msix "
-                   "vector\n");
+                   "pcie: no free msix table entry found for binding "
+                   "address %p to msix vector " ISR_VECTOR_FMT "\n",
+                   (void *)address,
+                   vector);
             return;
         }
 
         /*
-        * The lower 3 bits of the Table Offset is the BIR.
-        *
-        * The BIR (Base Index Register) is the index of the BAR that contains
-        * the MSI-X Table.
-        *
-        * The remaining 29 (32-3) bits of the Table Offset is the offset to the
-        * MSI-X Table in the BAR.
-        */
+         * The lower 3 bits of the Table Offset is the BIR.
+         *
+         * The BIR (Base Index Register) is the index of the BAR that contains
+         * the MSI-X Table.
+         *
+         * The remaining 29 (32-3) bits of the Table Offset is the offset to the
+         * MSI-X Table in the BAR.
+         */
+
+        volatile struct pci_spec_cap_msix *const msix = device->pcie_msix;
+        const uint32_t table_size =
+            (msix->msg_control & __PCI_MSIX_CAP_TABLE_SIZE_MASK) + 1;
+
+        if (!index_in_bounds(vector, table_size)) {
+            printk(LOGLEVEL_WARN,
+                   "pcie: msix table is too small to bind address %p to msix "
+                   "vector " ISR_VECTOR_FMT "\n",
+                   (void *)address,
+                   vector);
+            return;
+        }
 
         const uint32_t table_offset = msix->table_offset;
-        const uint8_t bar_index =
-            table_offset & F_PCI_SPEC_BAR_TABLE_OFFSET_BIR;
+        const uint8_t bar_index = table_offset & __PCI_BARSPEC_TABLE_OFFSET_BIR;
 
         if (!index_in_bounds(bar_index, device->max_bar_count)) {
             printk(LOGLEVEL_WARN,
@@ -100,7 +112,7 @@
 
         if (!device->bar_list[bar_index].is_present) {
             printk(LOGLEVEL_WARN,
-                   "pcie: encountered invalid bar index for msix table while "
+                   "pcie: encountered non-present bar for msix table while "
                    "trying to bind address %p to msix "
                    "vector " ISR_VECTOR_FMT "\n",
                    (void *)address,
@@ -111,7 +123,9 @@
         struct pci_device_bar_info *const bar = &device->bar_list[bar_index];
 
         const uint64_t bar_address = (uint64_t)bar->mmio->base;
-        const uint64_t table_addr = bar_address + table_offset;
+        const uint64_t table_addr =
+            bar_address +
+            (table_offset & (uint32_t)~__PCI_BARSPEC_TABLE_OFFSET_BIR);
 
         volatile struct pci_spec_cap_msix_table_entry *const table =
             (volatile struct pci_spec_cap_msix_table_entry *)table_addr;
@@ -121,35 +135,35 @@
         table[msix_vector].data = vector;
         table[msix_vector].control = masked;
 
-        /* Enable MSI-X at the very end, after we set the table-entry */
-        msix->msg_control |= __PCI_CAPMSI_CTRL_ENABLE;
+        /* Enable MSI-X after we setup the table-entry */
+        msix->msg_control |= __PCI_MSIX_CAP_CTRL_ENABLE;
     }
 
-    void
+    bool
     pci_device_bind_msi_to_vector(struct pci_device_info *const device,
                                   const struct cpu_info *const cpu,
                                   const isr_vector_t vector,
                                   const bool masked)
     {
-        const enum pci_device_msi_support msi_support = device->msi_support;
         const uint64_t msi_address = (0xFEE00000 | cpu->lapic_id << 12);
-
-        switch (msi_support) {
+        switch (device->msi_support) {
             case PCI_DEVICE_MSI_SUPPORT_NONE:
                 printk(LOGLEVEL_WARN,
                        "pcie: device " PCI_DEVICE_INFO_FMT " does not support "
-                       "msi. failing to bind msi to "
+                       "msi or msix. failing to bind msi(x) to "
                        "vector " ISR_VECTOR_FMT "\n",
                        PCI_DEVICE_INFO_FMT_ARGS(device),
                        vector);
-                return;
+                return false;
             case PCI_DEVICE_MSI_SUPPORT_MSI:
                 bind_msi_to_vector(device, msi_address, vector, masked);
-                return;
+                return true;
             case PCI_DEVICE_MSI_SUPPORT_MSIX:
                 bind_msix_to_vector(device, msi_address, vector, masked);
-                return;
+                return true;
         }
+
+        verify_not_reached();
     }
 #endif /* defined(__x86_64__) */
 

@@ -4,7 +4,6 @@
  */
 
 #pragma once
-
 #include "mutable_buffer.h"
 
 struct growable_buffer {

@@ -261,6 +261,9 @@ mmio_map:
     return E_PARSE_BAR_OK;
 }
 
+#undef write_bar
+#undef read_bar
+
 uint8_t
 pci_device_bar_read8(struct pci_device_bar_info *const bar,
                      const uint32_t offset)
@@ -317,6 +320,45 @@ pci_device_bar_read64(struct pci_device_bar_info *const bar,
 #endif /* defined(__x86_64__) */
 }
 
+static void
+validate_cap_offset(struct array *const prev_cap_offsets,
+                    const uint8_t cap_offset)
+{
+    if (index_in_bounds(cap_offset,
+                        sizeof(struct pci_spec_general_device_info)))
+    {
+        printk(LOGLEVEL_INFO,
+               "\t\tinvalid device. pci capability offset points to "
+               "within structure: 0x%" PRIx8 "\n",
+               cap_offset);
+        return;
+    }
+
+    array_foreach(prev_cap_offsets, uint8_t, iter) {
+        if (*iter == cap_offset) {
+            printk(LOGLEVEL_WARN,
+                   "\t\tcapability'e offset_to_next points to previously "
+                   "visited capability\n");
+            return;
+        }
+
+        const struct range range =
+            range_create(*iter, sizeof(struct pci_spec_capability));
+
+        if (range_has_loc(range, cap_offset)) {
+            printk(LOGLEVEL_WARN,
+                   "\t\tcapability'e offset_to_next points to within "
+                   "previously visited capability\n");
+            return;
+        }
+    }
+
+    if (!array_append(prev_cap_offsets, &cap_offset)) {
+        printk(LOGLEVEL_WARN, "\t\tfailed to append to internal array\n");
+        return;
+    }
+}
+
 static void pci_parse_capabilities(struct pci_device_info *const dev) {
     uint8_t cap_offset =
         dev->group->read(dev,
@@ -330,24 +372,21 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
         return;
     }
 
-    if (index_in_bounds(cap_offset,
-                        sizeof(struct pci_spec_general_device_info)))
-    {
-        printk(LOGLEVEL_INFO,
-               "pcie: invalid device. pci capability offset points to within "
-               "structure: 0x%" PRIx8 "\n",
-               cap_offset);
-        return;
-    }
-
+    struct array prev_cap_offsets = ARRAY_INIT(sizeof(uint8_t));
     for (uint64_t i = 0; cap_offset != 0 && cap_offset != 0xff; i++) {
-        if (i == 512) {
+        if (i == 128) {
             printk(LOGLEVEL_INFO,
-                   "pcie: too many capabilities for "
+                   "\t\ttoo many capabilities for "
                    "device " PCI_DEVICE_INFO_FMT "\n",
                    PCI_DEVICE_INFO_FMT_ARGS(dev));
             return;
         }
+
+        validate_cap_offset(&prev_cap_offsets, cap_offset);
+        volatile struct pci_spec_capability *const capability =
+            reg_to_ptr(volatile struct pci_spec_capability,
+                       dev->pcie_info,
+                       cap_offset);
 
     #define read_cap_field(field) \
         dev->group->read(dev,         \
@@ -355,15 +394,13 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                             offsetof(struct pci_spec_capability, field), \
                          sizeof_field(struct pci_spec_capability, field))
 
-        volatile struct pci_spec_capability *const capability =
-            reg_to_ptr(volatile struct pci_spec_capability,
-                       dev->pcie_info,
-                       cap_offset);
-
         const uint8_t id = read_cap_field(id);
         const char *kind = "unknown";
 
         switch ((enum pci_spec_cap_id)id) {
+            case PCI_SPEC_CAP_ID_NULL:
+                kind = "null";
+                break;
             case PCI_SPEC_CAP_ID_AGP:
                 kind = "advanced-graphics-port";
                 break;
@@ -384,21 +421,28 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 kind = "msi";
                 break;
             case PCI_SPEC_CAP_ID_MSI_X:
+                if (dev->msi_support == PCI_DEVICE_MSI_SUPPORT_MSIX) {
+                    printk(LOGLEVEL_WARN,
+                           "\t\tfound multiple msix capabilities. "
+                           "returning\n");
+                    return;
+                }
+
                 dev->msi_support = PCI_DEVICE_MSI_SUPPORT_MSIX;
                 dev->pcie_msix =
                     (volatile struct pci_spec_cap_msix *)capability;
 
                 const uint16_t msg_control = dev->pcie_msix->msg_control;
                 const uint16_t bitmap_size =
-                    (msg_control & __PCI_CAPMSIX_TABLE_SIZE_MASK) + 1;
+                    (msg_control & __PCI_MSIX_CAP_TABLE_SIZE_MASK) + 1;
 
-                struct bitmap bitmap = bitmap_alloc(bitmap_size);
+                const struct bitmap bitmap = bitmap_alloc(bitmap_size);
                 if (bitmap.gbuffer.begin == NULL) {
                     printk(LOGLEVEL_WARN,
-                            "pcie: failed to allocate msix table "
-                            "(size: %" PRIu16 " bytes). disabling "
-                            "msix\n",
-                            bitmap_size);
+                           "\t\tfailed to allocate msix table "
+                           "(size: %" PRIu16 " bytes). disabling "
+                           "msix\n",
+                           bitmap_size);
                     break;
                 }
 
@@ -455,17 +499,18 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
             case PCI_SPEC_CAP_ID_FLAT_PORTAL_BRIDGE:
                 kind = "flattening-portal-bridge";
                 break;
-            }
+        }
 
         printk(LOGLEVEL_INFO,
-               "\t\tfound capability: %s (id: 0x%" PRIx8 ") at offset "
-               "0x%" PRIx8 "\n",
+               "\t\tfound capability: %s at offset 0x%" PRIx8 "\n",
                kind,
-               id,
-               cap_offset);
+               id);
 
         cap_offset = read_cap_field(offset_to_next);
+#undef read_cap_field
     }
+
+    array_destroy(&prev_cap_offsets);
 }
 
 static volatile struct pci_spec_device_info *
@@ -509,11 +554,6 @@ parse_function(struct pci_group *const group,
     volatile struct pci_spec_device_info *device = NULL;
     uint8_t hdrkind = 0;
 
-#define device_spec_get_field(field) \
-    group->read(&info, \
-                offsetof(struct pci_spec_device_info, field), \
-                sizeof_field(struct pci_spec_device_info, field))
-
     if (group->mmio != NULL) {
         device = pci_group_get_device_for_pos(group, config_space);
         if (device == NULL) {
@@ -550,6 +590,11 @@ parse_function(struct pci_group *const group,
             .multifunction = is_multi_function,
         };
     } else {
+        #define device_spec_get_field(field) \
+            group->read(&info, \
+                        offsetof(struct pci_spec_device_info, field), \
+                        sizeof_field(struct pci_spec_device_info, field))
+
         const uint16_t vendor_id = device_spec_get_field(vendor_id);
         if (vendor_id == (uint16_t)-1) {
             return;
@@ -588,6 +633,8 @@ parse_function(struct pci_group *const group,
 
             .multifunction = is_multi_function,
         };
+
+        #undef device_spec_get_field
     }
 
     printk(LOGLEVEL_INFO,
@@ -600,8 +647,8 @@ parse_function(struct pci_group *const group,
 
     if (hdrkind_is_pci_bridge != class_is_pci_bridge) {
         printk(LOGLEVEL_WARN,
-            "pcie: invalid device, header-type and class/subclass "
-            "mismatch\n");
+               "pcie: invalid device, header-type and class/subclass "
+               "mismatch\n");
         return;
     }
 

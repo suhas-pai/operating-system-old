@@ -12,6 +12,7 @@ struct array {
 };
 
 #define array_foreach(array, type, item) \
+    assert(sizeof(type) == (array)->object_size);                              \
     const type *const VAR_CONCAT(__end__, __LINE__) = array_end(*(array));     \
     for (type *item = (type *)array_begin(*(array));                           \
          item != VAR_CONCAT(__end__, __LINE__);                                \
