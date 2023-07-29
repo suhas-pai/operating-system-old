@@ -4,7 +4,9 @@
  */
 
 #include "acpi/mcfg.h"
-#if defined(__riscv) && defined (__LP64__)
+#if defined(__x86_64__)
+    #include "apic/ioapic.h"
+#elif defined(__riscv) && defined (__LP64__)
     #include "acpi/rhct.h"
 #endif /* defined(__riscv) && defined (__LP64__) */
 
@@ -87,10 +89,7 @@ void acpi_init(void) {
     #endif /* !(defined(__riscv) && defined(__LP64__)) */
     }
 
-#if defined(__x86_64__)
-    array_init(&get_acpi_info_mut()->lapic_list, sizeof(struct lapic_info));
-    array_init(&get_acpi_info_mut()->ioapic_list, sizeof(struct ioapic_info));
-#elif defined(__aarch64__)
+#if defined(__aarch64__)
     array_init(&get_acpi_info_mut()->msi_frame_list,
                sizeof(struct acpi_msi_frame));
 #endif /* defined(__x86_64__) */

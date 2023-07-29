@@ -4,6 +4,7 @@
  */
 
 #include "acpi/api.h"
+
 #include "apic/lapic.h"
 #include "apic/structs.h"
 
@@ -15,6 +16,7 @@
 #include "sys/pic.h"
 
 #include "cpu.h"
+#include "ioapic.h"
 
 void lapic_timer_irq_callback() {
     get_cpu_info_mut()->timer_ticks++;
@@ -31,16 +33,25 @@ enum {
     IA32_MSR_APIC_BASE_ENABLE = 1 << 11
 };
 
-void apic_init() {
-    pic_disable();
-    volatile struct lapic_registers *const info =
-        get_acpi_info()->lapic_regs->base;
+extern struct mmio_region *lapic_mmio_region;
 
-    printk(LOGLEVEL_INFO, "apic: local apic id: %x\n", info->id);
+void apic_init(const uint64_t local_apic_base) {
+    lapic_mmio_region =
+        vmap_mmio(range_create(local_apic_base, PAGE_SIZE),
+                  PROT_READ | PROT_WRITE,
+                  /*flags=*/0);
+
+    assert_msg(lapic_mmio_region != NULL,
+               "apic: failed to mmio-map local-apic registers");
+
+    lapic_regs = lapic_mmio_region->base;
+
+    pic_disable();
+    printk(LOGLEVEL_INFO, "apic: local apic id: %x\n", lapic_regs->id);
     printk(LOGLEVEL_INFO,
            "apic: local apic version reg: %" PRIx32 ", version: %" PRIu32 "\n",
-           info->version,
-           (info->version & F_LAPIC_VERSION_REG_VERION_MASK));
+           lapic_regs->version,
+           (lapic_regs->version & F_LAPIC_VERSION_REG_VERION_MASK));
 
     uint64_t apic_msr = read_msr(IA32_MSR_APIC_BASE);
 
@@ -57,22 +68,6 @@ void apic_init() {
     }
 
     write_msr(IA32_MSR_APIC_BASE, apic_msr | IA32_MSR_APIC_BASE_ENABLE);
-    const uint16_t ioapic_count =
-        array_item_count(get_acpi_info()->ioapic_list);
-
-    printk(LOGLEVEL_INFO,
-           "apic: found %" PRIu16 " i/o apic(s)\n",
-           ioapic_count);
-
-    array_foreach (&get_acpi_info()->ioapic_list, struct ioapic_info, item) {
-        printk(LOGLEVEL_INFO, "apic: ioapic id: %" PRIu8 "\n", item->id);
-        printk(LOGLEVEL_INFO,
-               "\tioapic version: %" PRIu8 "\n",
-               item->version);
-        printk(LOGLEVEL_INFO,
-               "\tioapic max redirect count: %" PRIu8 "\n",
-               item->max_redirect_count);
-    }
 
     lapic_init();
     isr_assign_irq_to_self_cpu(IRQ_TIMER,

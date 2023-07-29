@@ -4,5 +4,6 @@
  */
 
 #pragma once
+#include <stdint.h>
 
-void apic_init();
+void apic_init(uint64_t lapic_regs_base);

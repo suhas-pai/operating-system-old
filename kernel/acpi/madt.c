@@ -8,6 +8,7 @@
 
 #if defined(__x86_64__)
     #include "apic/ioapic.h"
+    #include "apic/lapic.h"
     #include "apic/init.h"
 #elif defined(__aarch64__)
     #include "mm/mmio.h"
@@ -66,38 +67,7 @@ void madt_init(const struct acpi_madt *const madt) {
                          ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ONLINE_CAPABLE),
                 };
 
-                if (!lapic_info.enabled) {
-                    if (lapic_info.online_capable) {
-                        printk(LOGLEVEL_INFO,
-                               "madt: cpu #%" PRIu32 " (with processor "
-                               "id: %" PRIu8 " and local-apic id: %" PRIu8
-                               ") has flag bit 0 disabled, but CAN be "
-                               "enabled\n",
-                               index,
-                               hdr->processor_id,
-                               hdr->apic_id);
-                    } else {
-                        printk(LOGLEVEL_INFO,
-                               "madt: \tcpu #%" PRIu32 " (with processor "
-                               "id: %" PRIu8 " and local-apic id: %" PRIu8
-                               ") CANNOT be enabled\n",
-                               index,
-                               hdr->processor_id,
-                               hdr->apic_id);
-                    }
-                } else {
-                    printk(LOGLEVEL_INFO,
-                           "madt: cpu #%" PRIu32 " (with processor "
-                           "id: %" PRIu8 " and local-apic id: %" PRIu8
-                           ") CAN be enabled\n",
-                           index,
-                           hdr->processor_id,
-                           hdr->apic_id);
-                }
-
-                assert_msg(
-                    array_append(&get_acpi_info_mut()->lapic_list, &lapic_info),
-                    "madt: failed to add local-apic info to array");
+                lapic_add(&lapic_info);
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found local-apic entry. ignoring");
@@ -127,41 +97,7 @@ void madt_init(const struct acpi_madt *const madt) {
                        hdr->base,
                        hdr->gsib);
 
-                assert_msg(has_align(hdr->base, PAGE_SIZE),
-                           "io-apic base is not aligned on a page boundary");
-
-                struct ioapic_info info = {
-                    .id = hdr->apic_id,
-                    .gsi_base = hdr->gsib,
-                    .regs_mmio =
-                        vmap_mmio(range_create(hdr->base, PAGE_SIZE),
-                                  PROT_READ | PROT_WRITE,
-                                  /*flags=*/0)
-                };
-
-                const uint32_t id_reg =
-                    ioapic_read(info.regs_mmio->base, IOAPIC_REG_ID);
-                assert_msg(info.id == ioapic_id_reg_get_id(id_reg),
-                           "io-apic ID in MADT doesn't match ID in MMIO");
-
-                const uint32_t ioapic_version_reg =
-                    ioapic_read(info.regs_mmio->base, IOAPIC_REG_VERSION);
-
-                info.version =
-                    ioapic_version_reg_get_version(ioapic_version_reg);
-                info.max_redirect_count =
-                    ioapic_version_reg_get_max_redirect_count(
-                        ioapic_version_reg);
-
-                printk(LOGLEVEL_INFO,
-                       "ioapic: version: %" PRIu8 "\n"
-                       "ioapic: max redirect count: %" PRIu8 "\n",
-                       info.version,
-                       info.max_redirect_count);
-
-                assert_msg(
-                    array_append(&get_acpi_info_mut()->ioapic_list, &info),
-                    "madt: failed to add io-apic base to array");
+                ioapic_add(hdr->apic_id, hdr->base, hdr->gsib);
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found ioapic entry. ignoring");
@@ -572,11 +508,6 @@ void madt_init(const struct acpi_madt *const madt) {
     assert_msg(local_apic_base != 0,
                "madt: failed to find local-apic registers");
 
-    get_acpi_info_mut()->lapic_regs =
-        vmap_mmio(range_create(local_apic_base, PAGE_SIZE),
-                  PROT_READ | PROT_WRITE,
-                  /*flags=*/0);
-
-    apic_init();
+    apic_init(local_apic_base);
 #endif /* defined(__x86_64__) */
 }

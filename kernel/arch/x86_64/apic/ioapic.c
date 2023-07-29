@@ -4,9 +4,12 @@
  */
 
 #include "acpi/api.h"
-#include "lib/inttypes.h"
+#include "dev/printk.h"
+#include "lib/align.h"
 
 #include "ioapic.h"
+
+static struct array ioapic_list = ARRAY_INIT(sizeof(struct ioapic_info));
 
 uint64_t
 create_ioapic_redirect_request(
@@ -34,7 +37,7 @@ create_ioapic_redirect_request(
 }
 
 static struct ioapic_info *ioapic_info_for_gsi(const uint32_t gsi) {
-    array_foreach (&get_acpi_info()->ioapic_list, struct ioapic_info, item) {
+    array_foreach(&ioapic_list, struct ioapic_info, item) {
         const uint32_t gsi_base = item->gsi_base;
         if (gsi_base <= gsi && gsi_base + item->max_redirect_count > gsi) {
             return item;
@@ -77,7 +80,43 @@ redirect_irq(const uint8_t lapic_id,
     ioapic_write(ioapic->regs_mmio->base, reg + 1, req_value >> 32);
 }
 
-/******* PUBLIC APIs *******/
+void
+ioapic_add(const uint8_t apic_id, const uint32_t base, const uint32_t gsib) {
+    if (!has_align(base, PAGE_SIZE)) {
+        printk(LOGLEVEL_WARN,
+               "ioapic: io-apic base is not aligned on a page boundary\n");
+        return;
+    }
+
+    struct ioapic_info info = {
+        .id = apic_id,
+        .gsi_base = gsib,
+        .regs_mmio =
+            vmap_mmio(range_create(base, PAGE_SIZE),
+                      PROT_READ | PROT_WRITE,
+                      /*flags=*/0)
+    };
+
+    const uint32_t id_reg = ioapic_read(info.regs_mmio->base, IOAPIC_REG_ID);
+    assert_msg(info.id == ioapic_id_reg_get_id(id_reg),
+               "io-apic ID in MADT doesn't match ID in MMIO");
+
+    const uint32_t ioapic_version_reg =
+        ioapic_read(info.regs_mmio->base, IOAPIC_REG_VERSION);
+
+    info.version = ioapic_version_reg_get_version(ioapic_version_reg);
+    info.max_redirect_count =
+        ioapic_version_reg_get_max_redirect_count(ioapic_version_reg);
+
+    printk(LOGLEVEL_INFO,
+           "ioapic: added ioapic with version: %" PRIu8 " and max "
+           "redirect-count: %" PRIu8 "\n",
+           info.version,
+           info.max_redirect_count);
+
+    assert_msg(array_append(&ioapic_list, &info),
+               "ioapic: failed to add io-apic base to array");
+}
 
 uint32_t
 ioapic_read(volatile struct ioapic_registers *const ioapic_regs,

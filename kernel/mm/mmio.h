@@ -8,6 +8,8 @@
 #include "lib/adt/range.h"
 #include "lib/list.h"
 
+#include "mm/mm_types.h"
+
 struct mmio_region {
     struct list list;
 

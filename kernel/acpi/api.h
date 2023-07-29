@@ -5,37 +5,12 @@
 
 #pragma once
 
-#if defined(__x86_64__)
-    #include "apic/structs.h"
-#elif defined(__riscv) && defined(__LP64__)
+#if defined(__riscv) && defined(__LP64__)
     #include "acpi/extra_structs.h"
 #endif /* defined(__x86_64__) */
 
 #include "acpi/structs.h"
 #include "lib/adt/array.h"
-
-#if defined(__x86_64__)
-    #include "mm/mmio.h"
-
-    struct lapic_info {
-        uint8_t apic_id;
-        uint8_t processor_id;
-
-        bool enabled : 1;
-        bool online_capable : 1;
-    };
-
-    struct ioapic_info {
-        uint8_t id;
-        uint8_t version;
-
-        uint32_t gsi_base;
-        uint8_t max_redirect_count;
-
-        /* gsib = Global System Interrupt Base */
-        struct mmio_region *regs_mmio;
-    };
-#endif /* defined(__x86_64__) */
 
 #if defined(__aarch64__)
     struct acpi_msi_frame {
@@ -67,14 +42,7 @@ struct acpi_info {
     const struct acpi_rhct *rhct;
 #endif /* defined(__riscv) && defined(__LP64__) */
 
-#if defined(__x86_64__)
-    struct mmio_region *lapic_regs;
-
-    // Array of struct lapic_info
-    struct array lapic_list;
-    // Array of struct ioapic_info
-    struct array ioapic_list;
-#elif defined(__aarch64__)
+#if defined(__aarch64__)
     // Array of struct acpi_msi_frame
     struct array msi_frame_list;
 #endif /* defined(__x86_64__) */

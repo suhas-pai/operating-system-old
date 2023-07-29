@@ -4,7 +4,9 @@
  */
 
 #pragma once
-#include <stdint.h>
+
+#include <stdbool.h>
+#include "apic/structs.h"
 
 enum lapic_version_reg_flags {
     F_LAPIC_VERSION_REG_VERION_MASK = 0xFF,
@@ -195,7 +197,18 @@ enum lapic_timer_mode {
     LAPIC_TIMER_MODE_TSC_DEADLINE
 };
 
+struct lapic_info {
+    uint8_t apic_id;
+    uint8_t processor_id;
+
+    bool enabled : 1;
+    bool online_capable : 1;
+};
+
+extern volatile struct lapic_registers *lapic_regs;
+
 void lapic_init();
+void lapic_add(const struct lapic_info *info);
 
 uint32_t lapic_read(enum x2apic_lapic_reg reg);
 void lapic_write(enum x2apic_lapic_reg reg, const uint64_t val);

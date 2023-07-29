@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "lib/macros.h"
+#include "mm/mmio.h"
 
 struct ioapic_registers {
     _Alignas(16) volatile uint32_t selector; /* IOREGSEL */
@@ -51,6 +51,19 @@ enum ioapic_reg {
     IOAPIC_REG_ARBITRATION_ID,
     IOAPIC_REG_REDIRECTION_TABLE_BASE = 0x10,
 };
+
+struct ioapic_info {
+    uint8_t id;
+    uint8_t version;
+
+    uint32_t gsi_base;
+    uint8_t max_redirect_count;
+
+    /* gsib = Global System Interrupt Base */
+    struct mmio_region *regs_mmio;
+};
+
+void ioapic_add(uint8_t apic_id, uint32_t base, uint32_t gsib);
 
 uint32_t
 ioapic_read(volatile struct ioapic_registers *ioapic_regs, enum ioapic_reg reg);

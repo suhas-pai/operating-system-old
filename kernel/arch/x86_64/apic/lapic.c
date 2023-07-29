@@ -14,6 +14,11 @@
 #include "cpu.h"
 #include "lapic.h"
 
+struct mmio_region *lapic_mmio_region = NULL;
+volatile struct lapic_registers *lapic_regs = NULL;
+
+static struct array lapic_list = ARRAY_INIT(sizeof(struct lapic_info));
+
 static inline uint32_t
 setup_timer_register(const enum lapic_timer_mode timer_mode,
                      const bool masked,
@@ -47,9 +52,6 @@ static void calibrate_timer() {
 
     pit_set_reload_value(0xFFFF);
 
-    volatile struct lapic_registers *const lapic_regs =
-        get_acpi_info()->lapic_regs->base;
-
     lapic_regs->timer_current_count = 0;
     lapic_regs->timer_divide_config = LAPIC_TIMER_DIV_CONFIG_BY_2;
     lapic_regs->lvt_timer =
@@ -63,8 +65,8 @@ static void calibrate_timer() {
     /* Because the timer ticks down, init_tick_count > end_tick_count */
     const uint16_t pit_end_tick_number = pit_get_current_tick();
     const uint16_t pit_tick_count = pit_init_tick_number - pit_end_tick_number;
-
     const uint32_t lapic_timer_freq_multiple = sample_count / pit_tick_count;
+
     get_cpu_info_mut()->lapic_timer_frequency =
         lapic_timer_freq_multiple * PIT_FREQUENCY;
 }
@@ -72,7 +74,7 @@ static void calibrate_timer() {
 /******* PUBLIC APIs *******/
 
 uint32_t lapic_read(const enum x2apic_lapic_reg reg) {
-    return read_msr(IA32_MSR_X2APIC_BASE + reg );
+    return read_msr(IA32_MSR_X2APIC_BASE + reg);
 }
 
 void lapic_write(const enum x2apic_lapic_reg reg, const uint64_t value) {
@@ -119,9 +121,6 @@ void lapic_enable() {
         lapic_write(X2APIC_LAPIC_REG_LVT_LINT0, lint0_value);
         lapic_write(X2APIC_LAPIC_REG_LVT_LINT1, lint1_value);
     } else {
-        volatile struct lapic_registers *const lapic_regs =
-            get_acpi_info()->lapic_regs->base;
-
         uint64_t lint0_value = lapic_regs->lvt_lint0;
         uint64_t lint1_value = lapic_regs->lvt_lint1;
 
@@ -145,9 +144,6 @@ void lapic_eoi() {
     if (get_acpi_info()->using_x2apic) {
         lapic_write(X2APIC_LAPIC_REG_EOI, 0);
     } else {
-        volatile struct lapic_registers *const lapic_regs =
-            get_acpi_info()->lapic_regs->base;
-
         lapic_regs->eoi = 0;
     }
 }
@@ -156,9 +152,6 @@ void lapic_send_ipi(const uint32_t lapic_id, const uint32_t vector) {
     if (get_acpi_info()->using_x2apic) {
         lapic_write(X2APIC_LAPIC_REG_ICR, (uint64_t)lapic_id << 32 | vector);
     } else {
-        volatile struct lapic_registers *const lapic_regs =
-            get_acpi_info()->lapic_regs->base;
-
         lapic_regs->icr[1].value = lapic_id << 24;
         lapic_regs->icr[0].value = vector | (1 << 14);
     }
@@ -173,9 +166,6 @@ void lapic_send_self_ipi(const uint32_t vector) {
 }
 
 void lapic_timer_start() {
-    volatile struct lapic_registers *const lapic_regs =
-        get_acpi_info()->lapic_regs->base;
-
     lapic_regs->timer_initial_count = 0xFFFFF;
     lapic_regs->lvt_timer =
         setup_timer_register(LAPIC_TIMER_MODE_PERIODIC,
@@ -184,9 +174,6 @@ void lapic_timer_start() {
 }
 
 void lapic_timer_stop() {
-    volatile struct lapic_registers *const lapic_regs =
-        get_acpi_info()->lapic_regs->base;
-
     lapic_regs->timer_initial_count = 0;
     lapic_regs->lvt_timer =
         setup_timer_register(LAPIC_TIMER_MODE_ONE_SHOT,
@@ -203,9 +190,6 @@ void lapic_timer_one_shot(const uint64_t microseconds) {
     const uint64_t lapic_timer_freq_in_microseconds =
         get_cpu_info()->lapic_timer_frequency / 1000000;
 
-    volatile struct lapic_registers *const lapic_regs =
-        get_acpi_info()->lapic_regs->base;
-
     lapic_regs->timer_initial_count =
         lapic_timer_freq_in_microseconds * microseconds;
     lapic_regs->lvt_timer =
@@ -220,4 +204,36 @@ void lapic_init() {
 
     calibrate_timer();
     lapic_timer_start();
+}
+
+void lapic_add(const struct lapic_info *const lapic_info) {
+    const uint64_t index = array_item_count(lapic_list);
+    if (!lapic_info->enabled) {
+        if (lapic_info->online_capable) {
+            printk(LOGLEVEL_INFO,
+                   "lapic: cpu #%" PRIu64 " (with processor id: %" PRIu8 " and "
+                   "local-apic id: %" PRIu8 ") has flag bit 0 disabled, but "
+                   "CAN be enabled\n",
+                   index,
+                   lapic_info->processor_id,
+                   lapic_info->apic_id);
+        } else {
+            printk(LOGLEVEL_INFO,
+                   "lapic: \tcpu #%" PRIu64 " (with processor id: %" PRIu8
+                   "and local-apic id: %" PRIu8 ") CANNOT be enabled\n",
+                   index,
+                   lapic_info->processor_id,
+                   lapic_info->apic_id);
+        }
+    } else {
+        printk(LOGLEVEL_INFO,
+               "lapic: cpu #%" PRIu64 " (with processor id: %" PRIu8 " and "
+               "local-apic id: %" PRIu8 ") CAN be enabled\n",
+               index,
+               lapic_info->processor_id,
+               lapic_info->apic_id);
+    }
+
+    assert_msg(array_append(&lapic_list, lapic_info),
+               "lapic: failed to add local-apic info to array");
 }
