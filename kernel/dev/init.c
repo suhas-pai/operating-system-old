@@ -5,10 +5,16 @@
 
 #include "acpi/api.h"
 
-#include "dev/pci/pci.h"
+#include "dtb/init.h"
+#include "pci/pci.h"
+
 #include "driver.h"
 
 void serial_init() {
+#if defined(__riscv) && defined(__LP64__)
+    dtb_init_early();
+#endif
+
     driver_foreach(iter) {
         switch (iter->kind) {
             case DRIVER_NONE:
@@ -22,6 +28,7 @@ void serial_init() {
 
 void dev_init() {
     acpi_init();
+    dtb_init();
     pci_init();
 
     driver_foreach(iter) {

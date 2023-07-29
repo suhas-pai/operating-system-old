@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include <limits.h>
 #include <stddef.h>
 
 #include "convert.h"
@@ -633,4 +634,69 @@ signed_to_string_view(int64_t number,
 
     // Buffer + final_index points to the null-terminator, which is the end
     return sv_create_end(&buffer[i], buffer + final_index);
+}
+
+
+unsigned long int strtoul(const char* str, char** endptr, int base) {
+    uint64_t result = 0;
+    struct str_to_num_options options = {
+        .default_base = (enum numeric_base)base,
+        .dont_allow_0A_prefix = true,
+        .dont_allow_0a_prefix = true,
+        .dont_allow_0B_prefix = true,
+        .dont_allow_0b_prefix = true,
+        .dont_allow_0o_prefix = true,
+        .dont_allow_0O_prefix = true,
+    };
+
+    switch (base) {
+        case 0:
+            break;
+        case 8:
+            options.dont_allow_base_2 = true;
+            options.dont_allow_base_10 = true;
+            options.dont_allow_base_16 = true;
+            options.dont_allow_0X_prefix = true;
+            options.dont_allow_0x_prefix = true;
+
+            break;
+        case 10:
+            options.dont_allow_base_2 = true;
+            options.dont_allow_base_8 = true;
+            options.dont_allow_base_16 = true;
+            options.dont_allow_0X_prefix = true;
+            options.dont_allow_0x_prefix = true;
+            options.dont_allow_0o_prefix = true;
+
+            break;
+        case 16:
+            options.dont_allow_base_2 = true;
+            options.dont_allow_base_10 = true;
+            options.dont_allow_base_16 = true;
+            options.dont_allow_0o_prefix = true;
+
+            break;
+        default:
+            options.dont_allow_base_2 = true;
+            options.dont_allow_base_8 = true;
+            options.dont_allow_base_10 = true;
+            options.dont_allow_base_16 = true;
+            options.dont_allow_0X_prefix = true;
+            options.dont_allow_0x_prefix = true;
+            options.dont_allow_0o_prefix = true;
+
+            break;
+    }
+
+    const enum str_to_num_result error =
+        cstr_to_unsigned(str,
+                         options,
+                         (const char **)(uint64_t)endptr,
+                         &result);
+
+    if (error != E_STR_TO_NUM_OK) {
+        return ULONG_MAX;
+    }
+
+    return (unsigned long int)result;
 }

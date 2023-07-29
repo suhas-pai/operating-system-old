@@ -45,7 +45,7 @@ $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
 COMMON_FLAGS = -g3 -pipe -Wno-attributes -Wcast-align -Wcast-qual \
 			   -Wsign-conversion -Werror -Wfloat-equal -Wredundant-decls \
-			   -Wshadow -Wstrict-overflow=5 -Wundef -Wnull-dereference \
+			   -Wshadow -Wstrict-overflow=2 -Wundef -Wnull-dereference \
 			   -funsigned-char -Werror=format-security -I. -I../ \
 			   -Iarch/$(ARCH) -DBUILD_KERNEL -Wno-address-of-packed-member \
 			   -fno-omit-frame-pointer
@@ -171,7 +171,8 @@ LIBFILES += \
 	../lib/refcount.c ../lib/adt/string.c ../lib/time.c \
 	../lib/parse_strftime.c ../lib/adt/mutable_buffer.c \
 	../lib/adt/growable_buffer.c ../lib/string.c ../lib/adt/avltree.c \
-	../lib/adt/array.c
+	../lib/adt/array.c ../lib/math.c ../lib/adt/bitmap.c ../lib/bits.c \
+	../lib/memory.c
 
 override OBJ := $(foreach obj, $(CFILES:./%=%), obj/$(basename $(obj)).o) \
 				$(foreach obj, $(ASFILES:./%=%), obj/$(basename $(obj)).S.o) \

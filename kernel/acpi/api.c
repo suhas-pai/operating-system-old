@@ -79,7 +79,12 @@ static inline void acpi_init_each_sdt(const struct acpi_sdt *const sdt) {
 void acpi_init(void) {
     struct limine_rsdp_response *const response = rsdp_request.response;
     if (response == NULL || response->address == NULL) {
-        panic("ACPI is not supported on this machine");
+    #if !(defined(__riscv) && defined(__LP64__))
+        panic("acpi is not supported on this machine\n");
+    #else
+        printk(LOGLEVEL_WARN, "acpi: does not exist\n");
+        return;
+    #endif /* !(defined(__riscv) && defined(__LP64__)) */
     }
 
 #if defined(__x86_64__)
@@ -118,7 +123,6 @@ void acpi_init(void) {
     if (get_acpi_info()->mcfg != NULL) {
         mcfg_init(get_acpi_info()->mcfg);
     }
-
 }
 
 struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {

@@ -4,6 +4,7 @@
  */
 
 #include "lib/align.h"
+#include "lib/math.h"
 #include "lib/overflow.h"
 #include "lib/util.h"
 
@@ -12,6 +13,11 @@ struct range range_create(const uint64_t front, const uint64_t size) {
         .front = front,
         .size = size
     };
+}
+
+struct range range_create_end(const uint64_t front, const uint64_t end) {
+    assert(front <= end);
+    return range_create(front, (end - front));
 }
 
 struct range range_multiply(const struct range range, const uint64_t mult) {
@@ -42,6 +48,39 @@ range_align_out(const struct range range,
     return true;
 }
 
+bool
+range_round_up(const struct range range,
+               const uint64_t mult,
+               struct range *const result_out)
+{
+    if (!round_up(range.front, mult, &result_out->front)) {
+        return false;
+    }
+
+    if (!round_up(range.size, mult, &result_out->size)) {
+        return false;
+    }
+
+    return true;
+}
+
+bool
+range_round_up_subrange(const struct range range,
+                        const uint64_t mult,
+                        struct range *const result_out)
+{
+    if (!round_up(range.front, mult, &result_out->front)) {
+        return false;
+    }
+
+    if (result_out->front - range.front >= range.size) {
+        return false;
+    }
+
+    result_out->size = range.size - (result_out->front - range.front);
+    return true;
+}
+
 bool range_has_index(const struct range range, const uint64_t index) {
     return index_in_bounds(index, range.size);
 }
@@ -64,6 +103,10 @@ bool range_above(const struct range range, const struct range above) {
 
 bool range_below(const struct range range, const struct range below) {
     return range_is_loc_below(range, below.front);
+}
+
+bool range_empty(const struct range range) {
+    return range.size == 0;
 }
 
 bool range_is_loc_above(const struct range range, const uint64_t loc) {

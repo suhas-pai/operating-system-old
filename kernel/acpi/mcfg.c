@@ -12,7 +12,6 @@
 #include "mm/vma.h"
 
 #include "mcfg.h"
-#include "mm/walker.h"
 
 void mcfg_init(const struct acpi_mcfg *const mcfg) {
     const uint32_t length = mcfg->sdt.length - sizeof(*mcfg);

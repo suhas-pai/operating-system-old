@@ -69,4 +69,17 @@
 #define distance_incl(begin, end) (distance(begin, end) + 1)
 
 #define RAND_VAR_NAME() VAR_CONCAT(__random__, __LINE__)
-#define sizeof_bits(n) (sizeof(n) * 8)
+
+#define bits_to_bytes_roundup(bits) (((bits) % 8) ? (((bits) / 8) + 1) : ((bits) / 8))
+#define bits_to_bytes_noround(bits) ((bits) / 8)
+#define bytes_to_bits(bits) ((bits) * 8)
+
+#define sizeof_bits(n) bytes_to_bits(sizeof(n))
+#define mask_for_n_bits(n) ((1ull << (n)) - 1)
+#define set_bits_for_mask(ptr, mask, value) ({ \
+    if (value) {                         \
+        *(ptr) |= (mask);                \
+    } else {                             \
+        *(ptr) &= (typeof(mask))~(mask); \
+    }                                    \
+})

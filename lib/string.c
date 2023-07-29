@@ -4,6 +4,8 @@
  */
 
 #include <stdint.h>
+
+#include "macros.h"
 #include "string.h"
 
 #if !defined(BUILD_TEST) && !defined(BUILD_KERNEL)
@@ -64,3 +66,44 @@ char *strchr(const char *const str, const int ch) {
 }
 
 #endif /* !defined(BUILD_TEST) */
+
+__optimize(3) void *memset_all_ones(void *dst, unsigned long n) {
+    void *ret = dst;
+
+#if defined(__x86_64__)
+    if (n >= 64) {
+        asm volatile ("rep stosb" :: "D"(dst), "al"(UINT8_MAX), "c"(n) : "memory");
+        return ret;
+    }
+#endif
+
+    while (n >= sizeof(uint64_t)) {
+        *(uint64_t *)dst = UINT64_MAX;
+
+        dst += sizeof(uint64_t);
+        n -= sizeof(uint64_t);
+    }
+
+    while (n >= sizeof(uint32_t)) {
+        *(uint32_t *)dst = UINT32_MAX;
+
+        dst += sizeof(uint32_t);
+        n -= sizeof(uint32_t);
+    }
+
+    while (n >= sizeof(uint16_t)) {
+        *(uint16_t *)dst = UINT16_MAX;
+
+        dst += sizeof(uint16_t);
+        n -= sizeof(uint16_t);
+    }
+
+    while (n >= sizeof(uint8_t)) {
+        *(uint8_t *)dst = UINT8_MAX;
+
+        dst += sizeof(uint8_t);
+        n -= sizeof(uint8_t);
+    }
+
+    return ret;
+}

@@ -14,6 +14,7 @@
     size_t strnlen(const char *str, size_t length);
 
     char *strchr(const char *str, int ch);
+    char *strrchr(const char *str, int ch);
 
     int strcmp(const char *str1, const char *str2);
     int strncmp(const char *str1, const char *str2, size_t length);
@@ -25,9 +26,13 @@
     void *memcpy(void *dst, const void *src, unsigned long n);
     void *memset(void *dst, int val, unsigned long n);
     void *memmove(void *dst, const void *src, unsigned long n);
+    void *memchr(const void *ptr, int ch, size_t count);
 
     void bzero(void *dst, unsigned long n);
+    unsigned long int strtoul(const char* str, char** endptr, int base);
 #else
     #include <stdlib.h>
     #include <string.h>
 #endif /* defined(BUILD_TEST) */
+
+void *memset_all_ones(void *dst, unsigned long n);

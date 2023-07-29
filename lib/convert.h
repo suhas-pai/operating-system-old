@@ -72,6 +72,18 @@ cstr_to_signed(const char *c_str,
                const char **end_out,
                int64_t *result_out);
 
+enum str_to_num_result
+sv_to_unsigned(struct string_view sv,
+               struct str_to_num_options options,
+               struct string_view *end_out,
+               uint64_t *result_out);
+
+enum str_to_num_result
+sv_to_signed(struct string_view sv,
+             struct str_to_num_options options,
+             struct string_view *end_out,
+             int64_t *result_out);
+
 #define MAX_BINARY_CONVERT_CAP 68
 #define MAX_OCTAL_CONVERT_CAP 26
 #define MAX_DECIMAL_CONVERT_CAP 22

@@ -47,3 +47,51 @@ memset_64(uint64_t *const buf, const uint64_t count, const uint64_t c) {
 
     return buf;
 }
+
+__optimize(3) bool
+membuf_8_is_all(uint8_t *const buf, const uint64_t count, const uint8_t c) {
+    const uint8_t *const end = buf + count;
+    for (uint8_t *iter = buf; iter != end; iter++) {
+        if (*iter != c) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+__optimize(3) bool
+membuf_16_is_all(uint16_t *const buf, const uint64_t count, const uint16_t c) {
+    const uint16_t *const end = buf + count;
+    for (uint16_t *iter = buf; iter != end; iter++) {
+        if (*iter != c) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+__optimize(3) bool
+membuf_32_is_all(uint32_t *const buf, const uint64_t count, const uint32_t c) {
+    const uint32_t *const end = buf + count;
+    for (uint32_t *iter = buf; iter != end; iter++) {
+        if (*iter != c) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+__optimize(3) bool
+membuf_64_is_all(uint64_t *const buf, const uint64_t count, const uint64_t c) {
+    const uint64_t *const end = buf + count;
+    for (uint64_t *iter = buf; iter != end; iter++) {
+        if (*iter != c) {
+            return false;
+        }
+    }
+
+    return true;
+}

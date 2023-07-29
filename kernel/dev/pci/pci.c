@@ -13,6 +13,7 @@
 #include "mm/mm_types.h"
 
 #include "port.h"
+#include "structs.h"
 
 static struct list group_list = LIST_INIT(group_list);
 static uint64_t group_count = 0;
@@ -356,10 +357,12 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
 
         volatile struct pci_spec_capability *const capability =
             reg_to_ptr(volatile struct pci_spec_capability,
-                       dev->pcie_msi,
+                       dev->pcie_info,
                        cap_offset);
 
         const uint8_t id = read_cap_field(id);
+        const char *kind = "unknown";
+
         switch (id) {
             case PCI_SPEC_CAP_ID_MSI:
                 if (dev->msi_support == PCI_DEVICE_MSI_SUPPORT_MSIX) {
@@ -369,18 +372,38 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 dev->msi_support = PCI_DEVICE_MSI_SUPPORT_MSI;
                 dev->pcie_msi = (volatile struct pci_spec_cap_msi *)capability;
 
+                kind = "msi";
                 break;
             case PCI_SPEC_CAP_ID_MSI_X:
                 dev->msi_support = PCI_DEVICE_MSI_SUPPORT_MSIX;
                 dev->pcie_msix =
                     (volatile struct pci_spec_cap_msix *)capability;
 
+                const uint16_t msg_control = dev->pcie_msix->msg_control;
+                const uint16_t bitmap_size =
+                    (msg_control & __PCI_CAPMSIX_TABLE_SIZE_MASK) + 1;
+
+                struct bitmap bitmap = bitmap_alloc(bitmap_size);
+                if (bitmap.gbuffer.begin == NULL) {
+                    printk(LOGLEVEL_WARN,
+                            "pcie: failed to allocate msix table "
+                            "(size: %" PRIu16 " bytes). disabling "
+                            "msix\n",
+                            bitmap_size);
+                    break;
+                }
+
+                dev->msi_support = PCI_DEVICE_MSI_SUPPORT_MSIX;
+                dev->msix_table = bitmap;
+
+                kind = "msix";
                 break;
         }
 
         printk(LOGLEVEL_INFO,
-               "\t\tfound capability: %" PRIu8 " at offset "
+               "\t\tfound capability: %s (id: %" PRIu8 ") at offset "
                "0x%" PRIx8 "\n",
+               kind,
                id,
                cap_offset);
 
@@ -742,12 +765,6 @@ pci_write(const struct pci_device_info *dev,
           uint8_t access_size);
 
 void pci_init() {
-#if defined(__riscv) && defined(__LP64__)
-    pci_group_create_pcie(range_create(0, 255),
-                          /*base_addr=*/0x30000000,
-                          /*segment=*/0);
-#endif /* defined(__riscv) && defined(__LP64__) */
-
     if (list_empty(&group_list)) {
         struct pci_group *const root_group = kmalloc(sizeof(*root_group));
         assert_msg(root_group != NULL, "failed to allocate pci root group");

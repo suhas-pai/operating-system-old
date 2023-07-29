@@ -8,38 +8,38 @@
 
 static inline uint64_t read_cr0() {
     uint64_t cr0 = 0;
-    asm volatile ("mov %%cr0, %%rax" : "=a"(cr0));
+    asm volatile ("mov %%cr0, %0" : "=r"(cr0));
 
     return cr0;
 }
 
 static inline uint64_t read_cr2() {
     uint64_t cr2 = 0;
-    asm volatile ("mov %%cr2, %%rax" : "=a"(cr2));
+    asm volatile ("mov %%cr2, %0" : "=r"(cr2));
 
     return cr2;
 }
 
 static inline uint64_t read_cr3() {
     uint64_t cr3 = 0;
-    asm volatile ("mov %%cr3, %%rax" : "=a"(cr3));
+    asm volatile ("mov %%cr3, %0" : "=r"(cr3));
 
     return cr3;
 }
 
 static inline uint64_t read_cr4() {
     uint64_t cr4 = 0;
-    asm volatile ("mov %%cr4, %%rax" : "=a"(cr4));
+    asm volatile ("mov %%cr4, %0" : "=r"(cr4));
 
     return cr4;
 }
 
 static inline void write_cr0(const uint64_t cr0) {
-    asm volatile ("mov %%rax, %%cr0" :: "a"(cr0) : "memory");
+    asm volatile ("mov %0, %%cr0" :: "r"(cr0) : "memory");
 }
 
 static inline void write_cr2(const uint64_t cr2) {
-    asm volatile ("mov %%rax, %%cr2" :: "a"(cr2) : "memory");
+    asm volatile ("mov %0, %%cr2" :: "r"(cr2) : "memory");
 }
 
 static inline void write_cr3(const uint64_t cr3) {

@@ -85,7 +85,7 @@ uint64_t early_alloc_page() {
 uint64_t early_alloc_cont_pages(const uint32_t amount) {
     if (list_empty(&freepages_list)) {
         printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
-        return 0;
+        return INVALID_PHYS;
     }
 
     struct freepages_info *info = NULL;
@@ -116,7 +116,7 @@ uint64_t early_alloc_cont_pages(const uint32_t amount) {
     }
 
     if (free_page == INVALID_PHYS) {
-        return 0;
+        return INVALID_PHYS;
     }
 
     if (is_in_middle) {

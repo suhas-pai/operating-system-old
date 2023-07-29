@@ -10,7 +10,8 @@ override CFILES += \
 	../lib/adt/avltree.c ../lib/adt/string.c ../lib/time.c \
 	../lib/parse_strftime.c ../lib/adt/mutable_buffer.c \
 	../lib/adt/growable_buffer.c ../lib/string.c ../lib/align.c \
-	../lib/strftime.c
+	../lib/strftime.c ../lib/adt/bitmap.c ../lib/math.c ../lib/bits.c \
+	../lib/memory.c
 
 override OBJ := $(foreach obj, $(CFILES:./%=%), obj/$(basename $(subst ../,,$(obj))).o) \
 				$(foreach obj, $(CPPFILES:./%=%), obj/$(basename $(obj)).cpp.o) \

@@ -42,7 +42,7 @@ int strncmp(const char *str1, const char *const str2, size_t length) {
     const char *jter = str2;
 
     char ch = *iter, jch = *jter;
-    for (size_t i = 0; i != length; i++) {
+    for (size_t i = 0; i != length; i++, ch = iter[i], jch = jter[i]) {
         if (ch == '\0' || jch == '\0') {
             break;
         }
@@ -62,6 +62,20 @@ char *strchr(const char *const str, const int ch) {
     }
 
     return NULL;
+}
+
+char *strrchr(const char *const str, const int ch) {
+    char *result = NULL;
+    c_string_foreach (str, iter) {
+        if (*iter == ch) {
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wcast-qual"
+            result = (char *)iter;
+        #pragma GCC diagnostic pop
+        }
+    }
+
+    return result;
 }
 
 // TODO: Fix
@@ -284,6 +298,18 @@ void *memset(void *const dst, const int val, const unsigned long n) {
 #endif /* defined(__x86_64__) */
 
     return dst;
+}
+
+__optimize(3)
+void *memchr(const void *const ptr, const int ch, const size_t count) {
+    const uint8_t *const end = ptr + count;
+    for (const uint8_t *iter = (const uint8_t *)ptr; iter != end; iter++) {
+        if (*iter == ch) {
+            return (void *)(uint64_t)iter;
+        }
+    }
+
+    return NULL;
 }
 
 __optimize(3) void bzero(void *dst, unsigned long n) {

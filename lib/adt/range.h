@@ -28,8 +28,18 @@ struct range {
 #define range_create_max() ((struct range){ .front = 0, .size = UINT64_MAX })
 
 struct range range_create(uint64_t front, uint64_t size);
+struct range range_create_end(uint64_t front, uint64_t size);
+
 struct range range_multiply(struct range range, uint64_t mult);
 struct range range_align_in(struct range range, uint64_t boundary);
+
+bool
+range_round_up(struct range range, uint64_t mult, struct range *result_out);
+
+bool
+range_round_up_subrange(struct range range,
+                        uint64_t mult,
+                        struct range *result_out);
 
 bool
 range_align_out(struct range range, uint64_t boundary, struct range *range_out);
@@ -41,6 +51,7 @@ bool range_get_end(struct range range, uint64_t *end_out);
 
 bool range_above(struct range range, struct range above);
 bool range_below(struct range range, struct range below);
+bool range_empty(struct range range);
 
 bool range_is_loc_above(struct range range, uint64_t index);
 bool range_is_loc_below(struct range range, uint64_t index);

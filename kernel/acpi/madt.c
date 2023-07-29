@@ -12,7 +12,6 @@
 #endif /* defined(__x86_64__) */
 
 #include "dev/printk.h"
-
 #include "lib/align.h"
 
 #include "mm/page.h"
