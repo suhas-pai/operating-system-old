@@ -6,6 +6,8 @@
 #include "dev/pci/pci.h"
 #include "dev/uart/8250.h"
 
+#include "dev/driver.h"
+#include "dev/printk.h"
 #include "fdt/libfdt.h"
 
 #include "dtb.h"
@@ -17,48 +19,40 @@ static volatile struct limine_dtb_request dtb_request = {
     .response = NULL
 };
 
-#if defined(__riscv) && defined(__LP64__)
-    static void init_riscv_serial_drivers(const void *const dtb) {
-        extern struct uart_driver uart8250_serial;
-        const int serial_offset =
-            fdt_node_offset_by_compatible(dtb, -1, "ns16550a");
+static void init_serial_device(const void *const dtb, const int nodeoff) {
+    struct dtb_addr_size_pair base_addr_reg = {0};
+    uint32_t pair_count = 1;
 
-        if (serial_offset < 0) {
-            panic("dtb: serial \"ns16550a\" node is not found");
-        }
+    const bool get_base_addr_reg_result =
+        dtb_get_reg_pairs(dtb,
+                          nodeoff,
+                          /*start_index=*/0,
+                          &pair_count,
+                          &base_addr_reg);
 
-        struct dtb_addr_size_pair base_addr_reg = {0};
-        uint32_t pair_count = 1;
-
-        const bool get_base_addr_reg_result =
-            dtb_get_reg_pairs(dtb,
-                              serial_offset,
-                              /*start_index=*/0,
-                              &pair_count,
-                              &base_addr_reg);
-
-        if (!get_base_addr_reg_result) {
-            panic("dtb: base-addr reg of 'reg' property of serial node is "
-                  "malformed\n");
-        }
-
-        struct string_view clock_freq_string = {};
-        const bool get_clock_freq_result =
-            dtb_get_string_prop(dtb,
-                                serial_offset,
-                                "clock-frequency",
-                                &clock_freq_string);
-
-        if (!get_clock_freq_result) {
-            panic("dtb: clock-frequency property of serial node is missing or "
-                  "malformed");
-        }
-
-        uart8250_serial.base = (port_t)base_addr_reg.address;
-        ((struct uart8250_info *)uart8250_serial.extra_info)->in_freq =
-            *(uint32_t *)(uint64_t)clock_freq_string.begin;
+    if (!get_base_addr_reg_result) {
+        panic("dtb: base-addr reg of 'reg' property of serial node is "
+                "malformed\n");
     }
-#endif /* defined(__riscv) && defined(__LP64__) */
+
+    struct string_view clock_freq_string = {};
+    const bool get_clock_freq_result =
+        dtb_get_string_prop(dtb,
+                            nodeoff,
+                            "clock-frequency",
+                            &clock_freq_string);
+
+    if (!get_clock_freq_result) {
+        panic("dtb: clock-frequency property of serial node is missing or "
+                "malformed");
+    }
+
+    uart8250_init((port_t)base_addr_reg.address,
+                  /*baudrate=*/115200,
+                  /*in_freq=*/*(uint32_t *)(uint64_t)clock_freq_string.begin,
+                  /*reg_width=*/sizeof(uint8_t),
+                  /*reg_shift=*/0);
+}
 
 static void init_pci_node(const void *const dtb, const int pci_offset) {
     struct string_view device_type = {};
@@ -114,8 +108,7 @@ static void init_pci_node(const void *const dtb, const int pci_offset) {
 
     if (!get_domain_result) {
         printk(LOGLEVEL_INFO,
-               "dtb: domain property of pci node is missing or "
-               "malformed\n");
+               "dtb: domain property of pci node is missing or malformed\n");
         return;
     }
 
@@ -152,14 +145,22 @@ static void init_pci_node(const void *const dtb, const int pci_offset) {
 }
 
 static void init_pci_drivers(const void *const dtb) {
-    for_each_dtb_compat(offset, "pci-host-ecam-generic") {
+    for_each_dtb_compat(dtb, offset, "pci-host-ecam-generic") {
         init_pci_node(dtb, offset);
     }
 
-    for_each_dtb_compat(offset, "pci-host-cam-generic") {
+    for_each_dtb_compat(dtb, offset, "pci-host-cam-generic") {
         init_pci_node(dtb, offset);
     }
 }
+
+#if defined(__riscv) && defined(__LP64__)
+    static void init_riscv_serial_devices(const void *const dtb) {
+        for_each_dtb_compat(dtb, offset, "ns16550a") {
+            init_serial_device(dtb, offset);
+        }
+    }
+#endif /* defined(__riscv) && defined(__LP64__) */
 
 void dtb_init_early() {
     if (dtb_request.response == NULL) {
@@ -173,10 +174,28 @@ void dtb_init_early() {
 
 #if defined(__riscv) && defined(__LP64__)
     const void *const dtb = dtb_request.response->dtb_ptr;
-    init_riscv_serial_drivers(dtb);
+    init_riscv_serial_devices(dtb);
 #endif /* defined(__riscv) && defined(__LP64__) */
 
-    printk(LOGLEVEL_INFO, "dtb: finished early init");
+    printk(LOGLEVEL_INFO, "dtb: finished early init\n");
+}
+
+void
+dtb_init_nodes_for_driver(const void *const dtb,
+                          struct dtb_driver *const driver)
+{
+    for (uint32_t i = 0; i != driver->compat_count; i++) {
+        const char *const compat = driver->compat_list[i];
+    #if defined(__riscv) && defined(__LP64__)
+        if (strcmp(compat, "ns16550a") == 0) {
+            continue;
+        }
+    #endif /* defined(__riscv) && defined(__LP64__) */
+
+        for_each_dtb_compat(dtb, offset, compat) {
+            init_serial_device(dtb, offset);
+        }
+    }
 }
 
 void dtb_init() {
@@ -192,5 +211,11 @@ void dtb_init() {
     const void *const dtb = dtb_request.response->dtb_ptr;
     init_pci_drivers(dtb);
 
-    printk(LOGLEVEL_INFO, "dtb: finished initializing");
+    driver_foreach(driver) {
+        if (driver->dtb != NULL) {
+            dtb_init_nodes_for_driver(dtb, driver->dtb);
+        }
+    }
+
+    printk(LOGLEVEL_INFO, "dtb: finished initializing\n");
 }

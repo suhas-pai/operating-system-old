@@ -45,8 +45,8 @@ void apic_init(const uint64_t local_apic_base) {
                "apic: failed to mmio-map local-apic registers");
 
     lapic_regs = lapic_mmio_region->base;
-
     pic_disable();
+
     printk(LOGLEVEL_INFO, "apic: local apic id: %x\n", lapic_regs->id);
     printk(LOGLEVEL_INFO,
            "apic: local apic version reg: %" PRIx32 ", version: %" PRIu32 "\n",

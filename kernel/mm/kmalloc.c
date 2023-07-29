@@ -10,21 +10,28 @@
 #include "kmalloc.h"
 
 static struct slab_allocator kmalloc_slabs[13] = {0};
+static bool kmalloc_is_initialized = false;
+
+bool kmalloc_initialized() {
+    return kmalloc_is_initialized;
+}
 
 void kmalloc_init() {
-    slab_allocator_init(&kmalloc_slabs[0], 16, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[1], 32, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[2], 64, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[3], 96, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[4], 128, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[5], 192, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[6], 256, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[7], 384, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[8], 512, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[9], 768, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[10], 1024, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[11], 1536, /*alloc_flags=*/0);
-    slab_allocator_init(&kmalloc_slabs[12], 2048, /*alloc_flags=*/0);
+    assert(slab_allocator_init(&kmalloc_slabs[0], 16, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[1], 32, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[2], 64, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[3], 96, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[4], 128, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[5], 192, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[6], 256, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[7], 384, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[8], 512, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[9], 768, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[10], 1024, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[11], 1536, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&kmalloc_slabs[12], 2048, /*alloc_flags=*/0));
+
+    kmalloc_is_initialized = true;
 }
 
 void *kmalloc(const uint64_t size) {

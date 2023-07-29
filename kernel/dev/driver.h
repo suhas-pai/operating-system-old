@@ -4,18 +4,13 @@
  */
 
 #pragma once
-#include "kernel/dev/uart/driver.h"
 
-enum driver_kind {
-    DRIVER_NONE,
-    DRIVER_UART,
-};
+#include "dtb/driver.h"
+#include "pci/driver.h"
 
 struct driver {
-    enum driver_kind kind;
-    union {
-        struct uart_driver *uart_dev;
-    };
+    struct dtb_driver *dtb;
+    struct pci_driver *pci;
 };
 
 extern struct driver drivers_start;
@@ -26,6 +21,4 @@ extern struct driver drivers_end;
          iter < &drivers_end;                  \
          iter++)                               \
 
-#define EXPORT_UART_DRIVER(drv) \
-    __attribute__((used, section(".drivers"))) \
-    static struct driver __##drv = { .kind = DRIVER_UART, .uart_dev = &drv }
+#define __driver __attribute__((used, section(".drivers")))

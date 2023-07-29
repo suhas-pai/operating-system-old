@@ -4,19 +4,12 @@
  */
 
 #include "dev/uart/8250.h"
-#include "dev/driver.h"
+#include "com1.h"
 
-struct uart_driver com1_serial = {
-    .base = 0x3f8,
-    .baudrate = 38400,
-
-    .init = uart8250_init,
-    .extra_info = &(struct uart8250_info) {
-        .lock = SPINLOCK_INIT(),
-        .in_freq = 1536000,
-        .reg_shift = 0,
-        .reg_width = 1
-    }
-};
-
-EXPORT_UART_DRIVER(com1_serial);
+void com1_init() {
+    uart8250_init((port_t)0x3f8,
+                  /*baudrate=*/115200,
+                  /*in_freq=*/0,
+                  /*reg_width=*/sizeof(uint8_t),
+                  /*reg_shift=*/1);
+}

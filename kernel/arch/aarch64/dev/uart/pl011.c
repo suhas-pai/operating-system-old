@@ -3,7 +3,11 @@
  * © suhas pai
  */
 
-#include "dev/driver.h"
+#include "cpu/spinlock.h"
+#include "dev/printk.h"
+#include "mm/kmalloc.h"
+
+#include "pl011.h"
 
 struct pl011_device {
     volatile uint32_t dr_offset;
@@ -43,7 +47,18 @@ static const uint32_t LCR_STP2 = 1 << 3;
 
 #define MAX_ATTEMPTS 10
 
-static void wait_tx_complete(const struct pl011_device *const dev) {
+struct pl011_device_info {
+    struct terminal term;
+    struct spinlock lock;
+
+    volatile struct pl011_device *device;
+};
+
+// for use when initializing serial before mm/kmalloc
+static struct pl011_device_info early_infos[64] = {};
+static uint16_t early_info_count = 0;
+
+static void wait_tx_complete(volatile const struct pl011_device *const dev) {
     for (uint64_t i = 0; i != MAX_ATTEMPTS; i++) {
         if ((dev->fr_offset & FR_BUSY) == 0) {
             return;
@@ -56,8 +71,8 @@ pl011_send_char(struct terminal *const term,
                 const char ch,
                 const uint32_t amount)
 {
-    struct uart_driver *const uart = (struct uart_driver *)term;
-    struct pl011_device *const device = uart->device;
+    struct pl011_device_info *const info = (struct pl011_device_info *)term;
+    volatile struct pl011_device *const device = info->device;
 
     wait_tx_complete(device);
     if (ch == '\n') {
@@ -78,8 +93,8 @@ pl011_send_char(struct terminal *const term,
 
 static void
 pl011_send_sv(struct terminal *const term, const struct string_view sv) {
-    struct uart_driver *const uart = (struct uart_driver *)term;
-    struct pl011_device *const device = uart->device;
+    struct pl011_device_info *const info = (struct pl011_device_info *)term;
+    volatile struct pl011_device *const device = info->device;
 
     wait_tx_complete(device);
     sv_foreach(sv, iter) {
@@ -94,8 +109,33 @@ pl011_send_sv(struct terminal *const term, const struct string_view sv) {
     }
 }
 
-static void pl011_reset(const struct uart_driver *const uart) {
-    struct pl011_device *const device = uart->device;
+#define PL011_BASE_CLOCK 0x16e3600
+
+void
+pl011_init(const port_t base,
+           const uint32_t baudrate,
+           const uint32_t data_bits,
+           const uint32_t stop_bits)
+{
+    struct pl011_device_info *info = NULL;
+    if (kmalloc_initialized()) {
+        info = kmalloc(sizeof(*info));
+        if (info == NULL) {
+            printk(LOGLEVEL_WARN, "pl011: failed to alloc info\n");
+            return;
+        }
+    } else {
+        if (early_info_count == countof(early_infos)) {
+            printk(LOGLEVEL_WARN, "pl011: exhausted early-infos struct\n");
+            return;
+        }
+
+        info = &early_infos[early_info_count];
+        early_info_count++;
+    }
+
+    volatile struct pl011_device *const device =
+        (volatile struct pl011_device *)base;
 
     uint32_t cr = device->cr_offset;
     uint32_t lcr = device->lcr_offset;
@@ -110,10 +150,10 @@ static void pl011_reset(const struct uart_driver *const uart) {
     device->lcr_offset = (lcr & ~LCR_FEN);
 
     // Set frequency divisors (UARTIBRD and UARTFBRD) to configure the speed
-    uint32_t ibrd = 0;
-    uint32_t fbrd = 0;
+    const uint32_t div = 4 * PL011_BASE_CLOCK / baudrate;
 
-    uart_calculate_divisors(uart, &ibrd, &fbrd);
+    uint32_t ibrd = div & 0x3f;
+    uint32_t fbrd = (div >> 6) & 0xffff;
 
     device->ibrd_offset = ibrd;
     device->fbrd_offset = fbrd;
@@ -124,10 +164,10 @@ static void pl011_reset(const struct uart_driver *const uart) {
     lcr = 0x0;
     // WLEN part of UARTLCR_H, you can check that this calculation does the
     // right thing for yourself
-    lcr |= ((uart->data_bits - 1) & 0x3) << 5;
+    lcr |= ((data_bits - 1) & 0x3) << 5;
 
     // Configure the number of stop bits
-    if (uart->stop_bits == 2) {
+    if (stop_bits == 2) {
         lcr |= LCR_STP2;
     }
 
@@ -142,25 +182,10 @@ static void pl011_reset(const struct uart_driver *const uart) {
 
     // Finally enable UART
     device->cr_offset = CR_TXEN | CR_UARTEN;
+
+    info->device = device;
+    info->term.emit_ch = pl011_send_char,
+    info->term.emit_sv = pl011_send_sv,
+
+    printk_add_terminal(&info->term);
 }
-
-static bool pl011_init(struct uart_driver *const uart) {
-    uart->device = (void *)(uint64_t)uart->base;
-    uart->base_clock = 0x16e3600;
-
-    pl011_reset(uart);
-    return true;
-}
-
-struct uart_driver pl011_serial = {
-    .term.emit_ch = pl011_send_char,
-    .term.emit_sv = pl011_send_sv,
-
-    .base = (port_t)0x9000000,
-    .baudrate = 115200,
-    .data_bits = 8,
-    .stop_bits = 1,
-    .init = pl011_init,
-};
-
-EXPORT_UART_DRIVER(pl011_serial);

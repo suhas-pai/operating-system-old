@@ -8,10 +8,10 @@
 #include "lib/adt/string_view.h"
 #include "fdt/libfdt_env.h"
 
-#define for_each_dtb_compat(offset, name) \
-    for (int offset = fdt_node_offset_by_compatible(dtb, -1, name); \
+#define for_each_dtb_compat(dtb, offset, name) \
+    for (int offset = fdt_node_offset_by_compatible((dtb), -1, (name)); \
          offset >= 0; \
-         offset = fdt_node_offset_by_compatible(dtb, offset, name))
+         offset = fdt_node_offset_by_compatible((dtb), offset, (name)))
 
 bool
 dtb_get_string_prop(const void *dtb,

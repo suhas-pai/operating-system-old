@@ -3,6 +3,13 @@
  * © suhas pai
  */
 
+#include "dev/dtb/dtb.h"
+#include "cpu/spinlock.h"
+
+#include "dev/driver.h"
+#include "dev/printk.h"
+
+#include "mm/kmalloc.h"
 #include "8250.h"
 
 #define UART_RBR_OFFSET 0  /* In:  Recieve Buffer Register */
@@ -28,6 +35,21 @@
 #define UART_LSR_OE 0x02    /* Overrun error indicator */
 #define UART_LSR_DR 0x01    /* Receiver data ready */
 #define UART_LSR_BRK_ERROR_BITS 0x1E    /* BI, FE, PE, OE bits */
+
+struct uart8250_info {
+    struct terminal term;
+    struct spinlock lock;
+
+    port_t base;
+
+    uint32_t in_freq;
+    uint32_t reg_width;
+    uint32_t reg_shift;
+};
+
+// for use when initializing serial before mm/kmalloc
+static struct uart8250_info early_infos[64] = {};
+static uint16_t early_info_count = 0;
 
 static inline uint32_t
 get_reg(const port_t uart8250_base,
@@ -89,13 +111,11 @@ uart8250_send_char(struct terminal *const term,
                    const char ch,
                    const uint32_t amount)
 {
-    struct uart_driver *const driver = (struct uart_driver *)term;
-    struct uart8250_info *const info =
-        (struct uart8250_info *)driver->extra_info;
-
+    struct uart8250_info *const info = (struct uart8250_info *)term;
     const bool flag = spin_acquire_with_irq(&info->lock);
+
     for (uint32_t i = 0; i != amount; i++) {
-        uart8250_putc(driver->base, info, ch);
+        uart8250_putc(info->base, info, ch);
     }
 
     spin_release_with_irq(&info->lock, flag);
@@ -103,56 +123,125 @@ uart8250_send_char(struct terminal *const term,
 
 static void
 uart8250_send_sv(struct terminal *const term, const struct string_view sv) {
-    struct uart_driver *const driver = (struct uart_driver *)term;
-    struct uart8250_info *const info =
-        (struct uart8250_info *)driver->extra_info;
-
+    struct uart8250_info *const info = (struct uart8250_info *)term;
     const bool flag = spin_acquire_with_irq(&info->lock);
+
     sv_foreach(sv, iter) {
-        uart8250_putc(driver->base, info, *iter);
+        uart8250_putc(info->base, info, *iter);
     }
 
     spin_release_with_irq(&info->lock, flag);
 }
 
-bool uart8250_init(struct uart_driver *const driver) {
-    driver->term.emit_ch = uart8250_send_char,
-    driver->term.emit_sv = uart8250_send_sv,
-    driver->data_bits = 8;
-    driver->stop_bits = 1;
-
-    struct uart8250_info *const info =
-        (struct uart8250_info *)driver->extra_info;
-
+bool
+uart8250_init(const port_t base,
+              const uint32_t baudrate,
+              const uint32_t in_freq,
+              const uint8_t reg_width,
+              const uint8_t reg_shift)
+{
     uint16_t bdiv = 0;
-    if (driver->baudrate != 0) {
-        bdiv =
-            (info->in_freq + 8 * driver->baudrate) / (16 * driver->baudrate);
+    if (baudrate != 0) {
+        bdiv = (in_freq + 8 * baudrate) / (16 * baudrate);
     }
 
+    struct uart8250_info *info = NULL;
+    if (kmalloc_initialized()) {
+        info = kmalloc(sizeof(*info));
+        if (info == NULL) {
+            printk(LOGLEVEL_WARN, "uart8250: failed to alloc info\n");
+            return false;
+        }
+    } else {
+        if (early_info_count == countof(early_infos)) {
+            printk(LOGLEVEL_WARN, "uart8250: exhausted early-infos struct\n");
+            return false;
+        }
+
+        info = &early_infos[early_info_count];
+        early_info_count++;
+    }
+
+    info->base = base;
+    info->in_freq = in_freq;
+
+    info->reg_width = reg_width;
+    info->reg_shift = reg_shift;
+
     /* Disable all interrupts */
-    set_reg(driver->base, info, UART_IER_OFFSET, 0x00);
+    set_reg(base, info, UART_IER_OFFSET, 0x00);
     /* Enable DLAB */
-    set_reg(driver->base, info, UART_LCR_OFFSET, 0x80);
+    set_reg(base, info, UART_LCR_OFFSET, 0x80);
 
     if (bdiv != 0) {
         /* Set divisor low byte */
-        set_reg(driver->base, info, UART_DLL_OFFSET, bdiv & 0xff);
+        set_reg(base, info, UART_DLL_OFFSET, bdiv & 0xff);
         /* Set divisor high byte */
-        set_reg(driver->base, info, UART_DLM_OFFSET, (bdiv >> 8) & 0xff);
+        set_reg(base, info, UART_DLM_OFFSET, (bdiv >> 8) & 0xff);
     }
 
     /* 8 bits, no parity, one stop bit */
-    set_reg(driver->base, info, UART_LCR_OFFSET, 0x03);
+    set_reg(base, info, UART_LCR_OFFSET, 0x03);
     /* Enable FIFO */
-    set_reg(driver->base, info, UART_FCR_OFFSET, 0x01);
+    set_reg(base, info, UART_FCR_OFFSET, 0x01);
     /* No modem control DTR RTS */
-    set_reg(driver->base, info, UART_MCR_OFFSET, 0x00);
+    set_reg(base, info, UART_MCR_OFFSET, 0x00);
     /* Clear line status */
-    get_reg(driver->base, info, UART_LSR_OFFSET);
+    get_reg(base, info, UART_LSR_OFFSET);
     /* Read receive buffer */
-    get_reg(driver->base, info, UART_RBR_OFFSET);
+    get_reg(base, info, UART_RBR_OFFSET);
     /* Set scratchpad */
-    set_reg(driver->base, info, UART_SCR_OFFSET, 0x00);
+    set_reg(base, info, UART_SCR_OFFSET, 0x00);
+
+    spinlock_init(&info->lock);
+
+    info->term.emit_ch = uart8250_send_char;
+    info->term.emit_sv = uart8250_send_sv;
+
+    printk_add_terminal(&info->term);
     return true;
 }
+
+void init_from_dtb(const void *const dtb, const int nodeoff) {
+    struct dtb_addr_size_pair base_addr_reg = {0};
+    uint32_t pair_count = 1;
+
+    const bool get_base_addr_reg_result =
+        dtb_get_reg_pairs(dtb,
+                          nodeoff,
+                          /*start_index=*/0,
+                          &pair_count,
+                          &base_addr_reg);
+
+    if (!get_base_addr_reg_result) {
+        panic("dtb: base-addr reg of 'reg' property of serial node is "
+              "malformed\n");
+    }
+
+    struct string_view clock_freq_string = {};
+    const bool get_clock_freq_result =
+        dtb_get_string_prop(dtb,
+                            nodeoff,
+                            "clock-frequency",
+                            &clock_freq_string);
+
+    if (!get_clock_freq_result) {
+        panic("dtb: clock-frequency property of serial node is missing or "
+              "malformed");
+    }
+
+    uart8250_init((port_t)base_addr_reg.address,
+                  /*baudrate=*/115200,
+                  *(const uint32_t *)(uint64_t)clock_freq_string.begin,
+                  /*reg_width=*/sizeof(uint8_t),
+                  /*reg_shift=*/0);
+}
+
+static const char *dtb_compat_list[] = { "ns16550a" };
+__driver static struct driver uart8250_driver = {
+    .dtb = &(struct dtb_driver){
+        .init = init_from_dtb,
+        .compat_list = dtb_compat_list,
+        .compat_count = countof(dtb_compat_list)
+    }
+};

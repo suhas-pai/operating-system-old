@@ -6,14 +6,11 @@
 #pragma once
 
 #include "cpu/spinlock.h"
-#include "dev/uart/driver.h"
+#include "port.h"
 
-struct uart8250_info {
-    struct spinlock lock;
-
-    uint32_t in_freq;
-    uint32_t reg_width;
-    uint32_t reg_shift;
-};
-
-bool uart8250_init(struct uart_driver *driver);
+bool
+uart8250_init(port_t base,
+              uint32_t baudrate,
+              uint32_t in_freq,
+              uint8_t reg_width,
+              uint8_t reg_shift);
