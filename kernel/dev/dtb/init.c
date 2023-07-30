@@ -32,7 +32,7 @@ static void init_serial_device(const void *const dtb, const int nodeoff) {
 
     if (!get_base_addr_reg_result) {
         panic("dtb: base-addr reg of 'reg' property of serial node is "
-                "malformed\n");
+              "malformed\n");
     }
 
     struct string_view clock_freq_string = {};
@@ -44,7 +44,7 @@ static void init_serial_device(const void *const dtb, const int nodeoff) {
 
     if (!get_clock_freq_result) {
         panic("dtb: clock-frequency property of serial node is missing or "
-                "malformed");
+              "malformed");
     }
 
     uart8250_init((port_t)base_addr_reg.address,
@@ -167,7 +167,7 @@ void dtb_init_early() {
     #if defined(__riscv) && defined(__LP64__)
         panic("dtb: device tree not found");
     #else
-        printk(LOGLEVEL_WARN, "dtb: device tree not found. exiting init");
+        printk(LOGLEVEL_WARN, "dtb: device tree not found. exiting init\n");
         return;
     #endif /* defined(__riscv) && defined(__LP64__) */
     }

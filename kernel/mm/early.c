@@ -21,6 +21,12 @@ static volatile struct limine_hhdm_request hhdm_request = {
     .response = NULL
 };
 
+static volatile struct limine_kernel_address_request kern_addr_request = {
+    .id = LIMINE_KERNEL_ADDRESS_REQUEST,
+    .revision = 0,
+    .response = NULL
+};
+
 volatile struct limine_memmap_request memmap_request = {
     .id = LIMINE_MEMMAP_REQUEST,
     .revision = 0,
@@ -150,13 +156,17 @@ uint64_t early_alloc_cont_pages(const uint32_t amount) {
     return free_page;
 }
 
+uint64_t KERNEL_BASE = 0;
 uint64_t memmap_last_repr_index = 0;
 
 void mm_early_init() {
     assert(hhdm_request.response != NULL);
+    assert(kern_addr_request.response != NULL);
     assert(memmap_request.response != NULL);
 
+    KERNEL_BASE = kern_addr_request.response->virtual_base;
     HHDM_OFFSET = hhdm_request.response->offset;
+
     printk(LOGLEVEL_INFO, "mm: hhdm at %p\n", (void *)HHDM_OFFSET);
 
     const struct limine_memmap_response *const resp = memmap_request.response;

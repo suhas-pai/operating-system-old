@@ -137,8 +137,8 @@ static void init_cpuid_features() {
     /* Enable Syscalls, No-Execute, and Fast-FPU */
     write_msr(IA32_MSR_EFER,
               (read_msr(IA32_MSR_EFER) |
-               F_IA32_MSR_EFER_BIT_SCE |
-               F_IA32_MSR_EFER_BIT_NXE));
+               __IA32_MSR_EFER_BIT_SCE |
+               __IA32_MSR_EFER_BIT_NXE));
 
     /* Setup Syscall MSRs */
     write_msr(IA32_MSR_STAR,
@@ -148,7 +148,7 @@ static void init_cpuid_features() {
     write_msr(IA32_MSR_FMASK, 0);
     write_msr(IA32_MSR_MISC_ENABLE,
               (read_msr(IA32_MSR_MISC_ENABLE |
-               F_IA32_MSR_MISC_FAST_STRING_ENABLE)));
+               __IA32_MSR_MISC_FAST_STRING_ENABLE)));
 }
 
 const struct cpu_info *get_base_cpu_info() {

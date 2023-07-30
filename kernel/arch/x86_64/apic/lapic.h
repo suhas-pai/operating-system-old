@@ -9,9 +9,9 @@
 #include "apic/structs.h"
 
 enum lapic_version_reg_flags {
-    F_LAPIC_VERSION_REG_VERION_MASK = 0xFF,
-    F_LAPIC_VERSION_REG_MAX_LVT_ENTRIES_MASK = 0xFF0000,
-    F_LAPIC_VERSION_REG_SUPPRESS_EOI = (1 << 24),
+    __LAPIC_VERSION_REG_VERION_MASK = 0xFF,
+    __LAPIC_VERSION_REG_MAX_LVT_ENTRIES_MASK = 0xFF0000,
+    __LAPIC_VERSION_REG_SUPPRESS_EOI = (1 << 24),
 };
 
 enum lapic_reg {

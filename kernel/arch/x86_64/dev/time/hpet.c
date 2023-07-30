@@ -4,9 +4,11 @@
  */
 
 #include "dev/printk.h"
-#include "lib/time.h"
-#include "mm/mmio.h"
 
+#include "lib/align.h"
+#include "lib/time.h"
+
+#include "mm/mmio.h"
 #include "hpet.h"
 
 struct hpet_addrspace_timer_info {
@@ -32,6 +34,13 @@ struct hpet_addrspace {
 } __packed;
 
 static struct mmio_region *hpet_mmio = NULL;
+static volatile struct hpet_addrspace *addrspace = NULL;
+
+uint64_t hpet_get_femto() {
+    assert_msg(addrspace != NULL, "hpet: hpet_get_femto() called before init");
+    return addrspace->main_counter_value;
+}
+
 void hpet_init(const struct acpi_hpet *const hpet) {
     if (hpet->base_address.addr_space != ACPI_GAS_ADDRSPACE_KIND_SYSMEM) {
         printk(LOGLEVEL_WARN,
@@ -49,6 +58,12 @@ void hpet_init(const struct acpi_hpet *const hpet) {
         return;
     }
 
+    if (!has_align(hpet->base_address.address, PAGE_SIZE)) {
+        printk(LOGLEVEL_WARN,
+               "hpet: address-space is not aligned to page size\n");
+        return;
+    }
+
     hpet_mmio =
         vmap_mmio(range_create(hpet->base_address.address, PAGE_SIZE),
                                PROT_READ | PROT_WRITE,
@@ -59,8 +74,7 @@ void hpet_init(const struct acpi_hpet *const hpet) {
         return;
     }
 
-    volatile struct hpet_addrspace *const addrspace =
-        (volatile struct hpet_addrspace *)hpet_mmio->base;
+    addrspace = (volatile struct hpet_addrspace *)hpet_mmio->base;
 
     const uint64_t cap_and_id = addrspace->general_cap_and_id;
     const uint32_t main_counter_period = cap_and_id >> 32;

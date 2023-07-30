@@ -57,21 +57,21 @@ enum ps2_test_controller_result {
 };
 
 enum ps2_controller_config_byte_masks {
-    F_PS2_CNTRLR_CONFIG_1ST_DEVICE_INTERRUPT = (1ull << 0),
-    F_PS2_CNTRLR_CONFIG_2ND_DEVICE_INTERRUPT = (1ull << 1),
+    __PS2_CNTRLR_CONFIG_1ST_DEVICE_INTERRUPT = (1ull << 0),
+    __PS2_CNTRLR_CONFIG_2ND_DEVICE_INTERRUPT = (1ull << 1),
 
-    F_PS2_CNTRLR_CONFIG_1ST_DEVICE_CLOCK = (1ull << 4),
-    F_PS2_CNTRLR_CONFIG_2ND_DEVICE_CLOCK = (1ull << 5),
+    __PS2_CNTRLR_CONFIG_1ST_DEVICE_CLOCK = (1ull << 4),
+    __PS2_CNTRLR_CONFIG_2ND_DEVICE_CLOCK = (1ull << 5),
 
-    F_PS2_CNTRLR_CONFIG_1ST_DEVICE_TRANSLATION = (1ull << 6),
+    __PS2_CNTRLR_CONFIG_1ST_DEVICE_TRANSLATION = (1ull << 6),
 };
 
 enum ps2_status_register_masks {
-    F_PS2_STATUS_REG_OUTPUT_BUFFER_FULL = (1ull << 0),
-    F_PS2_STATUS_REG_INPUT_BUFFER_FULL  = (1ull << 1),
+    __PS2_STATUS_REG_OUTPUT_BUFFER_FULL = (1ull << 0),
+    __PS2_STATUS_REG_INPUT_BUFFER_FULL  = (1ull << 1),
 
-    F_PS2_STATUS_REG_TIME_OUT_ERROR = (1ull << 6),
-    F_PS2_STATUS_REG_PARITY_ERROR   = (1ull << 7)
+    __PS2_STATUS_REG_TIME_OUT_ERROR = (1ull << 6),
+    __PS2_STATUS_REG_PARITY_ERROR   = (1ull << 7)
 };
 
 enum ps2_device_kind {

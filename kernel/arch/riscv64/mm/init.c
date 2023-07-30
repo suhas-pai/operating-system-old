@@ -23,8 +23,6 @@ volatile struct limine_paging_mode_request paging_mode_request = {
 
 extern volatile struct limine_memmap_request memmap_request;
 
-#define KERNEL_BASE 0xffffffff80000000
-
 static struct page *
 ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
     (void)walker;

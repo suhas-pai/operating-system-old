@@ -38,12 +38,6 @@ struct acpi_info {
     const struct acpi_rsdp *rsdp;
     const struct acpi_rsdt *rsdt;
 
-#if defined(__x86_64__)
-    const struct acpi_hpet *hpet;
-#elif defined(__riscv) && defined(__LP64__)
-    const struct acpi_rhct *rhct;
-#endif /* defined(__riscv) && defined(__LP64__) */
-
 #if defined(__aarch64__)
     // Array of struct acpi_msi_frame
     struct array msi_frame_list;

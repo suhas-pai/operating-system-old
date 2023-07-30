@@ -5,9 +5,8 @@
 
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "lib/assert.h"
 #include "lib/overflow.h"

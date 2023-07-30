@@ -45,6 +45,7 @@ bool pte_is_large(pte_t pte, uint8_t level);
 void *phys_to_virt(uint64_t phys);
 uint64_t virt_to_phys(const void *phys);
 
+extern uint64_t KERNEL_BASE;
 extern uint64_t HHDM_OFFSET;
 
 void pagezones_init();

@@ -51,7 +51,7 @@ void apic_init(const uint64_t local_apic_base) {
     printk(LOGLEVEL_INFO,
            "apic: local apic version reg: %" PRIx32 ", version: %" PRIu32 "\n",
            lapic_regs->version,
-           (lapic_regs->version & F_LAPIC_VERSION_REG_VERION_MASK));
+           (lapic_regs->version & __LAPIC_VERSION_REG_VERION_MASK));
 
     uint64_t apic_msr = read_msr(IA32_MSR_APIC_BASE);
 

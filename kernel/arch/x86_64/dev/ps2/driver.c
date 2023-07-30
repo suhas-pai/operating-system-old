@@ -16,7 +16,7 @@
 int16_t ps2_read_input_byte() {
     for (uint64_t i = 0; i != RETRY_LIMIT; i++) {
         const uint8_t byte = port_in8(PORT_PS2_READ_STATUS);
-        if ((byte & F_PS2_STATUS_REG_OUTPUT_BUFFER_FULL) == 0) {
+        if ((byte & __PS2_STATUS_REG_OUTPUT_BUFFER_FULL) == 0) {
             cpu_pause();
             continue;
         }
@@ -30,7 +30,7 @@ int16_t ps2_read_input_byte() {
 bool ps2_write(const uint16_t port, const uint8_t value) {
     for (uint64_t i = 0; i != RETRY_LIMIT; i++) {
         const uint8_t byte = port_in8(PORT_PS2_READ_STATUS);
-        if (byte & F_PS2_STATUS_REG_INPUT_BUFFER_FULL) {
+        if (byte & __PS2_STATUS_REG_INPUT_BUFFER_FULL) {
             cpu_pause();
             continue;
         }
@@ -226,15 +226,15 @@ void ps2_init() {
 
     // Enable keyboard interrupt and keyboard scancode translation
     ps2_config |=
-        F_PS2_CNTRLR_CONFIG_1ST_DEVICE_INTERRUPT |
-        F_PS2_CNTRLR_CONFIG_1ST_DEVICE_TRANSLATION;
+        __PS2_CNTRLR_CONFIG_1ST_DEVICE_INTERRUPT |
+        __PS2_CNTRLR_CONFIG_1ST_DEVICE_TRANSLATION;
 
     // Enable mouse interrupt if any
     const bool has_second_device =
-        (ps2_config & F_PS2_CNTRLR_CONFIG_2ND_DEVICE_CLOCK) != 0;
+        (ps2_config & __PS2_CNTRLR_CONFIG_2ND_DEVICE_CLOCK) != 0;
 
     if (has_second_device) {
-        ps2_config |= F_PS2_CNTRLR_CONFIG_2ND_DEVICE_INTERRUPT;
+        ps2_config |= __PS2_CNTRLR_CONFIG_2ND_DEVICE_INTERRUPT;
     }
 
     if (!ps2_write_config(ps2_config)) {

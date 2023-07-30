@@ -23,17 +23,14 @@ void fadt_init(const struct acpi_fadt *const fadt) {
            fadt->iapc_boot_arch_flags);
 
     if (fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_MSI_NOT_SUPPORTED) {
-        printk(LOGLEVEL_WARN, "fadt: msi not supported\n");
+        printk(LOGLEVEL_WARN, "fadt: msi is not supported\n");
     }
 
     const bool fadt_flags_has_8042 =
         (fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042) != 0;
 
-    if (fadt_flags_has_8042) {
-        ps2_init();
-    } else {
-        printk(LOGLEVEL_WARN,
-               "fadt: no ps2 found, ps2 Keyboard/Mouse not supported\n");
+    if (!fadt_flags_has_8042) {
+        printk(LOGLEVEL_WARN, "fadt: ps2 devices are not supported\n");
     }
 #elif defined(__aarch64__)
     printk(LOGLEVEL_INFO,

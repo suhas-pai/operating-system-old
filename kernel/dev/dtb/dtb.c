@@ -121,6 +121,10 @@ dtb_get_reg_pairs(const void *const dtb,
     const fdt32_t *reg_iter =
         reg + ((uint32_t)(addr_cells + size_cells) * start_index);
 
+    if (reg_iter >= reg_end) {
+        return false;
+    }
+
     const uint32_t entry_spaces = *entry_count_in;
     const uint32_t addr_shift = sizeof_bits(uint64_t) / (uint32_t)addr_cells;
     const uint32_t size_shift = sizeof_bits(uint64_t) / (uint32_t)size_cells;

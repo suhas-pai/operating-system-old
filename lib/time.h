@@ -10,75 +10,120 @@
 #include "adt/string_view.h"
 #include "lib/macros.h"
 
-#define femto_to_pico(femto) ((femto) / 1000)
-#define pico_to_nano(pico) ((pico) / 1000)
-#define nano_to_micro(nano) ((nano) / 1000)
-#define micro_to_milli(micro) ((micro) / 1000)
-#define milli_to_seconds(milli) ((milli) / 1000)
+#define FEMTO_IN_PICO 1000
+#define PICO_IN_NANO 1000
+#define NANO_IN_MICRO 1000
+#define MICRO_IN_MILLI 1000
+#define MILLI_IN_SECONDS 1000
 
-#define seconds_to_minutes(seconds) ((seconds) / 60)
-#define minutes_to_hours(minutes) ((minutes) / 60)
-#define hours_to_days(minutes) ((hours) / 24)
+#define SECONDS_IN_MINUTES 60
+#define MINUTES_IN_HOURS 60
+#define HOURS_IN_DAYS 24
 
-#define femto_to_nano(femto) pico_to_nano(femto_to_pico(femto))
-#define pico_to_micro(pico) nano_to_micro(pico_to_nano(pico))
-#define nano_to_milli(nano) micro_to_milli(nano_to_micro(nano))
-#define micro_to_seconds(micro) milli_to_seconds(micro_to_milli(micro))
-#define milli_to_minutes(milli) seconds_to_minutes(milli_to_seconds(micro))
-#define seconds_to_hours(seconds) minutes_to_hours(seconds_to_minutes(seconds))
-#define minutes_to_days(minutes) hours_to_days(minutes_to_hours(minutes))
+#define FEMTO_IN_NANO (FEMTO_IN_PICO * PICO_IN_NANO)
+#define PICO_IN_MICRO (PICO_IN_NANO * NANO_IN_MICRO)
+#define NANO_IN_MILLI (NANO_IN_MICRO * MICRO_IN_MILLI)
+#define MICRO_IN_SECONDS (MICRO_IN_MILLI * MILLI_IN_SECONDS)
+#define MILLI_IN_MINUTES (MILLI_IN_SECONDS * SECONDS_IN_MINUTES)
+#define SECONDS_IN_HOURS (SECONDS_IN_MINUTES * MINUTES_IN_HOURS)
+#define MINUTES_IN_DAYS (MINUTES_IN_HOURS * HOURS_IN_DAYS)
 
-#define femto_to_micro(femto) nano_to_micro(femto_to_nano(femto))
-#define pico_to_milli(pico) micro_to_milli(pico_to_micro(pico))
-#define nano_to_seconds(nano) milli_to_seconds(nano_to_milli(nano))
-#define micro_to_minutes(micro) seconds_to_minutes(micro_to_seconds(micro))
-#define milli_to_hours(milli) minutes_to_hours(milli_to_minutes(milli))
-#define seconds_to_days(seconds) hours_to_days(seconds_to_hours(seconds))
+#define FEMTO_IN_MICRO (FEMTO_IN_NANO * NANO_IN_MICRO)
+#define PICO_IN_MILLI (PICO_IN_MICRO * MICRO_IN_MILLI)
+#define NANO_IN_SECONDS (NANO_IN_MILLI * MILLI_IN_SECONDS)
+#define MICRO_IN_MINUTES (MICRO_IN_SECONDS * SECONDS_IN_MINUTES)
+#define MILLI_IN_HOURS (MILLI_IN_MINUTES * MINUTES_IN_HOURS)
+#define SECONDS_IN_DAYS (SECONDS_IN_HOURS * HOURS_IN_DAYS)
 
-#define femto_to_milli(femto) nano_to_milli(femto_to_nano(femto))
-#define pico_to_seconds(pico) milli_to_seconds(pico_to_milli(pico))
-#define nano_to_minutes(nano) seconds_to_minutes(nano_to_seconds(nano))
-#define micro_to_hours(micro) minutes_to_hours(micro_to_minutes(milli))
-#define milli_to_days(milli) hours_to_days(milli_to_hours(milli))
+#define FEMTO_IN_MILLI (FEMTO_IN_MICRO * MICRO_IN_MILLI)
+#define PICO_IN_SECONDS (PICO_IN_MILLI * MILLI_IN_SECONDS)
+#define NANO_IN_MINUTES (NANO_IN_SECONDS * SECONDS_IN_MINUTES)
+#define MICRO_IN_HOURS (MICRO_IN_MINUTES * MINUTES_IN_HOURS)
+#define MILLI_IN_DAYS (MILLI_IN_HOURS * HOURS_IN_DAYS)
 
-#define femto_to_seconds(femto) milli_to_seconds(femto_to_milli(femto))
-#define pico_to_minutes(pico) seconds_to_minutes(pico_to_seconds(pico))
-#define nano_to_hours(nano) minutes_to_hours(nano_to_minutes(nano))
-#define micro_to_days(micro) hours_to_days(micro_to_hours(micro))
+#define FEMTO_IN_SECONDS (FEMTO_IN_MILLI * MILLI_IN_SECONDS)
+#define PICO_IN_MINUTES (PICO_IN_SECONDS * SECONDS_IN_MINUTES)
+#define NANO_IN_HOURS (NANO_IN_MINUTES * MINUTES_IN_HOURS)
+#define MICRO_IN_DAYS (MICRO_IN_HOURS * HOURS_IN_DAYS)
 
-#define femto_to_minutes(femto) seconds_to_minutes(femto_to_seconds(femto))
-#define pico_to_hours(pico) minutes_to_hours(pico_to_minutes(pico))
-#define nano_to_days(nano) hours_to_days(nano_to_hours(nano))
+#define FEMTO_IN_MINUTES (FEMTO_IN_SECONDS * SECONDS_IN_MINUTES)
+#define PICO_IN_HOURS (PICO_IN_MINUTES * MINUTES_IN_HOURS)
+#define NANO_IN_DAYS (NANO_IN_HOURS * HOURS_IN_DAYS)
 
-#define femto_to_hours(femto) minutes_to_hours(femto_to_minutes(femto))
-#define pico_to_days(pico) hours_to_days(pico_to_hours(pico))
+#define FEMTO_IN_HOURS (FEMTO_IN_MINUTES * MINUTES_IN_HOURS)
+#define PICO_IN_DAYS (PICO_IN_HOURS * HOURS_IN_DAYS)
 
-#define femto_to_days(femto) hours_to_days(femto_to_hours(femto))
+#define FEMTO_IN_DAYS (FEMTO_IN_HOURS * HOURS_IN_DAYS)
 
-#define pico_to_femto(pico) ((pico) * 1000)
-#define nano_to_pico(nano) ((nano) * 1000)
-#define micro_to_nano(micro) ((micro) * 1000)
-#define milli_to_micro(milli) ((milli) * 1000)
-#define seconds_to_milli(seconds) ((seconds) * 1000)
+#define femto_to_pico(femto) ((femto) / FEMTO_IN_PICO)
+#define pico_to_nano(pico) ((pico) / PICO_IN_NANO)
+#define nano_to_micro(nano) ((nano) / NANO_IN_MICRO)
+#define micro_to_milli(micro) ((micro) / MICRO_IN_MILLI)
+#define milli_to_seconds(milli) ((milli) / MILLI_IN_SECONDS)
 
-#define minutes_to_seconds(minutes) ((minutes) * 60)
-#define hours_to_minutes(hours) ((hours) * 60)
-#define days_to_hours(days) ((days) * 24)
+#define seconds_to_minutes(seconds) ((seconds) / SECONDS_IN_MINUTES)
+#define minutes_to_hours(minutes) ((minutes) / MINUTES_IN_HOURS)
+#define hours_to_days(minutes) ((hours) / HOURS_IN_DAYS)
 
-#define nano_to_femto(femto) pico_to_femto(nano_to_pico(femto))
-#define micro_to_pico(pico) nano_to_pico(micro_to_nano(pico))
-#define milli_to_nano(nano) micro_to_nano(milli_to_micro(nano))
-#define seconds_to_micro(micro) milli_to_micro(seconds_to_milli(micro))
+#define femto_to_nano(femto) ((femto) / FEMTO_IN_NANO)
+#define pico_to_micro(pico) ((pico) / PICO_IN_MICRO)
+#define nano_to_milli(nano) ((nano) / NANO_IN_MILLI)
+#define micro_to_seconds(micro) ((micro) / MICRO_IN_SECONDS)
+#define milli_to_minutes(milli) ((milli) / MILLI_IN_MINUTES)
+#define seconds_to_hours(seconds) ((seconds) / SECONDS_IN_HOURS)
+#define minutes_to_days(minutes) ((minutes) / MINUTES_IN_DAYS)
+
+#define femto_to_micro(femto) ((femto) / FEMTO_IN_MICRO)
+#define pico_to_milli(pico) ((pico) / PICO_IN_MILLI)
+#define nano_to_seconds(nano) ((nano) / NANO_IN_SECONDS)
+#define micro_to_minutes(micro) ((micro) / MICRO_IN_MINUTES)
+#define milli_to_hours(milli) ((milli) / MILLI_IN_HOURS)
+#define seconds_to_days(seconds) ((seconds) / SECONDS_IN_DAYS)
+
+#define femto_to_milli(femto) ((femto) / FEMTO_IN_MILLI)
+#define pico_to_seconds(pico) ((pico) / PICO_IN_SECONDS)
+#define nano_to_minutes(nano) ((nano) / NANO_IN_MINUTES)
+#define micro_to_hours(micro) ((micro) / MICRO_IN_HOURS)
+#define milli_to_days(milli) ((milli) / MILLI_IN_DAYS)
+
+#define femto_to_seconds(femto) ((femto) / FEMTO_IN_SECONDS)
+#define pico_to_minutes(pico) ((pico) / PICO_IN_MINUTES)
+#define nano_to_hours(nano) ((nano) / NANO_IN_HOURS)
+#define micro_to_days(micro) ((micro) / MICRO_IN_DAYS)
+
+#define femto_to_minutes(femto) ((femto) / FEMTO_IN_MINUTES)
+#define pico_to_hours(pico) ((pico) / PICO_IN_HOURS)
+#define nano_to_days(nano) ((nano) / NANO_IN_DAYS)
+
+#define femto_to_hours(femto) ((femto) / FEMTO_IN_HOURS)
+#define pico_to_days(pico) ((pico) / PICO_IN_DAYS)
+
+#define femto_to_days(femto) ((femto) / FEMTO_IN_DAYS)
+
+#define pico_to_femto(pico) ((pico) * FEMTO_IN_PICO)
+#define nano_to_pico(nano) ((nano) * PICO_IN_NANO)
+#define micro_to_nano(micro) ((micro) * NANO_IN_MICRO)
+#define milli_to_micro(milli) ((milli) * MICRO_IN_MILLI)
+#define seconds_to_milli(seconds) ((seconds) * MILLI_IN_SECONDS)
+
+#define minutes_to_seconds(minutes) ((minutes) * SECONDS_IN_MINUTES)
+#define hours_to_minutes(hours) ((hours) * MINUTES_IN_HOURS)
+#define days_to_hours(days) ((days) * HOURS_IN_DAYS)
+
+#define nano_to_femto(nano) pico_to_femto(nano_to_pico(nano))
+#define micro_to_pico(micro) nano_to_pico(micro_to_nano(micro))
+#define milli_to_nano(milli) micro_to_nano(milli_to_micro(milli))
+#define seconds_to_micro(seconds) milli_to_micro(seconds_to_milli(seconds))
 #define minutes_to_milli(minutes) seconds_to_milli(minutes_to_seconds(minutes))
 #define hours_to_seconds(hours) minutes_to_seconds(hours_to_minutes(hours))
 #define days_to_minutes(days) hours_to_minutes(days_to_hours(days))
 
-#define micro_to_femto(micro) nano_to_femto(micro_to_nano(femto))
-#define milli_to_pico(milli) micro_to_pico(milli_to_micro(pico))
-#define seconds_to_nano(seconds) milli_to_nano(seconds_to_milli(nano))
-#define minutes_to_micro(minutes) seconds_to_micro(minutes_to_seconds(micro))
-#define hours_to_milli(hours) minutes_to_micro(hours_to_minutes(micro))
-#define days_to_seconds(days) hours_to_seconds(days_to_hours(micro))
+#define micro_to_femto(micro) nano_to_femto(micro_to_nano(micro))
+#define milli_to_pico(milli) micro_to_pico(milli_to_micro(milli))
+#define seconds_to_nano(seconds) milli_to_nano(seconds_to_milli(seconds))
+#define minutes_to_micro(minutes) seconds_to_micro(minutes_to_seconds(minutes))
+#define hours_to_milli(hours) minutes_to_micro(hours_to_minutes(hours))
+#define days_to_seconds(days) hours_to_seconds(days_to_hours(days))
 
 #define milli_to_femto(milli) nano_to_femto(milli_to_nano(milli))
 #define seconds_to_pico(seconds) milli_to_pico(seconds_to_milli(seconds))
@@ -100,50 +145,92 @@
 
 #define days_to_femto(femto) hours_to_femto(days_to_hours(femto))
 
-#define femto_mod_pico(femto) ((femto) % 1000)
-#define pico_mod_nano(pico) ((pico) % 1000)
-#define nano_mod_micro(nano) ((nano) % 1000)
-#define micro_mod_milli(micro) ((micro) % 1000)
-#define milli_mod_seconds(milli) ((milli) % 1000)
+#define femto_mod_pico(femto) ((femto) % FEMTO_IN_PICO)
+#define pico_mod_nano(pico) ((pico) % PICO_IN_NANO)
+#define nano_mod_micro(nano) ((nano) % NANO_IN_MICRO)
+#define micro_mod_milli(micro) ((micro) % MICRO_IN_MILLI)
+#define milli_mod_seconds(milli) ((milli) % MILLI_IN_SECONDS)
 
-#define seconds_mod_minutes(seconds) ((seconds) % 60)
-#define minutes_mod_hours(minutes) ((minutes) % 60)
-#define hours_mod_days(minutes) ((hours) % 24)
+#define seconds_mod_minutes(seconds) ((seconds) % SECONDS_IN_MINUTES)
+#define minutes_mod_hours(minutes) ((minutes) % MINUTES_IN_HOURS)
+#define hours_mod_days(minutes) ((hours) % HOURS_IN_DAYS)
 
-#define femto_mod_nano(femto) pico_mod_nano(femto_mod_pico(femto))
-#define pico_mod_micro(pico) nano_mod_micro(pico_mod_nano(pico))
-#define nano_mod_milli(nano) micro_mod_milli(nano_mod_micro(nano))
-#define micro_mod_seconds(micro) milli_mod_seconds(micro_mod_milli(micro))
-#define milli_mod_minutes(milli) seconds_mod_minutes(milli_mod_seconds(micro))
-#define seconds_mod_hours(seconds) minutes_mod_hours(seconds_mod_minutes(seconds))
-#define minutes_mod_days(minutes) hours_mod_days(minutes_mod_hours(minutes))
+#define femto_mod_nano(femto) ((femto) % FEMTO_IN_NANO)
+#define pico_mod_micro(pico) ((pico) % PICO_IN_MICRO)
+#define nano_mod_milli(nano) ((nano) % NANO_IN_MILLI)
+#define micro_mod_seconds(micro) ((micro) % MICRO_IN_SECONDS)
+#define milli_mod_minutes(milli) ((milli) % MILLI_IN_MINUTES)
+#define seconds_mod_hours(seconds) ((seconds) % SECONDS_IN_HOURS)
+#define minutes_mod_days(minutes) ((minutes) % MINUTES_IN_DAYS)
 
-#define femto_mod_micro(femto) nano_mod_micro(femto_mod_nano(femto))
-#define pico_mod_milli(pico) micro_mod_milli(pico_mod_micro(pico))
-#define nano_mod_seconds(nano) milli_mod_seconds(nano_mod_milli(nano))
-#define micro_mod_minutes(micro) seconds_mod_minutes(micro_mod_seconds(micro))
-#define milli_mod_hours(milli) minutes_mod_hours(milli_mod_minutes(milli))
-#define seconds_mod_days(seconds) hours_mod_days(seconds_mod_hours(seconds))
+#define femto_mod_micro(femto) ((femto) % FEMTO_IN_MICRO)
+#define pico_mod_milli(pico) ((pico) % PICO_IN_MILLI)
+#define nano_mod_seconds(nano) ((nano) % NANO_IN_SECONDS)
+#define micro_mod_minutes(micro) ((micro) % MICRO_IN_MINUTES)
+#define milli_mod_hours(milli) ((milli) % MILLI_IN_HOURS)
+#define seconds_mod_days(seconds) ((seconds) % SECONDS_IN_DAYS)
 
-#define femto_mod_milli(femto) nano_mod_milli(femto_mod_nano(femto))
-#define pico_mod_seconds(pico) milli_mod_seconds(pico_mod_milli(pico))
-#define nano_mod_minutes(nano) seconds_mod_minutes(nano_mod_seconds(nano))
-#define micro_mod_hours(micro) minutes_mod_hours(micro_mod_minutes(milli))
-#define milli_mod_days(milli) hours_mod_days(milli_mod_hours(milli))
+#define femto_mod_milli(femto) ((femto) % FEMTO_IN_MILLI)
+#define pico_mod_seconds(pico) ((pico) % PICO_IN_SECONDS)
+#define nano_mod_minutes(nano) ((nano) % NANO_IN_MINUTES)
+#define micro_mod_hours(micro) ((micro) % MICRO_IN_HOURS)
+#define milli_mod_days(milli) ((milli) % MILLI_IN_DAYS)
 
-#define femto_mod_seconds(femto) milli_mod_seconds(femto_mod_milli(femto))
-#define pico_mod_minutes(pico) seconds_mod_minutes(pico_mod_seconds(pico))
-#define nano_mod_hours(nano) minutes_mod_hours(nano_mod_minutes(nano))
-#define micro_mod_days(micro) hours_mod_days(micro_mod_hours(micro))
+#define femto_mod_seconds(femto) ((femto) % FEMTO_IN_SECONDS)
+#define pico_mod_minutes(pico) ((pico) % PICO_IN_MINUTES)
+#define nano_mod_hours(nano) ((nano) % NANO_IN_HOURS)
+#define micro_mod_days(micro) ((micro) % MICRO_IN_DAYS)
 
-#define femto_mod_minutes(femto) seconds_mod_minutes(femto_mod_seconds(femto))
-#define pico_mod_hours(pico) minutes_mod_hours(pico_mod_minutes(pico))
-#define nano_mod_days(nano) hours_mod_days(nano_mod_hours(nano))
+#define femto_mod_minutes(femto) ((femto) % FEMTO_IN_MINUTES)
+#define pico_mod_hours(pico) ((pico) % PICO_IN_HOURS)
+#define nano_mod_days(nano) ((nano) % NANO_IN_DAYS)
 
-#define femto_mod_hours(femto) minutes_mod_hours(femto_mod_minutes(femto))
-#define pico_mod_days(pico) hours_mod_days(pico_mod_hours(pico))
+#define femto_mod_hours(femto) ((femto) % FEMTO_IN_HOURS)
+#define pico_mod_days(pico) ((pico) % PICO_IN_DAYS)
 
-#define femto_mod_days(femto) hours_mod_days(femto_mod_hours(femto))
+#define femto_mod_days(femto) ((femto) % FEMTO_IN_DAYS)
+
+typedef uint64_t time_t;
+struct timespec {
+    time_t tv_sec;
+    time_t tv_nsec;
+};
+
+static inline struct timespec
+timespec_add(struct timespec left, const struct timespec right) {
+    if (nano_to_seconds(left.tv_nsec + right.tv_nsec) != 0) {
+        left.tv_nsec = nano_mod_seconds(left.tv_nsec + right.tv_nsec);
+        left.tv_sec += 1;
+    } else {
+        left.tv_nsec += right.tv_nsec;
+    }
+
+    left.tv_sec += right.tv_sec;
+    return left;
+}
+
+static inline struct timespec
+timespec_sub(struct timespec left, const struct timespec right) {
+    if (right.tv_nsec > left.tv_nsec) {
+        left.tv_nsec = (NANO_IN_SECONDS - 1) - (right.tv_nsec - left.tv_nsec);
+        if (left.tv_sec == 0) {
+            left.tv_sec = left.tv_nsec = 0;
+            return left;
+        }
+
+        left.tv_sec--;
+    } else {
+        left.tv_nsec -= right.tv_nsec;
+    }
+
+    if (right.tv_sec > left.tv_sec) {
+        left.tv_sec = left.tv_nsec = 0;
+        return left;
+    }
+
+    left.tv_sec -= right.tv_sec;
+    return left;
+}
 
 enum weekday {
     WEEKDAY_INVALID = -1,

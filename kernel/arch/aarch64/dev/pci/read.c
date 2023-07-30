@@ -33,13 +33,14 @@ pci_write(const struct pci_device_info *const device,
     volatile const struct pci_spec_device_info *const spec = device->pcie_info;
     switch (access_size) {
         case sizeof(uint8_t):
-            return *reg_to_ptr(volatile uint8_t, spec, offset) =
-                (uint8_t)value;
+            *reg_to_ptr(volatile uint8_t, spec, offset) = (uint8_t)value;
+            return true;
         case sizeof(uint16_t):
-            return *reg_to_ptr(volatile uint16_t, spec, offset) =
-                (uint16_t)value;
+            *reg_to_ptr(volatile uint16_t, spec, offset) = (uint16_t)value;
+            return true;
         case sizeof(uint32_t):
-            return *reg_to_ptr(volatile uint32_t, spec, offset) = value;
+            *reg_to_ptr(volatile uint32_t, spec, offset) = value;
+            return true;
     }
 
     verify_not_reached();

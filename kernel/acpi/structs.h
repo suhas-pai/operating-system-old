@@ -309,8 +309,8 @@ enum acpi_fadt_iapc_boot_flags {
 };
 
 enum acpi_fadt_arm_boot_flags {
-    F_ACPI_FADT_ARM_BOOT_PSCI_COMPLIANT = 1 << 0,
-    F_ACPI_FADT_ARM_BOOT_PSCI_USE_HVC   = 1 << 1,
+    __ACPI_FADT_ARM_BOOT_PSCI_COMPLIANT = 1 << 0,
+    __ACPI_FADT_ARM_BOOT_PSCI_USE_HVC   = 1 << 1,
 };
 
 enum acpi_fadt_pm1_status {

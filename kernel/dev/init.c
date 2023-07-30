@@ -11,7 +11,10 @@
 
 #include "acpi/api.h"
 #include "dtb/init.h"
+
+#include "dev/printk.h"
 #include "pci/pci.h"
+#include "time/time.h"
 
 #include "driver.h"
 
@@ -28,8 +31,16 @@ void serial_init() {
     dtb_init_early();
 }
 
+void arch_init_dev();
 void dev_init() {
     acpi_init();
     dtb_init();
     pci_init();
+
+    arch_init_dev();
+    arch_init_time();
+
+    printk(LOGLEVEL_INFO,
+           "dev: initialized time, seconds since boot: %" PRIu64 "\n",
+           nano_to_seconds(nsec_since_boot()));
 }

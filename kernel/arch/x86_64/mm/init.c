@@ -26,8 +26,6 @@ volatile struct limine_paging_mode_request paging_mode_request = {
 
 extern volatile struct limine_memmap_request memmap_request;
 
-#define KERNEL_BASE 0xffffffff80000000
-
 struct freepages_info {
     struct list list_entry;
 
