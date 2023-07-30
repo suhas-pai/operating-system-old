@@ -41,8 +41,7 @@
         }
 
         msi->msg_control |= __PCI_CAPMSI_CTRL_ENABLE;
-        msi->msg_control &=
-            (uint16_t)~__PCI_CAPMSI_CTRL_MULTIMSG_ENABLE;
+        msi->msg_control &= (uint16_t)~__PCI_CAPMSI_CTRL_MULTIMSG_ENABLE;
 
         if (masked) {
             if (is_64_bit) {
@@ -131,7 +130,7 @@
             (volatile struct pci_spec_cap_msix_table_entry *)table_addr;
 
         table[msix_vector].msg_address_lower32 = (uint32_t)address;
-        table[msix_vector].msg_address_upper32 = (uint32_t)(address >> 32);
+        table[msix_vector].msg_address_upper32 = 0;
         table[msix_vector].data = vector;
         table[msix_vector].control = masked;
 
@@ -145,7 +144,7 @@
                                   const isr_vector_t vector,
                                   const bool masked)
     {
-        const uint64_t msi_address = (0xFEE00000 | cpu->lapic_id << 12);
+        const uint64_t msi_address = 0xFEE00000 | cpu->lapic_id << 12;
         switch (device->msi_support) {
             case PCI_DEVICE_MSI_SUPPORT_NONE:
                 printk(LOGLEVEL_WARN,
@@ -177,9 +176,7 @@ void pci_device_enable_bus_mastering(struct pci_device_info *const device) {
                 offsetof(struct pci_spec_device_info, command),
                 sizeof_field(struct pci_spec_device_info, command));
 
-        const uint16_t new_command =
-            old_command | __PCI_DEVCMDREG_BUS_MASTER;
-
+        const uint16_t new_command = old_command | __PCI_DEVCMDREG_BUS_MASTER;
         device->domain->write(device,
                               offsetof(struct pci_device_info, command),
                               new_command,

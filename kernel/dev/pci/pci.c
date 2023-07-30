@@ -4,18 +4,20 @@
  */
 
 #include "acpi/api.h"
+
 #include "dev/pci/pci.h"
-
+#include "dev/driver.h"
 #include "dev/printk.h"
-#include "lib/align.h"
 
+#include "lib/align.h"
 #include "mm/kmalloc.h"
-#include "mm/mm_types.h"
 
 #include "port.h"
 #include "structs.h"
 
 static struct list domain_list = LIST_INIT(domain_list);
+static struct list device_list = LIST_INIT(device_list);
+
 static uint64_t domain_count = 0;
 
 static uint32_t
@@ -511,6 +513,18 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
     }
 
     array_destroy(&prev_cap_offsets);
+
+    // On x86_64, the fadt may provide a flag indicating if MSI is completely
+    // disabled.
+#if defined(__x86_64__)
+    if (get_acpi_info()->fadt != NULL) {
+        if (get_acpi_info()->fadt->iapc_boot_arch_flags &
+                __ACPI_FADT_IAPC_BOOT_MSI_NOT_SUPPORTED)
+        {
+            dev->msi_support = PCI_DEVICE_MSI_SUPPORT_NONE;
+        }
+    }
+#endif
 }
 
 static volatile struct pci_spec_device_info *
@@ -774,7 +788,8 @@ parse_function(struct pci_domain *const domain,
             break;
     }
 
-    list_add(&domain->device_list, &info.list);
+    list_add(&domain->device_list, &info.list_in_domain);
+    list_add(&device_list, &info.list_in_devices);
 }
 
 void
@@ -857,6 +872,67 @@ pci_add_pcie_domain(struct range bus_range,
     return domain;
 }
 
+void pci_init_drivers() {
+    driver_foreach(driver) {
+        if (driver->pci == NULL) {
+            continue;
+        }
+
+        struct pci_driver *const pci_driver = driver->pci;
+        struct pci_device_info *device = NULL;
+
+        list_foreach(device, &device_list, list_in_devices) {
+            if (pci_driver->match == PCI_DRIVER_MATCH_VENDOR) {
+                if (device->vendor_id == pci_driver->vendor) {
+                    pci_driver->init(device);
+                    continue;
+                }
+            }
+
+            if (pci_driver->match == PCI_DRIVER_MATCH_VENDOR_DEVICE) {
+                if (device->vendor_id != pci_driver->vendor) {
+                    continue;
+                }
+
+                bool found = false;
+                for (uint8_t i = 0; i != pci_driver->device_count; i++) {
+                    if (pci_driver->devices[i] == device->id) {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    continue;
+                }
+
+                pci_driver->init(device);
+                continue;
+            }
+
+            if (pci_driver->match & PCI_DRIVER_MATCH_CLASS) {
+                if (device->class != pci_driver->class) {
+                    continue;
+                }
+            }
+
+            if (pci_driver->match & PCI_DRIVER_MATCH_SUBCLASS) {
+                if (device->subclass != pci_driver->subclass) {
+                    continue;
+                }
+            }
+
+            if (pci_driver->match & PCI_DRIVER_MATCH_PROGIF) {
+                if (device->prog_if != pci_driver->prog_if) {
+                    continue;
+                }
+            }
+
+            pci_driver->init(device);
+        }
+    }
+}
+
 extern uint32_t
 pci_read(const struct pci_device_info *dev,
          uint32_t offset,
@@ -898,4 +974,6 @@ void pci_init() {
             pci_parse_domain(domain);
         }
     }
+
+    pci_init_drivers();
 }

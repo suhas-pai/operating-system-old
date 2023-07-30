@@ -5,6 +5,7 @@
 
 #include "acpi/mcfg.h"
 #if defined(__x86_64__)
+    #include "dev/time/hpet.h"
     #include "apic/ioapic.h"
 #elif defined(__riscv) && defined (__LP64__)
     #include "acpi/rhct.h"
@@ -71,7 +72,11 @@ static inline void acpi_init_each_sdt(const struct acpi_sdt *const sdt) {
         info.mcfg = (const struct acpi_mcfg *)sdt;
     }
 
-#if defined(__riscv) && defined(__LP64__)
+#if defined(__x86_64__)
+    if (memcmp(sdt->signature, "HPET", 4) == 0) {
+        info.hpet = (const struct acpi_hpet *)sdt;
+    }
+#elif defined(__riscv) && defined(__LP64__)
     if (memcmp(sdt->signature, "RHCT", 4) == 0) {
         info.rhct = (const struct acpi_rhct *)sdt;
     }
@@ -125,6 +130,12 @@ void acpi_init(void) {
     if (get_acpi_info()->mcfg != NULL) {
         mcfg_init(get_acpi_info()->mcfg);
     }
+
+#if defined(__x86_64__)
+    if (get_acpi_info()->hpet != NULL) {
+        hpet_init(get_acpi_info()->hpet);
+    }
+#endif /* defined(__x86_64__) */
 }
 
 struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {

@@ -228,37 +228,37 @@ struct acpi_madt_entry_gic_msi_frame {
     uint16_t spi_base;
 } __packed;
 
-enum acpi_fadt_gas_addr_space_kind {
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_MEMORY,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_IO,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_PCI_CONFIG,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_EMBED_CONTROLLER,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_MANAGEMENT_BUS,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_CMOS,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_PCI_DEV_BAR_TARGET,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_INTELLIGENT_PLATFORM_MANAGEMENT_INFRA,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_GEN_PURPOSE_IO,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_GEN_SERIAL_BUS,
-    ACPI_FADT_GAS_ADDR_SPACE_KIND_SYSTEM_PLATFORM_COMM_CHANNEL,
+enum acpi_gas_addrspace_kind {
+    ACPI_GAS_ADDRSPACE_KIND_SYSMEM,
+    ACPI_GAS_ADDRSPACE_KIND_SYS_IO,
+    ACPI_GAS_ADDRSPACE_KIND_PCI_CONFIG,
+    ACPI_GAS_ADDRSPACE_KIND_EMBED_CONTROLLER,
+    ACPI_GAS_ADDRSPACE_KIND_SYS_MANAGEMENT_BUS,
+    ACPI_GAS_ADDRSPACE_KIND_SYS_CMOS,
+    ACPI_GAS_ADDRSPACE_KIND_SYS_PCI_DEV_BAR_TARGET,
+    ACPI_GAS_ADDRSPACE_KIND_SYS_INTELLIGENT_PLATFORM_MANAGEMENT_INFRA,
+    ACPI_GAS_ADDRSPACE_KIND_SYS_GEN_PURPOSE_IO,
+    ACPI_GAS_ADDRSPACE_KIND_SYS_GEN_SERIAL_BUS,
+    ACPI_GAS_ADDRSPACE_KIND_SYS_PLATFORM_COMM_CHANNEL,
 };
 
-enum acpi_fadt_gas_access_size_kind {
-    ACPI_FADT_GAS_ACCESS_SIZE_KIND_UNDEFINED,
+enum acpi_gas_access_size_kind {
+    ACPI_GAS_ACCESS_SIZE_UNDEFINED,
 
-    ACPI_FADT_GAS_ACCESS_SIZE_KIND_1_BYTE,
-    ACPI_FADT_GAS_ACCESS_SIZE_KIND_2_BYTE,
-    ACPI_FADT_GAS_ACCESS_SIZE_KIND_4_BYTE,
-    ACPI_FADT_GAS_ACCESS_SIZE_KIND_8_BYTE,
+    ACPI_GAS_ACCESS_SIZE_1_BYTE,
+    ACPI_GAS_ACCESS_SIZE_2_BYTE,
+    ACPI_GAS_ACCESS_SIZE_4_BYTE,
+    ACPI_GAS_ACCESS_SIZE_8_BYTE,
 };
 
 /* gas = Generic Address Structure */
-struct acpi_fadt_gas {
-    enum acpi_fadt_gas_addr_space_kind addr_space : 8;
+struct acpi_gas {
+    enum acpi_gas_addrspace_kind addr_space : 8;
 
     uint8_t bit_width;
     uint8_t bit_offset;
 
-    enum acpi_fadt_gas_access_size_kind access_size : 8;
+    enum acpi_gas_access_size_kind access_size : 8;
     uint64_t address;
 } __packed;
 
@@ -275,37 +275,37 @@ enum acpi_fadt_preferred_pm_profile {
 };
 
 enum acpi_fadt_flags {
-    F_ACPI_FADT_WBINVD                             = 1 << 0,
-    F_ACPI_FADT_WBINVD_FLUSH                       = 1 << 1,
-    F_ACPI_FADT_PROC_C1                            = 1 << 2,
-    F_ACPI_FADT_P_LVL2_UP                          = 1 << 3,
-    F_ACPI_FADT_PWR_BUTTON                         = 1 << 4,
-    F_ACPI_FADT_SLP_BUTTON                         = 1 << 5,
-    F_ACPI_FADT_FIX_RTC                            = 1 << 6,
-    F_ACPI_FADT_RTC_S4                             = 1 << 7,
-    F_ACPI_FADT_TMR_VAL_EXT                        = 1 << 8,
-    F_ACPI_FADT_DCK_CAP                            = 1 << 9,
-    F_ACPI_FADT_RESET_REG_SUP                      = 1 << 10,
-    F_ACPI_FADT_SEALED_CASE                        = 1 << 11,
-    F_ACPI_FADT_HEADLESS                           = 1 << 12,
-    F_ACPI_FADT_CPU_SW_SLP                         = 1 << 13,
-    F_ACPI_FADT_PCI_EXP_WAK                        = 1 << 14,
-    F_ACPI_FADT_USE_PLATFORM_CLOCK                 = 1 << 15,
-    F_ACPI_FADT_S4_RTC_STS_VALID                   = 1 << 16,
-    F_ACPI_FADT_REMOTE_POWER_ON                    = 1 << 17,
-    F_ACPI_FADT_FORCE_APIC_CLUSTER                 = 1 << 18,
-    F_ACPI_FADT_FORCE_APIC_PHYS_DEST_MODE          = 1 << 19,
-    F_ACPI_FADT_FORCE_HW_REDUCED_ACPI              = 1 << 20,
-    F_ACPI_FADT_FORCE_HW_LOW_POWER_S0_IDLE_CAPABLE = 1 << 21,
+    __ACPI_FADT_WBINVD                             = 1 << 0,
+    __ACPI_FADT_WBINVD_FLUSH                       = 1 << 1,
+    __ACPI_FADT_PROC_C1                            = 1 << 2,
+    __ACPI_FADT_P_LVL2_UP                          = 1 << 3,
+    __ACPI_FADT_PWR_BUTTON                         = 1 << 4,
+    __ACPI_FADT_SLP_BUTTON                         = 1 << 5,
+    __ACPI_FADT_FIX_RTC                            = 1 << 6,
+    __ACPI_FADT_RTC_S4                             = 1 << 7,
+    __ACPI_FADT_TMR_VAL_EXT                        = 1 << 8,
+    __ACPI_FADT_DCK_CAP                            = 1 << 9,
+    __ACPI_FADT_RESET_REG_SUP                      = 1 << 10,
+    __ACPI_FADT_SEALED_CASE                        = 1 << 11,
+    __ACPI_FADT_HEADLESS                           = 1 << 12,
+    __ACPI_FADT_CPU_SW_SLP                         = 1 << 13,
+    __ACPI_FADT_PCI_EXP_WAK                        = 1 << 14,
+    __ACPI_FADT_USE_PLATFORM_CLOCK                 = 1 << 15,
+    __ACPI_FADT_S4_RTC_STS_VALID                   = 1 << 16,
+    __ACPI_FADT_REMOTE_POWER_ON                    = 1 << 17,
+    __ACPI_FADT_FORCE_APIC_CLUSTER                 = 1 << 18,
+    __ACPI_FADT_FORCE_APIC_PHYS_DEST_MODE          = 1 << 19,
+    __ACPI_FADT_FORCE_HW_REDUCED_ACPI              = 1 << 20,
+    __ACPI_FADT_FORCE_HW_LOW_POWER_S0_IDLE_CAPABLE = 1 << 21,
 };
 
 enum acpi_fadt_iapc_boot_flags {
-    F_ACPI_FADT_IAPC_BOOT_LEGACY_DEVICES          = 1 << 0,
-    F_ACPI_FADT_IAPC_BOOT_8042                    = 1 << 1,
-    F_ACPI_FADT_IAPC_BOOT_VGA_NOT_PRESENT         = 1 << 2,
-    F_ACPI_FADT_IAPC_BOOT_MSI_NOT_SUPPORTED       = 1 << 3,
-    F_ACPI_FADT_IAPC_BOOT_PCIe_ASPM_NOT_SUPPORTED = 1 << 4,
-    F_ACPI_FADT_IAPC_BOOT_CMOS_NOT_PRESENT        = 1 << 5,
+    __ACPI_FADT_IAPC_BOOT_LEGACY_DEVICES          = 1 << 0,
+    __ACPI_FADT_IAPC_BOOT_8042                    = 1 << 1,
+    __ACPI_FADT_IAPC_BOOT_VGA_NOT_PRESENT         = 1 << 2,
+    __ACPI_FADT_IAPC_BOOT_MSI_NOT_SUPPORTED       = 1 << 3,
+    __ACPI_FADT_IAPC_BOOT_PCIe_ASPM_NOT_SUPPORTED = 1 << 4,
+    __ACPI_FADT_IAPC_BOOT_CMOS_NOT_PRESENT        = 1 << 5,
 };
 
 enum acpi_fadt_arm_boot_flags {
@@ -612,7 +612,7 @@ struct acpi_fadt {
     uint8_t reserved2;
     uint32_t flags;
 
-    struct acpi_fadt_gas reset_reg;
+    struct acpi_gas reset_reg;
 
     uint8_t reset_value;
     uint16_t arm_boot_arch_flags;
@@ -622,16 +622,16 @@ struct acpi_fadt {
     uint64_t x_firmware_ctrl;
     uint64_t x_dsdt;
 
-    struct acpi_fadt_gas x_pm1a_event_block;
-    struct acpi_fadt_gas x_pm1b_event_block;
-    struct acpi_fadt_gas x_pm1a_ctrl_block;
-    struct acpi_fadt_gas x_pm1b_ctrl_block;
-    struct acpi_fadt_gas x_pm2_ctrl_block;
-    struct acpi_fadt_gas x_pm_timer_block;
-    struct acpi_fadt_gas x_gpe0_block;
-    struct acpi_fadt_gas x_gpe1_block;
-    struct acpi_fadt_gas sleep_control_reg;
-    struct acpi_fadt_gas sleep_status_reg;
+    struct acpi_gas x_pm1a_event_block;
+    struct acpi_gas x_pm1b_event_block;
+    struct acpi_gas x_pm1a_ctrl_block;
+    struct acpi_gas x_pm1b_ctrl_block;
+    struct acpi_gas x_pm2_ctrl_block;
+    struct acpi_gas x_pm_timer_block;
+    struct acpi_gas x_gpe0_block;
+    struct acpi_gas x_gpe1_block;
+    struct acpi_gas sleep_control_reg;
+    struct acpi_gas sleep_status_reg;
     uint64_t hypervisor_vendor_identity;
 } __packed;
 

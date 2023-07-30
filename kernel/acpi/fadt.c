@@ -22,8 +22,12 @@ void fadt_init(const struct acpi_fadt *const fadt) {
            "fadt: flags: 0x%" PRIx32 "\n",
            fadt->iapc_boot_arch_flags);
 
+    if (fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_MSI_NOT_SUPPORTED) {
+        printk(LOGLEVEL_WARN, "fadt: msi not supported\n");
+    }
+
     const bool fadt_flags_has_8042 =
-        (fadt->iapc_boot_arch_flags & F_ACPI_FADT_IAPC_BOOT_8042) != 0;
+        (fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042) != 0;
 
     if (fadt_flags_has_8042) {
         ps2_init();

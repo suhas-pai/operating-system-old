@@ -147,7 +147,6 @@ enum x2apic_lapic_reg {
     X2APIC_LAPIC_REG_SELF_IPI = 0x3F,
 };
 
-
 enum lapic_ipi {
     LAPIC_IPI_INIT = 0x4500,
 

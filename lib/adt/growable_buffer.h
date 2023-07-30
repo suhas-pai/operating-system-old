@@ -26,10 +26,7 @@ struct growable_buffer gbuffer_alloc(uint64_t init_cap);
 struct growable_buffer gbuffer_alloc_copy(void *data, const uint64_t size);
 
 struct growable_buffer
-gbuffer_open(void *buffer,
-             uint64_t used,
-             uint64_t capacity,
-             bool is_alloc);
+gbuffer_open(void *buffer, uint64_t used, uint64_t capacity, bool is_alloc);
 
 struct growable_buffer
 gbuffer_open_mutable_buffer(struct mutable_buffer mbuffer, bool is_alloc);
@@ -60,7 +57,7 @@ gbuffer_append_data(struct growable_buffer *gbuffer,
 
 uint64_t
 gbuffer_append_byte(struct growable_buffer *gbuffer,
-                    const uint8_t byte,
+                    uint8_t byte,
                     uint64_t count);
 
 bool

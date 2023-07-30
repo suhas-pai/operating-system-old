@@ -10,6 +10,141 @@
 #include "adt/string_view.h"
 #include "lib/macros.h"
 
+#define femto_to_pico(femto) ((femto) / 1000)
+#define pico_to_nano(pico) ((pico) / 1000)
+#define nano_to_micro(nano) ((nano) / 1000)
+#define micro_to_milli(micro) ((micro) / 1000)
+#define milli_to_seconds(milli) ((milli) / 1000)
+
+#define seconds_to_minutes(seconds) ((seconds) / 60)
+#define minutes_to_hours(minutes) ((minutes) / 60)
+#define hours_to_days(minutes) ((hours) / 24)
+
+#define femto_to_nano(femto) pico_to_nano(femto_to_pico(femto))
+#define pico_to_micro(pico) nano_to_micro(pico_to_nano(pico))
+#define nano_to_milli(nano) micro_to_milli(nano_to_micro(nano))
+#define micro_to_seconds(micro) milli_to_seconds(micro_to_milli(micro))
+#define milli_to_minutes(milli) seconds_to_minutes(milli_to_seconds(micro))
+#define seconds_to_hours(seconds) minutes_to_hours(seconds_to_minutes(seconds))
+#define minutes_to_days(minutes) hours_to_days(minutes_to_hours(minutes))
+
+#define femto_to_micro(femto) nano_to_micro(femto_to_nano(femto))
+#define pico_to_milli(pico) micro_to_milli(pico_to_micro(pico))
+#define nano_to_seconds(nano) milli_to_seconds(nano_to_milli(nano))
+#define micro_to_minutes(micro) seconds_to_minutes(micro_to_seconds(micro))
+#define milli_to_hours(milli) minutes_to_hours(milli_to_minutes(milli))
+#define seconds_to_days(seconds) hours_to_days(seconds_to_hours(seconds))
+
+#define femto_to_milli(femto) nano_to_milli(femto_to_nano(femto))
+#define pico_to_seconds(pico) milli_to_seconds(pico_to_milli(pico))
+#define nano_to_minutes(nano) seconds_to_minutes(nano_to_seconds(nano))
+#define micro_to_hours(micro) minutes_to_hours(micro_to_minutes(milli))
+#define milli_to_days(milli) hours_to_days(milli_to_hours(milli))
+
+#define femto_to_seconds(femto) milli_to_seconds(femto_to_milli(femto))
+#define pico_to_minutes(pico) seconds_to_minutes(pico_to_seconds(pico))
+#define nano_to_hours(nano) minutes_to_hours(nano_to_minutes(nano))
+#define micro_to_days(micro) hours_to_days(micro_to_hours(micro))
+
+#define femto_to_minutes(femto) seconds_to_minutes(femto_to_seconds(femto))
+#define pico_to_hours(pico) minutes_to_hours(pico_to_minutes(pico))
+#define nano_to_days(nano) hours_to_days(nano_to_hours(nano))
+
+#define femto_to_hours(femto) minutes_to_hours(femto_to_minutes(femto))
+#define pico_to_days(pico) hours_to_days(pico_to_hours(pico))
+
+#define femto_to_days(femto) hours_to_days(femto_to_hours(femto))
+
+#define pico_to_femto(pico) ((pico) * 1000)
+#define nano_to_pico(nano) ((nano) * 1000)
+#define micro_to_nano(micro) ((micro) * 1000)
+#define milli_to_micro(milli) ((milli) * 1000)
+#define seconds_to_milli(seconds) ((seconds) * 1000)
+
+#define minutes_to_seconds(minutes) ((minutes) * 60)
+#define hours_to_minutes(hours) ((hours) * 60)
+#define days_to_hours(days) ((days) * 24)
+
+#define nano_to_femto(femto) pico_to_femto(nano_to_pico(femto))
+#define micro_to_pico(pico) nano_to_pico(micro_to_nano(pico))
+#define milli_to_nano(nano) micro_to_nano(milli_to_micro(nano))
+#define seconds_to_micro(micro) milli_to_micro(seconds_to_milli(micro))
+#define minutes_to_milli(minutes) seconds_to_milli(minutes_to_seconds(minutes))
+#define hours_to_seconds(hours) minutes_to_seconds(hours_to_minutes(hours))
+#define days_to_minutes(days) hours_to_minutes(days_to_hours(days))
+
+#define micro_to_femto(micro) nano_to_femto(micro_to_nano(femto))
+#define milli_to_pico(milli) micro_to_pico(milli_to_micro(pico))
+#define seconds_to_nano(seconds) milli_to_nano(seconds_to_milli(nano))
+#define minutes_to_micro(minutes) seconds_to_micro(minutes_to_seconds(micro))
+#define hours_to_milli(hours) minutes_to_micro(hours_to_minutes(micro))
+#define days_to_seconds(days) hours_to_seconds(days_to_hours(micro))
+
+#define milli_to_femto(milli) nano_to_femto(milli_to_nano(milli))
+#define seconds_to_pico(seconds) milli_to_pico(seconds_to_milli(seconds))
+#define minutes_to_nano(minutes) seconds_to_nano(minutes_to_seconds(minutes))
+#define hours_to_micro(hours) minutes_to_micro(hours_to_minutes(hours))
+#define days_to_milli(days) hours_to_milli(days_to_hours(days))
+
+#define seconds_to_femto(seconds) milli_to_femto(seconds_to_milli(seconds))
+#define minutes_to_pico(minutes) seconds_to_pico(minutes_to_seconds(minutes))
+#define hours_to_nano(hours) minutes_to_nano(hours_to_minutes(hours))
+#define days_to_micro(days) hours_to_micro(days_to_hours(days))
+
+#define minutes_to_femto(minutes) seconds_to_femto(minutes_to_seconds(minutes))
+#define hours_to_pico(hours) minutes_to_pico(hours_to_minutes(hours))
+#define days_to_nano(days) hours_to_nano(days_to_hours(days))
+
+#define hours_to_femto(hours) minutes_to_femto(hours_to_minutes(hours))
+#define days_to_pico(days) hours_to_pico(days_to_hours(days))
+
+#define days_to_femto(femto) hours_to_femto(days_to_hours(femto))
+
+#define femto_mod_pico(femto) ((femto) % 1000)
+#define pico_mod_nano(pico) ((pico) % 1000)
+#define nano_mod_micro(nano) ((nano) % 1000)
+#define micro_mod_milli(micro) ((micro) % 1000)
+#define milli_mod_seconds(milli) ((milli) % 1000)
+
+#define seconds_mod_minutes(seconds) ((seconds) % 60)
+#define minutes_mod_hours(minutes) ((minutes) % 60)
+#define hours_mod_days(minutes) ((hours) % 24)
+
+#define femto_mod_nano(femto) pico_mod_nano(femto_mod_pico(femto))
+#define pico_mod_micro(pico) nano_mod_micro(pico_mod_nano(pico))
+#define nano_mod_milli(nano) micro_mod_milli(nano_mod_micro(nano))
+#define micro_mod_seconds(micro) milli_mod_seconds(micro_mod_milli(micro))
+#define milli_mod_minutes(milli) seconds_mod_minutes(milli_mod_seconds(micro))
+#define seconds_mod_hours(seconds) minutes_mod_hours(seconds_mod_minutes(seconds))
+#define minutes_mod_days(minutes) hours_mod_days(minutes_mod_hours(minutes))
+
+#define femto_mod_micro(femto) nano_mod_micro(femto_mod_nano(femto))
+#define pico_mod_milli(pico) micro_mod_milli(pico_mod_micro(pico))
+#define nano_mod_seconds(nano) milli_mod_seconds(nano_mod_milli(nano))
+#define micro_mod_minutes(micro) seconds_mod_minutes(micro_mod_seconds(micro))
+#define milli_mod_hours(milli) minutes_mod_hours(milli_mod_minutes(milli))
+#define seconds_mod_days(seconds) hours_mod_days(seconds_mod_hours(seconds))
+
+#define femto_mod_milli(femto) nano_mod_milli(femto_mod_nano(femto))
+#define pico_mod_seconds(pico) milli_mod_seconds(pico_mod_milli(pico))
+#define nano_mod_minutes(nano) seconds_mod_minutes(nano_mod_seconds(nano))
+#define micro_mod_hours(micro) minutes_mod_hours(micro_mod_minutes(milli))
+#define milli_mod_days(milli) hours_mod_days(milli_mod_hours(milli))
+
+#define femto_mod_seconds(femto) milli_mod_seconds(femto_mod_milli(femto))
+#define pico_mod_minutes(pico) seconds_mod_minutes(pico_mod_seconds(pico))
+#define nano_mod_hours(nano) minutes_mod_hours(nano_mod_minutes(nano))
+#define micro_mod_days(micro) hours_mod_days(micro_mod_hours(micro))
+
+#define femto_mod_minutes(femto) seconds_mod_minutes(femto_mod_seconds(femto))
+#define pico_mod_hours(pico) minutes_mod_hours(pico_mod_minutes(pico))
+#define nano_mod_days(nano) hours_mod_days(nano_mod_hours(nano))
+
+#define femto_mod_hours(femto) minutes_mod_hours(femto_mod_minutes(femto))
+#define pico_mod_days(pico) hours_mod_days(pico_mod_hours(pico))
+
+#define femto_mod_days(femto) hours_mod_days(femto_mod_hours(femto))
+
 enum weekday {
     WEEKDAY_INVALID = -1,
 

@@ -202,7 +202,7 @@ uart8250_init(const port_t base,
     return true;
 }
 
-void init_from_dtb(const void *const dtb, const int nodeoff) {
+bool init_from_dtb(const void *const dtb, const int nodeoff) {
     struct dtb_addr_size_pair base_addr_reg = {0};
     uint32_t pair_count = 1;
 
@@ -214,8 +214,10 @@ void init_from_dtb(const void *const dtb, const int nodeoff) {
                           &base_addr_reg);
 
     if (!get_base_addr_reg_result) {
-        panic("dtb: base-addr reg of 'reg' property of serial node is "
-              "malformed\n");
+        printk(LOGLEVEL_WARN,
+               "uart8250: base-addr reg of 'reg' property of serial dtb-node "
+               "is malformed\n");
+        return false;
     }
 
     struct string_view clock_freq_string = {};
@@ -226,8 +228,10 @@ void init_from_dtb(const void *const dtb, const int nodeoff) {
                             &clock_freq_string);
 
     if (!get_clock_freq_result) {
-        panic("dtb: clock-frequency property of serial node is missing or "
-              "malformed");
+        printk(LOGLEVEL_WARN,
+               "uart8250: clock-frequency property of serial dtb-node is "
+               "missing or malformed");
+        return false;
     }
 
     uart8250_init((port_t)base_addr_reg.address,
@@ -235,6 +239,7 @@ void init_from_dtb(const void *const dtb, const int nodeoff) {
                   *(const uint32_t *)(uint64_t)clock_freq_string.begin,
                   /*reg_width=*/sizeof(uint8_t),
                   /*reg_shift=*/0);
+    return true;
 }
 
 static const char *dtb_compat_list[] = { "ns16550a" };

@@ -5,9 +5,9 @@
 
 #pragma once
 
-#if defined(__riscv) && defined(__LP64__)
+#if __has_include("acpi/extra_structs.h")
     #include "acpi/extra_structs.h"
-#endif /* defined(__x86_64__) */
+#endif /* __has_include("acpi/extra_structs.h") */
 
 #include "acpi/structs.h"
 #include "lib/adt/array.h"
@@ -38,7 +38,9 @@ struct acpi_info {
     const struct acpi_rsdp *rsdp;
     const struct acpi_rsdt *rsdt;
 
-#if defined(__riscv) && defined(__LP64__)
+#if defined(__x86_64__)
+    const struct acpi_hpet *hpet;
+#elif defined(__riscv) && defined(__LP64__)
     const struct acpi_rhct *rhct;
 #endif /* defined(__riscv) && defined(__LP64__) */
 

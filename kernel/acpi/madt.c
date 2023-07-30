@@ -248,8 +248,7 @@ void madt_init(const struct acpi_madt *const madt) {
                        hdr->x2apic_id,
                        hdr->flags);
             #else
-                printk(LOGLEVEL_WARN,
-                       "madt: found x2apic entry. ignoring");
+                printk(LOGLEVEL_WARN, "madt: found x2apic entry. ignoring");
             #endif /* defined(__x86_64__) */
 
                 break;
@@ -278,8 +277,7 @@ void madt_init(const struct acpi_madt *const madt) {
                        hdr->flags,
                        hdr->local_x2apic_lint);
             #else
-                printk(LOGLEVEL_WARN,
-                       "madt: found x2apic nmi entry. ignoring");
+                printk(LOGLEVEL_WARN, "madt: found x2apic nmi entry. ignoring");
             #endif /* defined(__x86_64__) */
 
                 break;
@@ -443,8 +441,8 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_msi_frame msi_frame = {
                     .mmio = mmio,
                     .overriden_msi_typerr =
-                        frame->flags &
-                        __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR,
+                        (frame->flags &
+                           __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR) != 0,
                     .spi_base = frame->spi_base,
                     .spi_count = frame->spi_count
                 };

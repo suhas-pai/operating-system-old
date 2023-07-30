@@ -82,7 +82,9 @@ struct pci_domain {
 };
 
 struct pci_device_info {
-    struct list list;
+    struct list list_in_domain;
+    struct list list_in_devices;
+
     struct pci_config_space config_space;
     struct pci_domain *domain;
 
