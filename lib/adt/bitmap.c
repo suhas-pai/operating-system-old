@@ -3,7 +3,6 @@
  * © suhas pai
  */
 
-#include "lib/align.h"
 #include "lib/math.h"
 #include "lib/memory.h"
 
@@ -56,7 +55,7 @@ find_multiple_unset(struct bitmap *const bitmap,
 
 #define LOOP_OVER_RANGES_FOR_TYPE(type)                                        \
     for (uint64_t i = 0;                                                       \
-         distance(ptr, end) <= sizeof(type);                                   \
+         distance(ptr, end) >= sizeof(type);                                   \
          ptr += sizeof(type), bit_index_of_ptr += sizeof_bits(type),           \
          start_index = 0, i++)                                                 \
     {                                                                          \
@@ -162,7 +161,7 @@ find_multiple_set(struct bitmap *const bitmap,
 
 #define LOOP_OVER_RANGES_FOR_TYPE(type)                                        \
     for (uint64_t i = 0;                                                       \
-         distance(ptr, end) <= sizeof(type);                                   \
+         distance(ptr, end) >= sizeof(type);                                   \
          ptr += sizeof(type), bit_index_of_ptr += sizeof_bits(type),           \
          start_index = 0, i++)                                                 \
     {                                                                          \
@@ -489,7 +488,7 @@ find_set_at_mult(struct bitmap *const bitmap,
 
 #define ITERATE_FOR_TYPE(type)                                                 \
     for (;                                                                     \
-         distance(ptr, end) <= sizeof(type);                                   \
+         distance(ptr, end) >= sizeof(type);                                   \
          ptr += sizeof(type), bit_index_of_ptr += sizeof_bits(type),           \
          start_index = 0)                                                      \
     {                                                                          \
