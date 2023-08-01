@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include "lib/macros.h"
 
-struct local_apic_aligned_value {
+struct lapic_aligned_value {
     _Alignas(16) volatile uint32_t value;
 };
 
@@ -37,11 +37,11 @@ struct lapic_registers {
     _Alignas(16) volatile uint32_t destination_format;
     _Alignas(16) volatile uint32_t spur_int_vector;
 
-    _Alignas(16) volatile const struct local_apic_aligned_value in_service[8];
-    _Alignas(16) volatile const struct local_apic_aligned_value trigger_mode[8];
+    _Alignas(16) volatile const struct lapic_aligned_value in_service[8];
+    _Alignas(16) volatile const struct lapic_aligned_value trigger_mode[8];
 
     _Alignas(16)
-    volatile const struct local_apic_aligned_value interrupt_request[8];
+    volatile const struct lapic_aligned_value interrupt_request[8];
 
     _Alignas(16) volatile const uint32_t error_status;
     _Alignas(16) volatile uint32_t reserved_4[24];
@@ -50,7 +50,7 @@ struct lapic_registers {
     _Alignas(16) volatile uint32_t lvt_cmci[4];
 
     /* Icr = Interrupt Command Register */
-    _Alignas(16) volatile struct local_apic_aligned_value icr[2];
+    _Alignas(16) volatile struct lapic_aligned_value icr[2];
 
     /* Local Vector Table Timer Interrupt (TIMER) */
     _Alignas(16) volatile uint32_t lvt_timer;

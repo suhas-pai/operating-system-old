@@ -8,7 +8,6 @@
 #include "cpu/spinlock.h"
 #include "lib/list.h"
 
-// Support page sizes 4kib to 1gib
 #define MAX_ORDER 11
 
 #define alloc_page(flags) alloc_pages((flags), /*order=*/0)

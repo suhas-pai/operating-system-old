@@ -20,80 +20,51 @@ static struct list device_list = LIST_INIT(device_list);
 
 static uint64_t domain_count = 0;
 
+extern uint32_t
+arch_pci_read(const struct pci_device_info *device,
+              uint32_t offset,
+              uint8_t access_size);
+
+extern bool
+arch_pci_write(const struct pci_device_info *device,
+               uint32_t offset,
+               uint32_t value,
+               uint8_t access_size);
+
+extern uint32_t
+arch_pcie_read(const struct pci_device_info *device,
+               uint32_t offset,
+               uint8_t access_size);
+
+extern bool
+arch_pcie_write(const struct pci_device_info *device,
+                uint32_t offset,
+                uint32_t value,
+                uint8_t access_size);
+
 static uint32_t
-pcie_read(const struct pci_device_info *const device,
-          const uint32_t offset,
-          const uint8_t access_size)
+device_pci_read(const struct pci_device_info *const device,
+                const uint32_t offset,
+                const uint8_t access_size)
 {
-    struct pci_domain *const domain = device->domain;
-    const uint32_t index =
-        (uint32_t)((device->config_space.bus - domain->bus_range.front) << 20) |
-        ((uint32_t)device->config_space.device_slot << 15) |
-        ((uint32_t)device->config_space.function << 12);
-
-    const struct range mmio_range = mmio_region_get_range(domain->mmio);
-    const struct range access_range = range_create(index + offset, access_size);
-
-    if (!range_has_index_range(mmio_range, access_range)) {
-        printk(LOGLEVEL_WARN,
-               "pcie: attempting to read from index range " RANGE_FMT " which "
-               "is outside mmio range of pcie domain, " RANGE_FMT "\n",
-               RANGE_FMT_ARGS(access_range),
-               RANGE_FMT_ARGS(mmio_range));
-        return (uint32_t)-1;
+    if (device->supports_pcie) {
+        return arch_pcie_read(device, offset, access_size);
     }
 
-    volatile void *const ptr = domain->mmio->base + index + offset;
-    switch (access_size) {
-        case sizeof(uint8_t):
-            return *(volatile uint8_t *)ptr;
-        case sizeof(uint16_t):
-            return *(volatile uint16_t *)ptr;
-        case sizeof(uint32_t):
-            return *(volatile uint32_t *)ptr;
-    }
-
-    verify_not_reached();
+    return arch_pci_read(device, offset, access_size);
 }
 
-static bool
-pcie_write(const struct pci_device_info *const device,
-           const uint32_t offset,
-           const uint32_t value,
-           const uint8_t access_size)
+bool
+device_pci_write(const struct pci_device_info *const device,
+                 const uint32_t offset,
+                 const uint32_t value,
+                 const uint8_t access_size)
 {
-    struct pci_domain *const domain = device->domain;
-    const uint64_t index =
-        (uint64_t)((device->config_space.bus - domain->bus_range.front) << 20) |
-        ((uint64_t)device->config_space.device_slot << 15) |
-        ((uint64_t)device->config_space.function << 12);
-
-    const struct range mmio_range = mmio_region_get_range(domain->mmio);
-    const struct range access_range = range_create(index + offset, access_size);
-
-    if (!range_has_index_range(mmio_range, access_range)) {
-        printk(LOGLEVEL_WARN,
-               "pcie: attempting to write to index-range " RANGE_FMT " which "
-               "is outside mmio range of pcie domain, " RANGE_FMT "\n",
-               RANGE_FMT_ARGS(access_range),
-               RANGE_FMT_ARGS(mmio_range));
-        return (uint32_t)-1;
+    if (device->supports_pcie) {
+        return arch_pcie_write(device, offset, value, access_size);
     }
 
-    volatile void *const ptr = domain->mmio->base + index + offset;
-    switch (access_size) {
-        case sizeof(uint8_t):
-            *(volatile uint8_t *)ptr = (uint8_t)value;
-            return true;
-        case sizeof(uint16_t):
-            *(volatile uint16_t *)ptr = (uint16_t)value;
-            return true;
-        case sizeof(uint32_t):
-            *(volatile uint32_t *)ptr = value;
-            return true;
-    }
-
-    verify_not_reached();
+    return arch_pci_write(device, offset, value, access_size);
 }
 
 enum parse_bar_result {
@@ -106,15 +77,15 @@ enum parse_bar_result {
 };
 
 #define read_bar(index) \
-    dev->domain->read(   \
-        dev,            \
+    domain->read(  \
+        dev,       \
         offsetof(struct pci_spec_general_device_info, bar_list) + \
             (index * sizeof(uint32_t)),                           \
         sizeof(uint32_t))
 
 #define write_bar(index, value) \
-    dev->domain->write( \
-        dev,           \
+    domain->write( \
+        dev,       \
         offsetof(struct pci_spec_general_device_info, bar_list) + \
             (index * sizeof(uint32_t)), \
         value,                          \
@@ -139,6 +110,8 @@ pci_bar_parse_size(struct pci_device_info *const dev,
      * Since we operate on two registers for 64-bit, we have to perform this
      * procedure on both registers for 64-bit.
      */
+
+    struct pci_domain *const domain = dev->domain;
 
     const uint32_t bar_0_orig = read_bar(bar_0_index);
     write_bar(bar_0_index, 0xFFFFFFFF);
@@ -181,6 +154,8 @@ pci_parse_bar(struct pci_device_info *const dev,
               const bool is_bridge,
               struct pci_device_bar_info *const bar)
 {
+    struct pci_domain *const domain = dev->domain;
+
     const uint8_t index = *index_in;
     const uint32_t bar_0 = read_bar(index);
 
@@ -363,11 +338,7 @@ validate_cap_offset(struct array *const prev_cap_offsets,
 
 static void pci_parse_capabilities(struct pci_device_info *const dev) {
     uint8_t cap_offset =
-        dev->domain->read(dev,
-                          offsetof(struct pci_spec_general_device_info,
-                                   capabilities_offset),
-                          sizeof_field(struct pci_spec_general_device_info,
-                                       capabilities_offset));
+        pci_read(dev, struct pci_spec_general_device_info, capabilities_offset);
 
     if (cap_offset == 0 || cap_offset == (uint8_t)-1) {
         printk(LOGLEVEL_INFO, "\t\thas no capabilities\n");
@@ -385,18 +356,11 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
         }
 
         validate_cap_offset(&prev_cap_offsets, cap_offset);
-        volatile struct pci_spec_capability *const capability =
-            reg_to_ptr(volatile struct pci_spec_capability,
-                       dev->pcie_info,
-                       cap_offset);
 
-    #define read_cap_field(field) \
-        dev->domain->read(dev,         \
-                          cap_offset + \
-                             offsetof(struct pci_spec_capability, field), \
-                          sizeof_field(struct pci_spec_capability, field))
+    #define pci_read_cap_field(type, field) \
+        pci_read_with_offset(dev, cap_offset, type, field)
 
-        const uint8_t id = read_cap_field(id);
+        const uint8_t id = pci_read_cap_field(struct pci_spec_capability, id);
         const char *kind = "unknown";
 
         switch ((enum pci_spec_cap_id)id) {
@@ -418,23 +382,21 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 }
 
                 dev->msi_support = PCI_DEVICE_MSI_SUPPORT_MSI;
-                dev->pcie_msi = (volatile struct pci_spec_cap_msi *)capability;
+                dev->pcie_msi_offset = cap_offset;
 
                 kind = "msi";
                 break;
             case PCI_SPEC_CAP_ID_MSI_X:
                 if (dev->msi_support == PCI_DEVICE_MSI_SUPPORT_MSIX) {
                     printk(LOGLEVEL_WARN,
-                           "\t\tfound multiple msix capabilities. "
-                           "returning\n");
+                           "\t\tfound multiple msix capabilities. returning\n");
                     return;
                 }
 
-                dev->msi_support = PCI_DEVICE_MSI_SUPPORT_MSIX;
-                dev->pcie_msix =
-                    (volatile struct pci_spec_cap_msix *)capability;
+                dev->pcie_msix_offset = cap_offset;
 
-                const uint16_t msg_control = dev->pcie_msix->msg_control;
+                const uint16_t msg_control =
+                    pci_read_cap_field(struct pci_spec_cap_msix, msg_control);
                 const uint16_t bitmap_size =
                     (msg_control & __PCI_MSIX_CAP_TABLE_SIZE_MASK) + 1;
 
@@ -442,8 +404,7 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 if (bitmap.gbuffer.begin == NULL) {
                     printk(LOGLEVEL_WARN,
                            "\t\tfailed to allocate msix table "
-                           "(size: %" PRIu16 " bytes). disabling "
-                           "msix\n",
+                           "(size: %" PRIu16 " bytes). disabling msix\n",
                            bitmap_size);
                     break;
                 }
@@ -490,7 +451,9 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 kind = "secure-device";
                 break;
             case PCI_SPEC_CAP_ID_PCI_EXPRESS:
+                dev->supports_pcie = true;
                 kind = "pci-express";
+
                 break;
             case PCI_SPEC_CAP_ID_ADV_FEATURES:
                 kind = "advanced-features";
@@ -506,53 +469,25 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
         printk(LOGLEVEL_INFO,
                "\t\tfound capability: %s at offset 0x%" PRIx8 "\n",
                kind,
-               id);
+               cap_offset);
 
-        cap_offset = read_cap_field(offset_to_next);
-#undef read_cap_field
+        cap_offset =
+            pci_read_cap_field(struct pci_spec_capability, offset_to_next);
     }
 
     array_destroy(&prev_cap_offsets);
 
-    // On x86_64, the fadt may provide a flag indicating if MSI is completely
-    // disabled.
+    // On x86_64, the fadt may provide a flag indicating the MSI is disabled.
 #if defined(__x86_64__)
-    if (get_acpi_info()->fadt != NULL) {
-        if (get_acpi_info()->fadt->iapc_boot_arch_flags &
+    const struct acpi_fadt *const fadt = get_acpi_info()->fadt;
+    if (fadt != NULL) {
+        if (fadt->iapc_boot_arch_flags &
                 __ACPI_FADT_IAPC_BOOT_MSI_NOT_SUPPORTED)
         {
             dev->msi_support = PCI_DEVICE_MSI_SUPPORT_NONE;
         }
     }
 #endif
-}
-
-static volatile struct pci_spec_device_info *
-pci_domain_get_device_for_pos(const struct pci_domain *const domain,
-                              const struct pci_config_space *const config_space)
-{
-    const uint32_t offset =
-        ((uint32_t)(config_space->bus - domain->bus_range.front) << 20) |
-        ((uint32_t)config_space->device_slot << 15) |
-        ((uint32_t)config_space->function << 12);
-
-    if (!index_in_bounds(offset, domain->mmio->size)) {
-        printk(LOGLEVEL_WARN,
-               "pcie: invalid request for device with offset: 0x%" PRIu32 ", "
-               "total available size: %" PRIu32 "\n",
-               offset,
-               domain->mmio->size);
-        return NULL;
-    }
-
-    volatile struct pci_spec_device_info *const result =
-        (volatile struct pci_spec_device_info *)(domain->mmio->base + offset);
-
-    if (result->vendor_id == 0xffff) {
-        return NULL;
-    }
-
-    return result;
 }
 
 void
@@ -564,92 +499,42 @@ static void
 parse_function(struct pci_domain *const domain,
                const struct pci_config_space *const config_space)
 {
-    struct pci_device_info info = { .domain = domain };
-    volatile struct pci_spec_device_info *device = NULL;
-    uint8_t hdrkind = 0;
+    struct pci_device_info info = {
+        .domain = domain,
+        .config_space = *config_space
+    };
 
-    if (domain->mmio != NULL) {
-        device = pci_domain_get_device_for_pos(domain, config_space);
-        if (device == NULL) {
-            return;
-        }
+    const uint16_t vendor_id =
+        pci_read(&info, struct pci_spec_device_info, vendor_id);
 
-        const bool is_multi_function =
-            (device->header_kind & __PCI_DEVHDR_MULTFUNC) != 0;
+    if (vendor_id == (uint16_t)-1) {
+        return;
+    }
 
-        hdrkind = device->header_kind & (uint8_t)~__PCI_DEVHDR_MULTFUNC;
-        volatile struct pci_spec_general_device_info *const general_device =
-            (volatile struct pci_spec_general_device_info *)device;
+    const uint8_t header_kind =
+        pci_read(&info, struct pci_spec_device_info, header_kind);
 
-        info = (struct pci_device_info){
-            .domain = domain,
-            .config_space = *config_space,
-            .pcie_info = device,
+    const bool is_multi_function = (header_kind & __PCI_DEVHDR_MULTFUNC) != 0;
+    const uint8_t hdrkind = header_kind & (uint8_t)~__PCI_DEVHDR_MULTFUNC;
 
-            .id = device->device_id,
-            .vendor_id = device->vendor_id,
-            .command = device->command,
-            .status = device->status,
-            .revision_id = device->revision_id,
-
-            .prog_if = device->prog_if,
-            .header_kind = hdrkind,
-
-            .class = device->class_code,
-            .subclass = device->subclass,
-            .irq_pin =
-                hdrkind == PCI_SPEC_DEVHDR_KIND_GENERAL ?
-                    general_device->interrupt_pin : 0,
-
-            .multifunction = is_multi_function,
-        };
-    } else {
-        #define device_spec_get_field(field) \
-            domain->read(&info, \
-                         offsetof(struct pci_spec_device_info, field), \
-                         sizeof_field(struct pci_spec_device_info, field))
-
-        const uint16_t vendor_id = device_spec_get_field(vendor_id);
-        if (vendor_id == (uint16_t)-1) {
-            return;
-        }
-
-        const uint8_t header_kind = device_spec_get_field(header_kind);
-        const bool is_multi_function =
-            (header_kind & __PCI_DEVHDR_MULTFUNC) != 0;
-
-        hdrkind = header_kind & (uint8_t)~__PCI_DEVHDR_MULTFUNC;
-        const uint8_t irq_pin =
-            hdrkind == PCI_SPEC_DEVHDR_KIND_GENERAL ?
-                domain->read(&info,
-                             offsetof(struct pci_spec_general_device_info,
-                                      interrupt_pin),
-                             sizeof_field(struct pci_spec_general_device_info,
-                                          interrupt_pin))
+    const uint8_t irq_pin =
+        hdrkind == PCI_SPEC_DEVHDR_KIND_GENERAL ?
+            pci_read(&info, struct pci_spec_general_device_info, interrupt_pin)
             : 0;
 
-        info = (struct pci_device_info){
-            .domain = domain,
-            .config_space = *config_space,
+    info.id = pci_read(&info, struct pci_spec_device_info, device_id);
+    info.vendor_id = vendor_id;
+    info.command = pci_read(&info, struct pci_spec_device_info,command);
+    info.status = pci_read(&info, struct pci_spec_device_info,status);
+    info.revision_id = pci_read(&info, struct pci_spec_device_info,revision_id);
 
-            .id = device_spec_get_field(device_id),
-            .vendor_id = vendor_id,
-            .command = device_spec_get_field(command),
-            .status = device_spec_get_field(status),
-            .revision_id = device_spec_get_field(revision_id),
+    info.prog_if = pci_read(&info, struct pci_spec_device_info,prog_if);
+    info.header_kind = hdrkind;
 
-            .prog_if = device_spec_get_field(prog_if),
-            .header_kind = hdrkind,
-
-            .class = device_spec_get_field(class_code),
-            .subclass = device_spec_get_field(subclass),
-            .irq_pin = irq_pin,
-
-            .multifunction = is_multi_function,
-        };
-
-        #undef device_spec_get_field
-    }
+    info.class = pci_read(&info, struct pci_spec_device_info,class_code);
+    info.subclass = pci_read(&info, struct pci_spec_device_info,subclass);
+    info.irq_pin = irq_pin;
+    info.multifunction = is_multi_function;
 
     printk(LOGLEVEL_INFO,
            "\tdevice: " PCI_DEVICE_INFO_FMT "\n",
@@ -863,8 +748,8 @@ pci_add_pcie_domain(struct range bus_range,
 
     domain->bus_range = bus_range;
     domain->segment = segment;
-    domain->read = pcie_read;
-    domain->write = pcie_write;
+    domain->read = device_pci_read;
+    domain->write = device_pci_write;
 
     list_add(&domain_list, &domain->list);
     domain_count++;
@@ -933,17 +818,6 @@ void pci_init_drivers() {
     }
 }
 
-extern uint32_t
-pci_read(const struct pci_device_info *dev,
-         uint32_t offset,
-         uint8_t access_size);
-
-extern bool
-pci_write(const struct pci_device_info *dev,
-          uint32_t offset,
-          uint32_t value,
-          uint8_t access_size);
-
 void pci_init() {
     if (list_empty(&domain_list)) {
         struct pci_domain *const root_domain = kmalloc(sizeof(*root_domain));
@@ -951,9 +825,9 @@ void pci_init() {
 
         struct pci_device_info dev_0 = { .domain = root_domain };
         const uint32_t dev_0_first_dword =
-            pci_read(&dev_0,
-                     offsetof(struct pci_spec_device_info, vendor_id),
-                     sizeof_field(struct pci_spec_device_info, vendor_id));
+            arch_pci_read(&dev_0,
+                          offsetof(struct pci_spec_device_info, vendor_id),
+                          sizeof_field(struct pci_spec_device_info, vendor_id));
 
         if (dev_0_first_dword == (uint32_t)-1) {
             printk(LOGLEVEL_WARN,
@@ -964,8 +838,8 @@ void pci_init() {
         list_init(&root_domain->list);
         list_init(&root_domain->device_list);
 
-        root_domain->read = pci_read;
-        root_domain->write = pci_write;
+        root_domain->read = arch_pci_read;
+        root_domain->write = arch_pci_write;
 
         pci_parse_domain(root_domain);
     } else {

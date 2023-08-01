@@ -55,7 +55,8 @@ static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
 static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
     { PML1_SHIFT, PML2_SHIFT, PML3_SHIFT, PML4_SHIFT, PML5_SHIFT };
 
-static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT, PML4_SHIFT };
+static const uint8_t LARGEPAGE_SHIFTS[] = {
+    PML2_SHIFT, PML3_SHIFT, PML4_SHIFT };
 
 #define PGT_FLAGS (__PTE_VALID)
 

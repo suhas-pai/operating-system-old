@@ -148,7 +148,9 @@ ps2_get_device_kind(const enum ps2_device_id device_id,
 
     printk(LOGLEVEL_INFO,
            "ps2: Device %" PRIu8 " identity: 0x%" PRIx16 " 0x%" PRIx16 "\n",
-           device_id, first, second);
+           device_id,
+           first,
+           second);
 
     if (second != PS2_RESPONSE_ACKNOWLEDGE && second != PS2_READ_PORT_FAIL) {
         *result_out =

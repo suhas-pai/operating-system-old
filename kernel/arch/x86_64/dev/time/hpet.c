@@ -17,6 +17,19 @@ struct hpet_addrspace_timer_info {
     volatile uint64_t fsb_int_route;
 } __packed;
 
+enum hpet_addrspace_timer_flags {
+    __HPET_TIMER_LEVEL_TRIGGER_INT = 1 << 1,
+    __HPET_TIMER_ENABLE_INT = 1 << 2,
+    __HPET_TIMER_SET_MODE_PERIODIC = 1 << 3,
+    __HPET_TIMER_SUPPORTS_PERIODIC = 1 << 4,
+    __HPET_TIMER_HAS_64BIT_COUNTER = 1 << 5,
+    __HPET_TIMER_SET_PERIODIC_COUNTER = 1 << 6,
+    __HPET_TIMER_FORCED_32BIT_COUNTER = 1 << 8,
+
+    __HPET_TIMER_USE_FSB_INT_MAPPING = 1 << 14,
+    __HPET_TIMER_SUPPORTS_FSB_INT_MAPPING = 1 << 15,
+};
+
 struct hpet_addrspace {
     volatile const uint64_t general_cap_and_id;
     uint64_t padding_1;
@@ -50,7 +63,7 @@ void hpet_init(const struct acpi_hpet *const hpet) {
 
     const bool has_64bit_counter =
         (hpet->event_timer_block_id &
-           __HPET_EVENTTIMER_BLOCKID_64BIT_COUNTER) != 0;
+            __HPET_EVENTTIMER_BLOCKID_64BIT_COUNTER) != 0;
 
     if (!has_64bit_counter) {
         printk(LOGLEVEL_WARN,
@@ -89,9 +102,11 @@ void hpet_init(const struct acpi_hpet *const hpet) {
     const uint8_t timer_count = (cap_and_id >> 8) & 0x1f;
     printk(LOGLEVEL_WARN, "hpet: got %" PRIu8 " timers\n", timer_count);
 
+    uint8_t timer_index = 0;
     for (volatile struct hpet_addrspace_timer_info *timer = addrspace->timers;
          timer != addrspace->timers + timer_count;
-         timer++)
+         timer++,
+         timer_index++)
     {
         timer->comparator_value = 0;
     }

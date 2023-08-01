@@ -8,6 +8,14 @@
 #include "device.h"
 #include "structs.h"
 
+uint32_t pci_device_get_index(const struct pci_device_info *const device) {
+    const struct pci_domain *const domain = device->domain;
+    return
+        (uint32_t)((device->config_space.bus - domain->bus_range.front) << 20) |
+        ((uint32_t)device->config_space.device_slot << 15) |
+        ((uint32_t)device->config_space.function << 12);
+}
+
 #if defined(__x86_64__)
     static void
     bind_msi_to_vector(const struct pci_device_info *const device,
@@ -15,9 +23,8 @@
                        const isr_vector_t vector,
                        const bool masked)
     {
-        volatile struct pci_spec_cap_msi *const msi = device->pcie_msi;
-        const uint16_t msg_control = msi->msg_control;
-
+        uint16_t msg_control =
+            pci_read(device, struct pci_spec_cap_msi, msg_control);
         const bool is_64_bit =
             (msg_control & __PCI_CAPMSI_CTRL_64BIT_CAPABLE) != 0;
 
@@ -33,21 +40,32 @@
             return;
         }
 
-        msi->msg_address = (uint32_t)address;
+        pci_write(device,
+                  struct pci_spec_cap_msi,
+                  msg_address,
+                  (uint32_t)address);
+
         if (is_64_bit) {
-            msi->bits64.msg_data = vector;
+            pci_write(device, struct pci_spec_cap_msi, bits64.msg_data, vector);
         } else {
-            msi->bits32.msg_data = vector;
+            pci_write(device, struct pci_spec_cap_msi, bits32.msg_data, vector);
         }
 
-        msi->msg_control |= __PCI_CAPMSI_CTRL_ENABLE;
-        msi->msg_control &= (uint16_t)~__PCI_CAPMSI_CTRL_MULTIMSG_ENABLE;
+        msg_control |= __PCI_CAPMSI_CTRL_ENABLE;
+        msg_control &= (uint16_t)~__PCI_CAPMSI_CTRL_MULTIMSG_ENABLE;
 
+        pci_write(device, struct pci_spec_cap_msi, msg_control, msg_control);
         if (masked) {
             if (is_64_bit) {
-                msi->bits64.mask_bits |= 1ull << vector;
+                pci_write(device,
+                          struct pci_spec_cap_msi,
+                          bits64.mask_bits,
+                          1ull << vector);
             } else {
-                msi->bits32.mask_bits |= 1ul << vector;
+                pci_write(device,
+                          struct pci_spec_cap_msi,
+                          bits32.mask_bits,
+                          1ull << vector);
             }
         }
     }
@@ -84,9 +102,10 @@
          * MSI-X Table in the BAR.
          */
 
-        volatile struct pci_spec_cap_msix *const msix = device->pcie_msix;
+        uint16_t msg_control =
+            pci_read(device, struct pci_spec_cap_msix, msg_control);
         const uint32_t table_size =
-            (msix->msg_control & __PCI_MSIX_CAP_TABLE_SIZE_MASK) + 1;
+            (msg_control & __PCI_MSIX_CAP_TABLE_SIZE_MASK) + 1;
 
         if (!index_in_bounds(vector, table_size)) {
             printk(LOGLEVEL_WARN,
@@ -97,9 +116,10 @@
             return;
         }
 
-        const uint32_t table_offset = msix->table_offset;
-        const uint8_t bar_index = table_offset & __PCI_BARSPEC_TABLE_OFFSET_BIR;
+        const uint32_t table_offset =
+            pci_read(device, struct pci_spec_cap_msix, table_offset);
 
+        const uint8_t bar_index = table_offset & __PCI_BARSPEC_TABLE_OFFSET_BIR;
         if (!index_in_bounds(bar_index, device->max_bar_count)) {
             printk(LOGLEVEL_WARN,
                    "pcie: got invalid bar index while trying to bind address "
@@ -135,7 +155,8 @@
         table[msix_vector].control = masked;
 
         /* Enable MSI-X after we setup the table-entry */
-        msix->msg_control |= __PCI_MSIX_CAP_CTRL_ENABLE;
+        msg_control |= __PCI_MSIX_CAP_CTRL_ENABLE;
+        pci_write(device, struct pci_spec_cap_msix, msg_control, msg_control);
     }
 
     bool
@@ -167,19 +188,9 @@
 #endif /* defined(__x86_64__) */
 
 void pci_device_enable_bus_mastering(struct pci_device_info *const device) {
-    if (device->pcie_info != NULL) {
-        device->pcie_info->command |= __PCI_DEVCMDREG_BUS_MASTER;
-    } else {
-        const uint16_t old_command =
-            device->domain->read(
-                device,
-                offsetof(struct pci_spec_device_info, command),
-                sizeof_field(struct pci_spec_device_info, command));
+    const uint16_t old_command =
+        pci_read(device, struct pci_spec_device_info, command);
 
-        const uint16_t new_command = old_command | __PCI_DEVCMDREG_BUS_MASTER;
-        device->domain->write(device,
-                              offsetof(struct pci_device_info, command),
-                              new_command,
-                              sizeof(uint32_t));
-    }
+    const uint16_t new_command = old_command | __PCI_DEVCMDREG_BUS_MASTER;
+    pci_write(device, struct pci_spec_device_info, command, new_command);
 }

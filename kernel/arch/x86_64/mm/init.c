@@ -483,7 +483,6 @@ void mm_init() {
 
     const struct limine_memmap_entry *const last_repr_memmap =
         entries[memmap_last_repr_index];
-
     const uint64_t total_bytes_repr_by_structpage_table =
         last_repr_memmap->base + last_repr_memmap->length;
 

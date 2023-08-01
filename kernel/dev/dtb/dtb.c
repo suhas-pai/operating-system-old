@@ -144,7 +144,7 @@ dtb_get_reg_pairs(const void *const dtb,
             reg_iter++;
         }
 
-        if (addr_shift != sizeof_bits(uint64_t)) {
+        if (size_shift != sizeof_bits(uint64_t)) {
             for (int i = 0; i != size_cells; i++) {
                 entry->size =
                     entry->size << size_shift | fdt32_to_cpu(*reg_iter);

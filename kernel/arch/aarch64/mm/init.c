@@ -394,7 +394,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
                             /*phys_addr=*/MMIO_BASE - HHDM_OFFSET,
                             /*virt_addr=*/MMIO_BASE - HHDM_OFFSET,
                             (MMIO_END - MMIO_BASE),
-                            __PTE_WC);
+                            __PTE_MMIO);
 
     switch_to_pagemap(&kernel_pagemap);
 

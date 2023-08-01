@@ -6,6 +6,7 @@
 #include "dev/pci/pci.h"
 #include "dev/port.h"
 
+#include "dev/printk.h"
 #include "lib/align.h"
 
 enum pci_config_address_flags {
@@ -27,9 +28,9 @@ seek_to_config_space(const struct pci_config_space *const config_space,
 }
 
 uint32_t
-pci_read(const struct pci_device_info *const device,
-         const uint32_t offset,
-         const uint8_t access_size)
+arch_pci_read(const struct pci_device_info *const device,
+              const uint32_t offset,
+              const uint8_t access_size)
 {
     seek_to_config_space(&device->config_space, offset);
     switch (access_size) {
@@ -45,10 +46,10 @@ pci_read(const struct pci_device_info *const device,
 }
 
 bool
-pci_write(const struct pci_device_info *const device,
-          const uint32_t offset,
-          const uint32_t value,
-          const uint8_t access_size)
+arch_pci_write(const struct pci_device_info *const device,
+               const uint32_t offset,
+               const uint32_t value,
+               const uint8_t access_size)
 {
     seek_to_config_space(&device->config_space, offset);
     switch (access_size) {
@@ -64,4 +65,59 @@ pci_write(const struct pci_device_info *const device,
     }
 
     return false;
+}
+
+uint32_t
+arch_pcie_read(const struct pci_device_info *const device,
+               const uint32_t offset,
+               const uint8_t access_size)
+{
+    const struct pci_domain *const domain = device->domain;
+    const uint64_t index = pci_device_get_index(device);
+
+    const struct range mmio_range = mmio_region_get_range(domain->mmio);
+    const struct range access_range = range_create(index + offset, access_size);
+
+    if (!range_has_index_range(mmio_range, access_range)) {
+        printk(LOGLEVEL_WARN,
+               "pcie: attempting to read from index range " RANGE_FMT " which "
+               "is outside mmio range of pcie domain, " RANGE_FMT "\n",
+               RANGE_FMT_ARGS(access_range),
+               RANGE_FMT_ARGS(mmio_range));
+        return (uint32_t)-1;
+    }
+
+    volatile const void *const spec = device->domain->mmio->base;
+    switch (access_size) {
+        case sizeof(uint8_t):
+            return *reg_to_ptr(volatile uint8_t, spec, offset);
+        case sizeof(uint16_t):
+            return *reg_to_ptr(volatile uint16_t, spec, offset);
+        case sizeof(uint32_t):
+            return *reg_to_ptr(volatile uint32_t, spec, offset);
+    }
+
+    verify_not_reached();
+}
+
+uint32_t
+arch_pcie_write(const struct pci_device_info *const device,
+                const uint32_t offset,
+                const uint32_t value,
+                const uint8_t access_size)
+{
+    volatile const void *const spec = device->domain->mmio->base;
+    switch (access_size) {
+        case sizeof(uint8_t):
+            *reg_to_ptr(volatile uint8_t, spec, offset) = (uint8_t)value;
+            return true;
+        case sizeof(uint16_t):
+            *reg_to_ptr(volatile uint16_t, spec, offset) = (uint16_t)value;
+            return true;
+        case sizeof(uint32_t):
+            *reg_to_ptr(volatile uint32_t, spec, offset) = value;
+            return true;
+    }
+
+    verify_not_reached();
 }

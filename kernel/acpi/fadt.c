@@ -26,10 +26,7 @@ void fadt_init(const struct acpi_fadt *const fadt) {
         printk(LOGLEVEL_WARN, "fadt: msi is not supported\n");
     }
 
-    const bool fadt_flags_has_8042 =
-        (fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042) != 0;
-
-    if (!fadt_flags_has_8042) {
+    if (fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042) {
         printk(LOGLEVEL_WARN, "fadt: ps2 devices are not supported\n");
     }
 #elif defined(__aarch64__)

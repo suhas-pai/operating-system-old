@@ -22,6 +22,8 @@ struct pci_config_space {
     uint8_t function;
 };
 
+uint32_t pci_config_space_get_index(struct pci_config_space config_space);
+
 enum pci_device_msi_support {
     PCI_DEVICE_MSI_SUPPORT_NONE,
     PCI_DEVICE_MSI_SUPPORT_MSI,
@@ -85,10 +87,8 @@ struct pci_device_info {
     struct list list_in_domain;
     struct list list_in_devices;
 
-    struct pci_config_space config_space;
     struct pci_domain *domain;
-
-    volatile struct pci_spec_device_info *pcie_info;
+    struct pci_config_space config_space;
 
     uint16_t id;
     uint16_t vendor_id;
@@ -104,19 +104,46 @@ struct pci_device_info {
     uint8_t class;
     uint8_t irq_pin;
 
+    bool supports_pcie : 1;
     bool multifunction : 1;
     uint8_t max_bar_count : 3;
 
     enum pci_device_msi_support msi_support : 2;
 
     union {
-        volatile struct pci_spec_cap_msi *pcie_msi;
-        volatile struct pci_spec_cap_msix *pcie_msix;
+        uint64_t pcie_msi_offset;
+        struct {
+            uint64_t pcie_msix_offset;
+            struct bitmap msix_table;
+        };
     };
 
-    struct bitmap msix_table;
     struct pci_device_bar_info *bar_list;
 };
+
+uint32_t pci_device_get_index(const struct pci_device_info *const device);
+
+#define pci_read(device, type, field) \
+    (device)->domain->read((device), \
+                           offsetof(type, field), \
+                           sizeof_field(type, field))
+
+#define pci_write(device, type, field, value) \
+    (device)->domain->write((device),\
+                            offsetof(type, field),\
+                            sizeof_field(type, field),\
+                            value)
+
+#define pci_read_with_offset(device, offset, type, field) \
+    (device)->domain->read((device), \
+                           (offset) + offsetof(type, field), \
+                           sizeof_field(type, field))
+
+#define pci_write_with_offset(device, offset, type, field, value) \
+    (device)->domain->write((device),\
+                            (offset) + offsetof(type, field), \
+                            sizeof_field(type, field),\
+                            value)
 
 #define PCI_DEVICE_INFO_FMT                                                    \
     "%" PRIx8 ":%" PRIx8 ":%" PRIx8 ":%" PRIx16 ":%" PRIx16 " (%" PRIx8 ":%"   \
