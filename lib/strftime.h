@@ -7,12 +7,6 @@
 #include "lib/parse_strftime.h"
 
 uint64_t
-parse_strftime_format(parse_strftime_sv_callback sv_cb,
-                      void *sv_cb_info,
-                      const char *format,
-                      const struct tm *tm);
-
-uint64_t
 time_format_to_string_buffer(char *buffer_in,
                              uint64_t buffer_len,
                              const char *format,

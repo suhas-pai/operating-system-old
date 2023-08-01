@@ -77,6 +77,16 @@ get_week_count_at_day(const enum weekday weekday,
     return (days_since_jan_1 - (unsigned)weekday + delta) / 7;
 }
 
+int month_to_tm_mon(const enum month month) {
+    /*
+     * Subtract one as tm_mon is actually "months since january", being
+     * zero-indexed and having the range [0, 11]. Instead, we have [1, 12].
+     */
+
+    assert(month != MONTH_INVALID);
+    return (int)(month - 1);
+}
+
 enum month tm_mon_to_month(const int tm_mon) {
     /*
      * Add one as tm_mon is actually "months since january", being
@@ -89,7 +99,7 @@ enum month tm_mon_to_month(const int tm_mon) {
 bool year_is_leap_year(const uint64_t year) {
     /*
      * Year has to be divisible by 4 (first two lsb bits are zero) and either
-     * the year is not divisible by 100 or the year is divisible by 400
+     * the year is not divisible by 100 or the year is divisible by 400.
      */
 
     return (
@@ -105,6 +115,44 @@ uint16_t year_get_day_count(const uint64_t year) {
 int year_to_tm_year(const uint64_t year) {
     assert(year <= INT_MAX);
     return ((int)year - 1900);
+}
+
+struct tm tm_from_stamp(const uint64_t timestamp) {
+    const int seconds_of_day = (int)seconds_mod_days(timestamp);
+    const int minutes_of_day = seconds_to_minutes(seconds_of_day);
+    const int hour_of_day = minutes_to_hours(minutes_of_day);
+
+    const int seconds_of_minute = seconds_mod_minutes(seconds_of_day);
+    const int minutes_of_hour = minutes_mod_hours(minutes_of_day);
+
+    int day_of_year = seconds_to_days(timestamp);
+    uint64_t year = 1970;
+
+    while (day_of_year >= MIN_DAYS_IN_YEAR) {
+        day_of_year -= year_get_day_count(year);
+        year++;
+    }
+
+    const bool is_leap_year = year_is_leap_year(year);
+    enum month month = MONTH_JANUARY;
+    int day_of_month = day_of_year;
+
+    while (day_of_month >= month_get_day_count(month, is_leap_year)) {
+        day_of_month -= month_get_day_count(month, is_leap_year);
+        month++;
+    }
+
+    return (struct tm){
+        .tm_sec = seconds_of_minute,
+        .tm_min = minutes_of_hour,
+        .tm_hour = hour_of_day,
+        .tm_mday = day_of_month + 1, // days is zero-indexed but tm_mday is not
+        .tm_mon = month_to_tm_mon(month),
+        .tm_year = year_to_tm_year(year),
+        .tm_wday = day_of_month_to_weekday(year, month, day_of_month),
+        .tm_yday = day_of_year,
+        .tm_isdst = 0
+    };
 }
 
 uint64_t tm_year_to_year(const int tm_year) {

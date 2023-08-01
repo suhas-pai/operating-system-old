@@ -47,12 +47,12 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
                      void *const sv_cb_info,
                      const struct tm *const tm,
                      uint64_t *const written_out,
-                     bool *const should_continue_out)
+                     bool *const should_cont_out)
 {
 #define CALL_CALLBACK(sv) \
     do {                                                                       \
-        sv_cb(spec_info, sv_cb_info, (sv), should_continue_out);               \
-        if (!*should_continue_out) {                                           \
+        *written_out += sv_cb(spec_info, sv_cb_info, (sv), should_cont_out);   \
+        if (!*should_cont_out) {                                               \
             goto done;                                                         \
         }                                                                      \
     } while (false)
@@ -69,9 +69,9 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
                                  sv_cb_info,                                   \
                                  tm,                                           \
                                  written_out,                                  \
-                                 should_continue_out);                         \
+                                 should_cont_out);                             \
         assert(valid_spec);                                                    \
-        if (!*should_continue_out) {                                           \
+        if (!*should_cont_out) {                                               \
             goto done;                                                         \
         }                                                                      \
     } while (false)
@@ -93,7 +93,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             }                                                                  \
             char *__sv_begin__ = sv_get_begin_mut(sv);                         \
             const char __sv_length__ = sv.length;                              \
-            if (__sv_length__ != expected_len) {                               \
+            if (__sv_length__ < expected_len) {                                \
                 const char *const __sv_end__ = sv_get_end(sv);                 \
                 for (uint8_t __i__ = __sv_length__;                            \
                      __i__ != expected_len;                                    \
@@ -166,7 +166,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             RECURSIVE_CALL_FOR_SPEC('b');
             CALL_CALLBACK(SV_STATIC(" "));
 
-            RECURSIVE_CALL_FOR_SPEC('e');
+            RECURSIVE_CALL_FOR_SPEC('d');
             CALL_CALLBACK(SV_STATIC(" "));
 
             RECURSIVE_CALL_FOR_SPEC('T');
@@ -418,7 +418,6 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
                 get_week_count_at_day((enum weekday)tm->tm_wday,
                                       /*days_since_jan_1=*/tm->tm_yday,
                                       /*is_monday_first=*/false);
-
             struct string_view sv =
                 unsigned_to_string_view(week_number,
                                         NUMERIC_BASE_10,
@@ -437,7 +436,6 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
                                          tm_year_to_year(tm->tm_year),
                                          (uint8_t)tm->tm_mday,
                                          (uint16_t)tm->tm_yday);
-
             struct string_view sv =
                 unsigned_to_string_view(week_number,
                                         NUMERIC_BASE_10,
@@ -466,7 +464,6 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
                 get_week_count_at_day((enum weekday)tm->tm_wday,
                                       tm->tm_yday,
                                       /*is_monday_first=*/true);
-
             struct string_view sv =
                 unsigned_to_string_view(week_number,
                                         NUMERIC_BASE_10,
@@ -581,23 +578,18 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
                       const struct tm *const tm)
 {
     const char *unformat_buffer_ptr = format;
-    bool should_continue = false;
+    bool should_continue = true;
 
-    uint64_t unformat_buffer_length = 0;
     uint64_t written_out = 0;
 
     struct strftime_spec_info spec_info = {0};
-    c_string_foreach (format, iter) {
-        const char ch = *iter;
-        if (ch != '%') {
-            unformat_buffer_length += 1;
-            continue;
-        }
+    const char *iter = strchr(format, '%');
 
-        if (unformat_buffer_length != 0) {
-            const struct string_view unformat_buffer_sv =
-                sv_create_length(unformat_buffer_ptr, unformat_buffer_length);
+    for (; iter != NULL; iter = strchr(iter, '%')) {
+        const struct string_view unformat_buffer_sv =
+            sv_create_end(unformat_buffer_ptr, iter);
 
+        if (unformat_buffer_sv.length != 0) {
             written_out +=
                 sv_cb(&spec_info,
                       sv_cb_info,
@@ -637,15 +629,26 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
         }
 
         /* Reset the unformat-buffer. */
+        iter++;
         if (valid_spec) {
-            unformat_buffer_ptr = iter + 1;
-            unformat_buffer_length = 0;
+            unformat_buffer_ptr = iter;
         } else {
             unformat_buffer_ptr = orig_iter;
-            unformat_buffer_length = distance_incl(iter, orig_iter);
         }
 
         /* Don't skip past the specifier, as the for-loop does that for us */
+    }
+
+    if (*unformat_buffer_ptr != '\0') {
+        const struct string_view unformat_buffer_sv =
+            sv_create_length(unformat_buffer_ptr, strlen(unformat_buffer_ptr));
+
+        spec_info = (struct strftime_spec_info){0};
+        written_out +=
+            sv_cb(&spec_info,
+                  sv_cb_info,
+                  unformat_buffer_sv,
+                  &should_continue);
     }
 
     return 0;

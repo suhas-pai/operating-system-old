@@ -63,6 +63,8 @@
 })
 
 #define reg_to_ptr(type, base, reg) ((type *)((uint64_t)(base) + (reg)))
+#define field_to_ptr(type, base, field) \
+    reg_to_ptr(type, base, offsetof(type, field))
 #define get_to_within_size(x, size) ((x) % (size))
 
 #define distance(begin, end) ((uint64_t)(end) - (uint64_t)(begin))

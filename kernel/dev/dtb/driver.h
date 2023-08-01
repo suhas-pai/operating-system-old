@@ -11,6 +11,6 @@
 struct dtb_driver {
     bool (*init)(const void *dtb, int nodeoff);
 
-    const char **compat_list;
+    const char *const *compat_list;
     const uint32_t compat_count;
 };

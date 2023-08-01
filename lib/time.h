@@ -14,56 +14,62 @@
 #define PICO_IN_NANO 1000
 #define NANO_IN_MICRO 1000
 #define MICRO_IN_MILLI 1000
-#define MILLI_IN_SECONDS 1000
+#define MILLI_IN_SECOND 1000
 
-#define SECONDS_IN_MINUTES 60
-#define MINUTES_IN_HOURS 60
-#define HOURS_IN_DAYS 24
+#define SECONDS_IN_MINUTE 60
+#define MINUTES_IN_HOUR 60
+#define HOURS_IN_DAY 24
+
+#define MIN_DAYS_IN_MONTH 28
+#define MIN_DAYS_IN_YEAR 365
+
+#define MAX_DAYS_IN_MONTH 31
+#define MAX_DAYS_IN_YEAR 366
 
 #define FEMTO_IN_NANO (FEMTO_IN_PICO * PICO_IN_NANO)
 #define PICO_IN_MICRO (PICO_IN_NANO * NANO_IN_MICRO)
 #define NANO_IN_MILLI (NANO_IN_MICRO * MICRO_IN_MILLI)
-#define MICRO_IN_SECONDS (MICRO_IN_MILLI * MILLI_IN_SECONDS)
-#define MILLI_IN_MINUTES (MILLI_IN_SECONDS * SECONDS_IN_MINUTES)
-#define SECONDS_IN_HOURS (SECONDS_IN_MINUTES * MINUTES_IN_HOURS)
-#define MINUTES_IN_DAYS (MINUTES_IN_HOURS * HOURS_IN_DAYS)
+#define MICRO_IN_SECONDS (MICRO_IN_MILLI * MILLI_IN_SECOND)
+#define MILLI_IN_MINUTES (MILLI_IN_SECOND * SECONDS_IN_MINUTE)
+#define SECONDS_IN_HOURS (SECONDS_IN_MINUTE * MINUTES_IN_HOUR)
+#define MINUTES_IN_DAYS (MINUTES_IN_HOUR * HOURS_IN_DAY)
 
 #define FEMTO_IN_MICRO (FEMTO_IN_NANO * NANO_IN_MICRO)
 #define PICO_IN_MILLI (PICO_IN_MICRO * MICRO_IN_MILLI)
-#define NANO_IN_SECONDS (NANO_IN_MILLI * MILLI_IN_SECONDS)
-#define MICRO_IN_MINUTES (MICRO_IN_SECONDS * SECONDS_IN_MINUTES)
-#define MILLI_IN_HOURS (MILLI_IN_MINUTES * MINUTES_IN_HOURS)
-#define SECONDS_IN_DAYS (SECONDS_IN_HOURS * HOURS_IN_DAYS)
+#define NANO_IN_SECONDS (NANO_IN_MILLI * MILLI_IN_SECOND)
+#define MICRO_IN_MINUTES (MICRO_IN_SECONDS * SECONDS_IN_MINUTE)
+#define MILLI_IN_HOURS (MILLI_IN_MINUTES * MINUTES_IN_HOUR)
+#define SECONDS_IN_DAYS (SECONDS_IN_HOURS * HOURS_IN_DAY)
 
 #define FEMTO_IN_MILLI (FEMTO_IN_MICRO * MICRO_IN_MILLI)
-#define PICO_IN_SECONDS (PICO_IN_MILLI * MILLI_IN_SECONDS)
-#define NANO_IN_MINUTES (NANO_IN_SECONDS * SECONDS_IN_MINUTES)
-#define MICRO_IN_HOURS (MICRO_IN_MINUTES * MINUTES_IN_HOURS)
-#define MILLI_IN_DAYS (MILLI_IN_HOURS * HOURS_IN_DAYS)
+#define PICO_IN_SECONDS (PICO_IN_MILLI * MILLI_IN_SECOND)
+#define NANO_IN_MINUTES (NANO_IN_SECONDS * SECONDS_IN_MINUTE)
+#define MICRO_IN_HOURS (MICRO_IN_MINUTES * MINUTES_IN_HOUR)
+#define MILLI_IN_DAYS (MILLI_IN_HOURS * HOURS_IN_DAY)
 
-#define FEMTO_IN_SECONDS (FEMTO_IN_MILLI * MILLI_IN_SECONDS)
-#define PICO_IN_MINUTES (PICO_IN_SECONDS * SECONDS_IN_MINUTES)
-#define NANO_IN_HOURS (NANO_IN_MINUTES * MINUTES_IN_HOURS)
-#define MICRO_IN_DAYS (MICRO_IN_HOURS * HOURS_IN_DAYS)
+#define FEMTO_IN_SECONDS (FEMTO_IN_MILLI * MILLI_IN_SECOND)
+#define PICO_IN_MINUTES (PICO_IN_SECONDS * SECONDS_IN_MINUTE)
+#define NANO_IN_HOURS (NANO_IN_MINUTES * MINUTES_IN_HOUR)
+#define MICRO_IN_DAYS (MICRO_IN_HOURS * HOURS_IN_DAY)
 
-#define FEMTO_IN_MINUTES (FEMTO_IN_SECONDS * SECONDS_IN_MINUTES)
-#define PICO_IN_HOURS (PICO_IN_MINUTES * MINUTES_IN_HOURS)
-#define NANO_IN_DAYS (NANO_IN_HOURS * HOURS_IN_DAYS)
+#define FEMTO_IN_MINUTES (FEMTO_IN_SECONDS * SECONDS_IN_MINUTE)
+#define PICO_IN_HOURS (PICO_IN_MINUTES * MINUTES_IN_HOUR)
+#define NANO_IN_DAYS (NANO_IN_HOURS * HOURS_IN_DAY)
 
-#define FEMTO_IN_HOURS (FEMTO_IN_MINUTES * MINUTES_IN_HOURS)
-#define PICO_IN_DAYS (PICO_IN_HOURS * HOURS_IN_DAYS)
+#define FEMTO_IN_HOURS (FEMTO_IN_MINUTES * MINUTES_IN_HOUR)
+#define PICO_IN_DAYS (PICO_IN_HOURS * HOURS_IN_DAY)
 
-#define FEMTO_IN_DAYS (FEMTO_IN_HOURS * HOURS_IN_DAYS)
+#define FEMTO_IN_DAYS (FEMTO_IN_HOURS * HOURS_IN_DAY)
 
 #define femto_to_pico(femto) ((femto) / FEMTO_IN_PICO)
 #define pico_to_nano(pico) ((pico) / PICO_IN_NANO)
 #define nano_to_micro(nano) ((nano) / NANO_IN_MICRO)
 #define micro_to_milli(micro) ((micro) / MICRO_IN_MILLI)
-#define milli_to_seconds(milli) ((milli) / MILLI_IN_SECONDS)
+#define milli_to_seconds(milli) ((milli) / MILLI_IN_SECOND)
 
-#define seconds_to_minutes(seconds) ((seconds) / SECONDS_IN_MINUTES)
-#define minutes_to_hours(minutes) ((minutes) / MINUTES_IN_HOURS)
-#define hours_to_days(minutes) ((hours) / HOURS_IN_DAYS)
+#define seconds_to_minutes(seconds) ((seconds) / SECONDS_IN_MINUTE)
+#define minutes_to_hours(minutes) ((minutes) / MINUTES_IN_HOUR)
+#define hours_to_days(minutes) ((hours) / HOURS_IN_DAY)
 
 #define femto_to_nano(femto) ((femto) / FEMTO_IN_NANO)
 #define pico_to_micro(pico) ((pico) / PICO_IN_MICRO)
@@ -104,11 +110,11 @@
 #define nano_to_pico(nano) ((nano) * PICO_IN_NANO)
 #define micro_to_nano(micro) ((micro) * NANO_IN_MICRO)
 #define milli_to_micro(milli) ((milli) * MICRO_IN_MILLI)
-#define seconds_to_milli(seconds) ((seconds) * MILLI_IN_SECONDS)
+#define seconds_to_milli(seconds) ((seconds) * MILLI_IN_SECOND)
 
-#define minutes_to_seconds(minutes) ((minutes) * SECONDS_IN_MINUTES)
-#define hours_to_minutes(hours) ((hours) * MINUTES_IN_HOURS)
-#define days_to_hours(days) ((days) * HOURS_IN_DAYS)
+#define minutes_to_seconds(minutes) ((minutes) * SECONDS_IN_MINUTE)
+#define hours_to_minutes(hours) ((hours) * MINUTES_IN_HOUR)
+#define days_to_hours(days) ((days) * HOURS_IN_DAY)
 
 #define nano_to_femto(nano) pico_to_femto(nano_to_pico(nano))
 #define micro_to_pico(micro) nano_to_pico(micro_to_nano(micro))
@@ -149,11 +155,11 @@
 #define pico_mod_nano(pico) ((pico) % PICO_IN_NANO)
 #define nano_mod_micro(nano) ((nano) % NANO_IN_MICRO)
 #define micro_mod_milli(micro) ((micro) % MICRO_IN_MILLI)
-#define milli_mod_seconds(milli) ((milli) % MILLI_IN_SECONDS)
+#define milli_mod_seconds(milli) ((milli) % MILLI_IN_SECOND)
 
-#define seconds_mod_minutes(seconds) ((seconds) % SECONDS_IN_MINUTES)
-#define minutes_mod_hours(minutes) ((minutes) % MINUTES_IN_HOURS)
-#define hours_mod_days(minutes) ((hours) % HOURS_IN_DAYS)
+#define seconds_mod_minutes(seconds) ((seconds) % SECONDS_IN_MINUTE)
+#define minutes_mod_hours(minutes) ((minutes) % MINUTES_IN_HOUR)
+#define hours_mod_days(minutes) ((hours) % HOURS_IN_DAY)
 
 #define femto_mod_nano(femto) ((femto) % FEMTO_IN_NANO)
 #define pico_mod_micro(pico) ((pico) % PICO_IN_MICRO)
@@ -210,6 +216,8 @@
         time_t tv_nsec;
     };
 #endif /* _TIME_H_ */
+
+struct tm tm_from_stamp(const uint64_t timestamp);
 
 static inline struct timespec
 timespec_add(struct timespec left, const struct timespec right) {
@@ -489,7 +497,9 @@ get_week_count_at_day(enum weekday weekday,
                       uint16_t days_since_jan_1,
                       bool is_monday_first);
 
+int month_to_tm_mon(enum month month);
 enum month tm_mon_to_month(int tm_mon);
+
 bool year_is_leap_year(uint64_t year);
 uint16_t year_get_day_count(uint64_t year);
 int year_to_tm_year(uint64_t year);

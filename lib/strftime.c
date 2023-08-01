@@ -9,13 +9,13 @@
 static uint64_t
 time_format_to_string_sv_callback(
     const struct strftime_spec_info *const spec_info,
-    void *const info,
+    void *const cb_info,
     const struct string_view sv,
     bool *const should_cont_out)
 {
     (void)spec_info;
 
-    struct mutable_buffer *const mbuffer = (struct mutable_buffer *)info;
+    struct mutable_buffer *const mbuffer = (struct mutable_buffer *)cb_info;
     const uint64_t result = mbuffer_append_sv(mbuffer, sv);
 
     /* We have filled up the buffer if result isn't equal to sv-length */

@@ -498,6 +498,7 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
 
         cap_offset =
             pci_read_cap_field(struct pci_spec_capability, offset_to_next);
+    #undef pci_read_cap_field
     }
 
     array_destroy(&prev_cap_offsets);
@@ -537,15 +538,16 @@ parse_function(struct pci_domain *const domain,
 
     info.id = pci_read(&info, struct pci_spec_device_info, device_id);
     info.vendor_id = vendor_id;
-    info.command = pci_read(&info, struct pci_spec_device_info,command);
-    info.status = pci_read(&info, struct pci_spec_device_info,status);
-    info.revision_id = pci_read(&info, struct pci_spec_device_info,revision_id);
+    info.command = pci_read(&info, struct pci_spec_device_info, command);
+    info.status = pci_read(&info, struct pci_spec_device_info, status);
+    info.revision_id =
+        pci_read(&info, struct pci_spec_device_info, revision_id);
 
-    info.prog_if = pci_read(&info, struct pci_spec_device_info,prog_if);
+    info.prog_if = pci_read(&info, struct pci_spec_device_info, prog_if);
     info.header_kind = hdrkind;
 
-    info.class = pci_read(&info, struct pci_spec_device_info,class_code);
-    info.subclass = pci_read(&info, struct pci_spec_device_info,subclass);
+    info.class = pci_read(&info, struct pci_spec_device_info, class_code);
+    info.subclass = pci_read(&info, struct pci_spec_device_info, subclass);
     info.irq_pin = irq_pin;
     info.multifunction = is_multi_function;
 
@@ -670,12 +672,9 @@ parse_function(struct pci_domain *const domain,
             }
 
             const uint8_t secondary_bus_number =
-                domain->read(
-                    &info,
-                    offsetof(struct pci_spec_pci_to_pci_bridge_device_info,
-                             secondary_bus_number),
-                    sizeof_field(struct pci_spec_pci_to_pci_bridge_device_info,
-                                 secondary_bus_number));
+                pci_read(&info,
+                         struct pci_spec_pci_to_pci_bridge_device_info,
+                         secondary_bus_number);
 
             pci_parse_bus(domain, &info.config_space, secondary_bus_number);
             break;

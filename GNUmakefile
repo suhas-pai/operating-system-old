@@ -21,7 +21,7 @@ $(eval $(call DEFAULT_VAR,HOST_CC,$(DEFAULT_HOST_CC)))
 override DEFAULT_ARCH := x86_64
 $(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 
-EXTRA_QEMU_ARGS=-d guest_errors -d page -d mmu -d unimp -D ./log.txt
+EXTRA_QEMU_ARGS=-d guest_errors -d page -d mmu -d unimp -D ./log.txt -rtc base=localtime
 ifeq ($(DEBUG), 1)
 	EXTRA_QEMU_ARGS += -s -S -serial stdio
 else ifeq ($(CONSOLE), 1)

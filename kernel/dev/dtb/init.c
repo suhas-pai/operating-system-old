@@ -4,7 +4,10 @@
  */
 
 #include "dev/pci/pci.h"
-#include "dev/uart/8250.h"
+
+#if defined(__riscv) && defined(__LP64__)
+    #include "dev/uart/8250.h"
+#endif /* defined(__riscv) && defined(__LP64__) */
 
 #include "dev/driver.h"
 #include "dev/printk.h"
@@ -19,40 +22,42 @@ static volatile struct limine_dtb_request dtb_request = {
     .response = NULL
 };
 
-static void init_serial_device(const void *const dtb, const int nodeoff) {
-    struct dtb_addr_size_pair base_addr_reg = {0};
-    uint32_t pair_count = 1;
+#if defined(__riscv) && defined(__LP64__)
+    static void init_serial_device(const void *const dtb, const int nodeoff) {
+        struct dtb_addr_size_pair base_addr_reg = {0};
+        uint32_t pair_count = 1;
 
-    const bool get_base_addr_reg_result =
-        dtb_get_reg_pairs(dtb,
-                          nodeoff,
-                          /*start_index=*/0,
-                          &pair_count,
-                          &base_addr_reg);
+        const bool get_base_addr_reg_result =
+            dtb_get_reg_pairs(dtb,
+                              nodeoff,
+                              /*start_index=*/0,
+                              &pair_count,
+                              &base_addr_reg);
 
-    if (!get_base_addr_reg_result) {
-        panic("dtb: base-addr reg of 'reg' property of serial node is "
-              "malformed\n");
+        if (!get_base_addr_reg_result) {
+            panic("dtb: base-addr reg of 'reg' property of serial node is "
+                  "malformed\n");
+        }
+
+        struct string_view clock_freq_string = {};
+        const bool get_clock_freq_result =
+            dtb_get_string_prop(dtb,
+                                nodeoff,
+                                "clock-frequency",
+                                &clock_freq_string);
+
+        if (!get_clock_freq_result) {
+            panic("dtb: clock-frequency property of serial node is missing or "
+                  "malformed\n");
+        }
+
+        uart8250_init((port_t)base_addr_reg.address,
+                      /*baudrate=*/115200,
+                      *(uint32_t *)(uint64_t)clock_freq_string.begin,
+                      /*reg_width=*/sizeof(uint8_t),
+                      /*reg_shift=*/0);
     }
-
-    struct string_view clock_freq_string = {};
-    const bool get_clock_freq_result =
-        dtb_get_string_prop(dtb,
-                            nodeoff,
-                            "clock-frequency",
-                            &clock_freq_string);
-
-    if (!get_clock_freq_result) {
-        panic("dtb: clock-frequency property of serial node is missing or "
-              "malformed");
-    }
-
-    uart8250_init((port_t)base_addr_reg.address,
-                  /*baudrate=*/115200,
-                  /*in_freq=*/*(uint32_t *)(uint64_t)clock_freq_string.begin,
-                  /*reg_width=*/sizeof(uint8_t),
-                  /*reg_shift=*/0);
-}
+#endif /* defined(__riscv) && defined(__LP64__) */
 
 static void init_pci_node(const void *const dtb, const int pci_offset) {
     struct string_view device_type = {};
@@ -193,7 +198,7 @@ dtb_init_nodes_for_driver(const void *const dtb,
     #endif /* defined(__riscv) && defined(__LP64__) */
 
         for_each_dtb_compat(dtb, offset, compat) {
-            init_serial_device(dtb, offset);
+            driver->init(dtb, offset);
         }
     }
 }

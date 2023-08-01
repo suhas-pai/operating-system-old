@@ -242,8 +242,8 @@ bool init_from_dtb(const void *const dtb, const int nodeoff) {
     return true;
 }
 
-static const char *dtb_compat_list[] = { "ns16550a" };
-__driver static struct driver uart8250_driver = {
+static const char *const dtb_compat_list[] = { "ns16550a" };
+__driver static const struct driver uart8250_driver = {
     .dtb = &(struct dtb_driver){
         .init = init_from_dtb,
         .compat_list = dtb_compat_list,

@@ -34,7 +34,7 @@
     } else {                                                      \
         __result__ =                                              \
             sizeof(__number__) >= 8 ?                             \
-                (typeof(__number__))__builtin_clzll(__number__) :\
+                (typeof(__number__))__builtin_clzll(__number__) : \
                 (typeof(__number__))__builtin_clz(__number__);    \
     }                                                             \
     __result__;                                                   \

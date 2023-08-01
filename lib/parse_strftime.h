@@ -30,3 +30,9 @@ typedef uint64_t
                               void *cb_info,
                               struct string_view sv,
                               bool *should_continue_out);
+
+uint64_t
+parse_strftime_format(parse_strftime_sv_callback sv_cb,
+                      void *sv_cb_info,
+                      const char *format,
+                      const struct tm *tm);
