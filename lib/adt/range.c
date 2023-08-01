@@ -69,15 +69,18 @@ range_round_up_subrange(const struct range range,
                         const uint64_t mult,
                         struct range *const result_out)
 {
-    if (!round_up(range.front, mult, &result_out->front)) {
+    struct range result = {};
+    if (!round_up(range.front, mult, &result.front)) {
         return false;
     }
 
-    if (result_out->front - range.front >= range.size) {
+    if (result.front - range.front >= range.size) {
         return false;
     }
 
-    result_out->size = range.size - (result_out->front - range.front);
+    result.size = range.size - (result.front - range.front);
+    *result_out = result;
+
     return true;
 }
 

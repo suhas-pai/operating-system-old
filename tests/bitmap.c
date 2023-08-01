@@ -149,7 +149,6 @@ void check_bitmap(const uint64_t size) {
     }
 
     bitmap_set_all(&bitmap, /*value=*/true);
-    #if 0
     if (size > 1) {
         {
             const uint64_t unset_index = 3;
@@ -159,83 +158,59 @@ void check_bitmap(const uint64_t size) {
                 bitmap_set(&bitmap, i, true);
             }
 
-            uint64_t actual_unset_index = 0;
-            const bool found =
-                bitmap_find_n_contiguous_unset_bits(&bitmap,
-                                                    unset_index,
-                                                    unset_count,
-                                                    /*set=*/true,
-                                                    &actual_unset_index);
+            const uint64_t actual_unset_index =
+                bitmap_find(&bitmap,
+                            unset_count,
+                            unset_index,
+                            /*expected_value=*/true,
+                            /*invert=*/false);
 
-            assert(found);
-            check_integers(actual_unset_index, unset_index, /*hex=*/false);
+            assert(actual_unset_index != FIND_BIT_INVALID);
+            const struct range unset_range =
+                range_create(unset_index, unset_count);
 
-            const struct loc_range unset_rng =
-                loc_rng_create_with_size(unset_index, unset_count);
-
-            assert(bitmap_has_value_for_loc_rng(bitmap, unset_rng, true));
+            assert(bitmap_has(&bitmap, unset_range, /*value=*/true));
         }
     }
     if (size > 2) {
         {
-            const struct loc_range unset_rng = loc_rng_create_with_end(12, 20);
+            const struct range unset_range = range_create(12, 20);
 
-            bitmap_set_all_bits(&bitmap);
-            bitmap_set_value_for_loc_rng(&bitmap, unset_rng, false, true);
+            bitmap_set_all(&bitmap, /*value=*/true);
+            bitmap_set_range(&bitmap, unset_range, /*value=*/false);
 
-            uint64_t actual_unset_index = 0;
-            const bool found =
-                bitmap_find_n_cont_unset_bits_at_mult(
-                    &bitmap,
-                    /*search_start_index=*/0,
-                    /*mult=*/loc_rng_get_begin(unset_rng),
-                    /*n=*/loc_rng_get_size(unset_rng),
-                    /*set=*/true,
-                    &actual_unset_index);
+            const uint64_t actual_unset_index =
+                bitmap_find_at_mult(&bitmap,
+                                    /*n=*/unset_range.size,
+                                    /*mult=*/unset_range.front,
+                                    /*start_index=*/0,
+                                    /*expected_value=*/false,
+                                    /*invert=*/true);
 
-            assert(found);
-            check_integers(actual_unset_index,
-                        loc_rng_get_begin(unset_rng),
-                        /*hex=*/false);
-
-            assert(bitmap_has_value_for_loc_rng(bitmap, unset_rng, true));
+            assert(actual_unset_index != FIND_BIT_INVALID);
+            assert(bitmap_has(&bitmap, unset_range, /*value=*/true));
         }
     }
     if (size > 7) {
         {
-            const struct loc_range unset_rng =
-                loc_rng_create_with_size(56, 8);
+            const struct range unset_range = range_create(56, 8);
 
-            bitmap_set_all_bits(&bitmap);
-            bitmap_set_value_for_loc_rng(&bitmap, unset_rng, false, true);
+            bitmap_set_all(&bitmap, /*value=*/true);
+            bitmap_set_range(&bitmap, unset_range, /*value=*/false);
 
-            uint64_t actual_unset_index = 0;
-            const bool found =
-                bitmap_find_n_cont_unset_bits_at_mult(
-                    &bitmap,
-                    /*search_start_index=*/0,
-                    /*mult=*/8,
-                    /*n=*/8,
-                    /*set=*/true,
-                    &actual_unset_index);
+            const uint64_t actual_unset_index =
+                bitmap_find_at_mult(&bitmap,
+                                    /*count=*/8,
+                                    /*mult=*/8,
+                                    /*start_index=*/0,
+                                    /*expected_value=*/false,
+                                    /*invert=*/true);
 
-            assert(found);
-            check_integers(actual_unset_index,
-                           loc_rng_get_begin(unset_rng),
-                           /*hex=*/false);
-
-            assert(bitmap_has_value_for_loc_rng(bitmap, unset_rng, true));
+            assert(actual_unset_index != FIND_BIT_INVALID);
+            assert(bitmap_has(&bitmap, unset_range, /*value=*/true));
         }
     }
-    {
-        bitmap_unset_all_bits(&bitmap);
-        const struct loc_range unset_bit_rng =
-            bitmap_get_loc_rng_of_unset_bits(&bitmap, 0, /*set=*/false);
-        const struct loc_range lr =
-            loc_rng_create_from_size_rng(bitmap_get_bit_size_rng(bitmap));
-
-        assert(loc_rng_is_equal(unset_bit_rng, lr));
-    }
+    #if 0
     {
         bitmap_set_all_bits(&bitmap);
         const struct loc_range set_bit_rng =

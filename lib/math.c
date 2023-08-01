@@ -11,8 +11,9 @@ round_up(const uint64_t number,
          const uint64_t multiple,
          uint64_t *const result_out)
 {
-    if (multiple == 0) {
-        return false;
+    assert(multiple != 0);
+    if (number == 0) {
+        return multiple;
     }
 
     if (check_add(number, multiple - 1, result_out) ||

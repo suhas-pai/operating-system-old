@@ -190,11 +190,26 @@
 
 #define femto_mod_days(femto) ((femto) % FEMTO_IN_DAYS)
 
-typedef uint64_t time_t;
-struct timespec {
-    time_t tv_sec;
-    time_t tv_nsec;
-};
+/* Stop colliding with Apple's time.h */
+#ifndef _TIME_H_
+    typedef uint64_t time_t;
+    struct tm {
+        int tm_sec;
+        int tm_min;
+        int tm_hour;
+        int tm_mday;
+        int tm_mon;
+        int tm_year;
+        int tm_wday;
+        int tm_yday;
+        int tm_isdst;
+    };
+
+    struct timespec {
+        time_t tv_sec;
+        time_t tv_nsec;
+    };
+#endif /* _TIME_H_ */
 
 static inline struct timespec
 timespec_add(struct timespec left, const struct timespec right) {
@@ -260,21 +275,6 @@ enum month {
     MONTH_NOVEMBER,
     MONTH_DECEMBER
 };
-
-/* Stop colliding with Apple's time.h */
-#ifndef _TIME_H_
-    struct tm {
-        int tm_sec;
-        int tm_min;
-        int tm_hour;
-        int tm_mday;
-        int tm_mon;
-        int tm_year;
-        int tm_wday;
-        int tm_yday;
-        int tm_isdst;
-    };
-#endif /* _TIME_H_ */
 
 #define C_STR_JANUARY   "January"
 #define C_STR_FEBRUARY  "February"

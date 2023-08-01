@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "lib/align.h"
 #include "lib/math.h"
 #include "lib/memory.h"
 
@@ -36,7 +37,7 @@ find_multiple_unset(struct bitmap *const bitmap,
     void *const begin = bitmap->gbuffer.begin;
     const void *const end = bitmap->gbuffer.end;
 
-    void *ptr = begin + bits_to_bytes_roundup(start_index);
+    void *ptr = begin + bits_to_bytes_noround(start_index);
     start_index = (start_index % sizeof_bits(uint8_t));
 
     /*
@@ -349,12 +350,12 @@ find_unset_at_mult(struct bitmap *const bitmap,
     void *const begin = bitmap->gbuffer.begin;
     const void *const end = bitmap->gbuffer.end;
 
-    void *ptr = begin + bits_to_bytes_noround(start_index);
-    start_index = start_index % sizeof_bits(uint8_t);
-
     if (!round_up(start_index, mult, &start_index)) {
         return false;
     }
+
+    void *ptr = begin + bits_to_bytes_noround(start_index);
+    start_index = start_index % sizeof_bits(uint8_t);
 
     /*
      * Loop over every word, and do the following:
@@ -372,7 +373,7 @@ find_unset_at_mult(struct bitmap *const bitmap,
 
 #define ITERATE_FOR_TYPE(type)                                                 \
     for (;                                                                     \
-         distance(ptr, end) <= sizeof(type);                                   \
+         distance(ptr, end) >= sizeof(type);                                   \
          ptr += sizeof(type), bit_index_of_ptr += sizeof_bits(type),           \
          start_index = 0)                                                      \
     {                                                                          \
@@ -415,9 +416,10 @@ find_unset_at_mult(struct bitmap *const bitmap,
                                    sizeof_bits(type),                          \
                                    bad_iter)                                   \
         {                                                                      \
-            struct range iter = {0};                                           \
-            range_round_up_subrange(bad_iter, mult, &iter);                    \
+            struct range iter =                                                \
+                range_create(bit_index_of_ptr + bad_iter.front, bad_iter.size);\
                                                                                \
+            range_round_up_subrange(iter, mult, &iter);                        \
             if (iter.size < count) {                                           \
                 /*
                  * If the range isn't long enough, but goes to the end of the
@@ -437,11 +439,11 @@ find_unset_at_mult(struct bitmap *const bitmap,
                                                                                \
             if (set) {                                                         \
                 bitmap_set_range(bitmap,                                       \
-                                 range_create(start_index, count),             \
+                                 range_create(iter.front, count),              \
                                  /*value=*/true);                              \
             }                                                                  \
                                                                                \
-            return bit_index_of_ptr + iter.front;                              \
+            return iter.front;                                                 \
         }                                                                      \
     }
 
@@ -711,7 +713,7 @@ bitmap_set_range(struct bitmap *const bitmap,
      * writing to the bitmap.
      */
 
-    void *ptr = bitmap->gbuffer.begin + bits_to_bytes_roundup(bit_index);
+    void *ptr = bitmap->gbuffer.begin + bits_to_bytes_noround(bit_index);
     uint64_t bits_left = range.size;
 
     /*

@@ -345,6 +345,20 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
         return;
     }
 
+    // On x86_64, the fadt may provide a flag indicating the MSI is disabled.
+#if defined(__x86_64__)
+    bool supports_msi = true;
+    const struct acpi_fadt *const fadt = get_acpi_info()->fadt;
+
+    if (fadt != NULL) {
+        if (fadt->iapc_boot_arch_flags &
+                __ACPI_FADT_IAPC_BOOT_MSI_NOT_SUPPORTED)
+        {
+            supports_msi = false;
+        }
+    }
+#endif
+
     struct array prev_cap_offsets = ARRAY_INIT(sizeof(uint8_t));
     for (uint64_t i = 0; cap_offset != 0 && cap_offset != 0xff; i++) {
         if (i == 128) {
@@ -377,6 +391,13 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 kind = "slot-identification";
                 break;
             case PCI_SPEC_CAP_ID_MSI:
+                kind = "msi";
+            #if defined(__x86_64__)
+                if (!supports_msi) {
+                    break;
+                }
+            #endif /* defined(__x86_64) */
+
                 if (dev->msi_support == PCI_DEVICE_MSI_SUPPORT_MSIX) {
                     break;
                 }
@@ -384,13 +405,18 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 dev->msi_support = PCI_DEVICE_MSI_SUPPORT_MSI;
                 dev->pcie_msi_offset = cap_offset;
 
-                kind = "msi";
                 break;
             case PCI_SPEC_CAP_ID_MSI_X:
+                kind = "msix";
+            #if defined(__x86_64__)
+                if (!supports_msi) {
+                    break;
+                }
+            #endif /* defined(__x86_64) */
                 if (dev->msi_support == PCI_DEVICE_MSI_SUPPORT_MSIX) {
                     printk(LOGLEVEL_WARN,
-                           "\t\tfound multiple msix capabilities. returning\n");
-                    return;
+                           "\t\tfound multiple msix capabilities. ignoring\n");
+                    break;
                 }
 
                 dev->pcie_msix_offset = cap_offset;
@@ -412,7 +438,6 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 dev->msi_support = PCI_DEVICE_MSI_SUPPORT_MSIX;
                 dev->msix_table = bitmap;
 
-                kind = "msix";
                 break;
             case PCI_SPEC_CAP_ID_POWER_MANAGEMENT:
                 kind = "power-management";
@@ -476,18 +501,6 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
     }
 
     array_destroy(&prev_cap_offsets);
-
-    // On x86_64, the fadt may provide a flag indicating the MSI is disabled.
-#if defined(__x86_64__)
-    const struct acpi_fadt *const fadt = get_acpi_info()->fadt;
-    if (fadt != NULL) {
-        if (fadt->iapc_boot_arch_flags &
-                __ACPI_FADT_IAPC_BOOT_MSI_NOT_SUPPORTED)
-        {
-            dev->msi_support = PCI_DEVICE_MSI_SUPPORT_NONE;
-        }
-    }
-#endif
 }
 
 void
