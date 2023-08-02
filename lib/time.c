@@ -109,7 +109,7 @@ bool year_is_leap_year(const uint64_t year) {
 }
 
 uint16_t year_get_day_count(const uint64_t year) {
-    return (365 + (year_is_leap_year(year) ? 1 : 0));
+    return (MIN_DAYS_IN_YEAR + (year_is_leap_year(year) ? 1 : 0));
 }
 
 int year_to_tm_year(const uint64_t year) {

@@ -18,7 +18,7 @@ struct printf_spec_info {
     uint32_t width;
     int precision;
 
-    struct string_view length;
+    struct string_view length_sv;
     char spec;
 };
 

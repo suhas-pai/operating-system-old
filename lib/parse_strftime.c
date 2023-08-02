@@ -8,6 +8,9 @@
 #include "convert.h"
 #include "parse_strftime.h"
 
+#define HAVE_SUNOS_EXT 1
+#define HAVE_VMS_EXT 1
+
 static inline struct strftime_modifiers
 parse_strftime_mods(const char *const iter, const char **const iter_out) {
     struct strftime_modifiers mods = {0};
@@ -507,7 +510,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             CALL_CALLBACK(sv);
             break;
         }
-#if defined(HAVE_SUNOS_EXT)
+#if HAVE_SUNOS_EXT
         case 'k': /* 24-hour format with space-pad */ {
             struct string_view sv =
                 unsigned_to_string_view((uint64_t)tm->tm_hour,

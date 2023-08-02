@@ -168,21 +168,16 @@ static void init_pci_drivers(const void *const dtb) {
 #endif /* defined(__riscv) && defined(__LP64__) */
 
 void dtb_init_early() {
+#if defined(__riscv) && defined(__LP64__)
     if (dtb_request.response == NULL) {
-    #if defined(__riscv) && defined(__LP64__)
         panic("dtb: device tree not found");
-    #else
-        printk(LOGLEVEL_WARN, "dtb: device tree not found. exiting init\n");
-        return;
-    #endif /* defined(__riscv) && defined(__LP64__) */
     }
 
-#if defined(__riscv) && defined(__LP64__)
     const void *const dtb = dtb_request.response->dtb_ptr;
     init_riscv_serial_devices(dtb);
-#endif /* defined(__riscv) && defined(__LP64__) */
 
     printk(LOGLEVEL_INFO, "dtb: finished early init\n");
+#endif /* defined(__riscv) && defined(__LP64__) */
 }
 
 void

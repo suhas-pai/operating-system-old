@@ -28,7 +28,7 @@ The following is currently being worked on.
 * SMP support to run multiple cores
 * Processes, threads, and scheduler to run tasks
 
-In addition, the project has a very broad standard library that includes:
+In addition, this project has a broad standard library that includes:
 
 * Abstract `printf()` formatter
   * Used to implement `kprintf()` and `format_to_string()` among many use cases

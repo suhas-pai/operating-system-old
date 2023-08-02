@@ -168,7 +168,7 @@ parse_length(struct printf_spec_info *const curr_spec,
                     *number_out = number;
                     *is_zero_out = number == 0;
 
-                    curr_spec->length = sv_create_length(iter - 2, 2);
+                    curr_spec->length_sv = sv_create_length(iter - 2, 2);
                     iter++;
                     break;
                 }
@@ -179,7 +179,7 @@ parse_length(struct printf_spec_info *const curr_spec,
                     *number_out = number;
                     *is_zero_out = number == 0;
 
-                    curr_spec->length = sv_create_length(iter - 1, 1);
+                    curr_spec->length_sv = sv_create_length(iter - 1, 1);
                     break;
                 }
             }
@@ -198,7 +198,7 @@ parse_length(struct printf_spec_info *const curr_spec,
                     *number_out = number;
                     *is_zero_out = number == 0;
 
-                    curr_spec->length = sv_create_length(iter - 2, 2);
+                    curr_spec->length_sv = sv_create_length(iter - 2, 2);
                     iter++;
 
                     break;
@@ -210,7 +210,7 @@ parse_length(struct printf_spec_info *const curr_spec,
                     *number_out = number;
                     *is_zero_out = number == 0;
 
-                    curr_spec->length = sv_create_length(iter - 1, 1);
+                    curr_spec->length_sv = sv_create_length(iter - 1, 1);
                     break;
                 }
             }
@@ -223,7 +223,7 @@ parse_length(struct printf_spec_info *const curr_spec,
             *number_out = number;
             *is_zero_out = number == 0;
 
-            curr_spec->length = sv_create_length(iter, 1);
+            curr_spec->length_sv = sv_create_length(iter, 1);
             iter++;
 
             break;
@@ -234,7 +234,7 @@ parse_length(struct printf_spec_info *const curr_spec,
             *number_out = number;
             *is_zero_out = number == 0;
 
-            curr_spec->length = sv_create_length(iter, 1);
+            curr_spec->length_sv = sv_create_length(iter, 1);
             iter++;
 
             break;
@@ -246,13 +246,13 @@ parse_length(struct printf_spec_info *const curr_spec,
             *number_out = number;
             *is_zero_out = number == 0;
 
-            curr_spec->length = sv_create_length(iter, 1);
+            curr_spec->length_sv = sv_create_length(iter, 1);
             iter++;
 
             break;
         }
         default:
-            curr_spec->length = sv_create_empty();
+            curr_spec->length_sv = sv_create_empty();
             return true;
     }
 
@@ -281,7 +281,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
             return E_HANDLE_SPEC_REACHED_END;
         case 'd':
         case 'i':
-            if (curr_spec->length.length == 0) {
+            if (curr_spec->length_sv.length == 0) {
                 number = (uint64_t)va_arg(list_struct->list, int);
                 *is_zero_out = number == 0;
             }
@@ -296,7 +296,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                                       });
             break;
         case 'u':
-            if (curr_spec->length.length == 0) {
+            if (curr_spec->length_sv.length == 0) {
                 number = va_arg(list_struct->list, unsigned);
                 *is_zero_out = number == 0;
             }
@@ -308,7 +308,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                                         (struct num_to_str_options){0});
             break;
         case 'o':
-            if (curr_spec->length.length == 0) {
+            if (curr_spec->length_sv.length == 0) {
                 number = va_arg(list_struct->list, unsigned);
                 *is_zero_out = (number == 0);
             }
@@ -320,7 +320,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                                         (struct num_to_str_options){0});
             break;
         case 'x':
-            if (curr_spec->length.length == 0) {
+            if (curr_spec->length_sv.length == 0) {
                 number = va_arg(list_struct->list, unsigned);
                 *is_zero_out = number == 0;
             }
@@ -332,7 +332,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                                         (struct num_to_str_options){0});
             break;
         case 'X': {
-            if (curr_spec->length.length == 0) {
+            if (curr_spec->length_sv.length == 0) {
                 number = va_arg(list_struct->list, unsigned);
                 *is_zero_out = number == 0;
             }
@@ -391,21 +391,21 @@ handle_spec(struct printf_spec_info *const curr_spec,
             break;
         }
         case 'n':
-            if (curr_spec->length.length == 0) {
+            if (curr_spec->length_sv.length == 0) {
                 *va_arg(list_struct->list, int *) = written_out;
                 return E_HANDLE_SPEC_CONTINUE;
             }
 
-            switch (*curr_spec->length.begin) {
+            switch (*curr_spec->length_sv.begin) {
                 case 'h':
                     // case 'hh'
-                    if (curr_spec->length.length == 2) {
-                        if (curr_spec->length.begin[1] == 'h') {
+                    if (curr_spec->length_sv.length == 2) {
+                        if (curr_spec->length_sv.begin[1] == 'h') {
                             *va_arg(list_struct->list, signed char *) =
                                 written_out;
                             return E_HANDLE_SPEC_CONTINUE;
                         }
-                    } else if (curr_spec->length.length == 1) {
+                    } else if (curr_spec->length_sv.length == 1) {
                         *va_arg(list_struct->list, short int *) = written_out;
                         return E_HANDLE_SPEC_CONTINUE;
                     }
@@ -413,14 +413,14 @@ handle_spec(struct printf_spec_info *const curr_spec,
                     break;
                 case 'l':
                     // case 'll'
-                    if (curr_spec->length.length == 2) {
-                        if (curr_spec->length.begin[1] == 'l') {
+                    if (curr_spec->length_sv.length == 2) {
+                        if (curr_spec->length_sv.begin[1] == 'l') {
                             *va_arg(list_struct->list, signed char *) =
                                 written_out;
 
                             return E_HANDLE_SPEC_CONTINUE;
                         }
-                    } else if (curr_spec->length.length == 1) {
+                    } else if (curr_spec->length_sv.length == 1) {
                         *va_arg(list_struct->list, long int *) =
                             (long int)written_out;
 

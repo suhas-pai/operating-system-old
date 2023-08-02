@@ -3,15 +3,12 @@
  * © suhas pai
  */
 
-#include <stddef.h>
-
 #include "dev/printk.h"
 #include "lib/align.h"
 
-#include "early.h"
 #include "limine.h"
-
 #include "kmalloc.h"
+
 #include "page_alloc.h"
 #include "page.h"
 

@@ -90,6 +90,7 @@ vmap_mmio(const struct range phys_range,
 bool vunmap_mmio(struct mmio_region *const region) {
     list_delete(&region->list);
     arch_unmap_mapping(&kernel_pagemap, (uint64_t)region->base, region->size);
+    kfree(region);
 
     return true;
 }

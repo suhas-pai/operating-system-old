@@ -113,7 +113,7 @@ bool rtc_read_cmos_info(struct rtc_cmos_info *const info_out) {
         read_rtc_cmos_info(&info);
         read_rtc_cmos_info(&check);
 
-        if (info.reg_status_b == UINT16_MAX ||
+        if (info.reg_status_b != UINT16_MAX &&
             memcmp(&info, &check, sizeof(info)) == 0)
         {
             should_return = false;
@@ -161,6 +161,10 @@ struct tm tm_from_rtc_cmos_info(struct rtc_cmos_info *const info) {
         .tm_min = info->time.minute,
         .tm_hour = info->time.hour,
         .tm_mday = info->time.day,
+        .tm_wday =
+            day_of_month_to_weekday(info->time.year,
+                                    info->time.month,
+                                    info->time.day),
         .tm_mon = month_to_tm_mon(info->time.month),
         .tm_year = year_to_tm_year(info->time.year),
         .tm_isdst = rtc_is_daylight_savings_enabled(info->reg_status_b)
