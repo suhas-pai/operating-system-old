@@ -1,25 +1,32 @@
 # operating-system
 
-An x86-64 (WIP) operating system written in pure C17.
-So far, only the kernel has been made.
+An  operating system written in C17 (gnu17), for x86_64, aarch64, and riscv64.
+
+So far, only the kernel is being worked on.
 
 ## Features
 
 The kernel has the following implemented:
 
-* UART (com1 on x86_64, pl011 on aarch64, uart8502 on riscv64) drivers
-* Interrupt Descriptor Table and Vector Allocation
+* UART drivers; uart8250 on x86_64, riscv64 and pl011 on aarch64
+* GDT, IDT, and support for dynamic vector allocation
 * Physical Memory Buddy Allocator using a vmemmap of `struct page`
 * General memory allocation with kmalloc() using a slab allocator
-
-The following is currently being worked on.
-* Real Time Clock
-* Page Fault Interrupt
+* RTC (google,goldfish-rtc on riscv64) Clock and HPET on x86_64
+* Page Fault Interrupt and other exceptions
 * Keyboard (ps2) driver
-* Parsing ACPI Tables
+* Parsing ACPI Tables and Flattened Device Tree (when available)
 * Local APIC and I/O APIC
 * Local APIC Timer
-* PCI(e) drivers
+* PCI(e) device detection
+
+The following is currently being worked on.
+* AHCI, SATA, IDE controllers to read disk
+* VirtIO drivers to detect devices when PCI(e) isn't available (as is the case on riscv64)
+* Filesystem following VFS model
+* Network Card drivers
+* SMP support to run multiple cores
+* Processes, threads, and scheduler to run tasks
 
 In addition, the project has a very broad standard library that includes:
 
@@ -27,7 +34,7 @@ In addition, the project has a very broad standard library that includes:
   * Used to implement `kprintf()` and `format_to_string()` among many use cases
 * Abstract `strftime()` formatter
   * Doesn't support timezones (atm)
-  * Used to implement a very basic `strftime()`
+  * Used to implement a very basic `kstrftime()`
 * ASCII APIs
 * Alignment APIs
   * Defines and provides general-purpose APIs to check for alignment
@@ -37,7 +44,7 @@ In addition, the project has a very broad standard library that includes:
     * Octal (with `0` or `0o` prefix)
     * Decimal
     * Hexadecimal (with `0x` prefix)
-    * Alpbabeti (with `0a` prefix)
+    * Alpbabetic (with `0a` prefix)
 
 Among many others
 
@@ -47,7 +54,7 @@ operating-system currently supports the `x86_64`, `aarch64` (`arm64`), and `risc
 
 To build and run, only clang and ld are needed, except for `x86_64`, which
 needs a cross compiler, such as `x86_64-elf-gcc` available on homebrew, because
-sysv-abi support is needed.
+sysv-abi support is needed but is not provided for by clang.
 
 Otherwise, building for `riscv64` and `arm64` can be done natively with clang/ld
 directly from llvm (not apple)

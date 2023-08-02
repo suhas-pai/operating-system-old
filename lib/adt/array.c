@@ -23,10 +23,8 @@ bool array_append(struct array *const array, const void *const item) {
 }
 
 void array_remove_index(struct array *const array, const uint64_t index) {
-    const uint64_t byte_index =
-        check_mul_assert(index, array->object_size);
-    const uint64_t end =
-        check_add_assert(byte_index, array->object_size);
+    const uint64_t byte_index = check_mul_assert(index, array->object_size);
+    const uint64_t end = check_add_assert(byte_index, array->object_size);
 
     gbuffer_remove_range(&array->gbuffer, range_create(byte_index, end));
 }
@@ -46,8 +44,7 @@ const void *array_end(const struct array array) {
 
 void *array_at(const struct array array, const uint64_t index) {
     assert(index_in_bounds(index, array_item_count(array)));
-    const uint64_t byte_index =
-        check_mul_assert(index, array.object_size);
+    const uint64_t byte_index = check_mul_assert(index, array.object_size);
 
     return array.gbuffer.begin + byte_index;
 }

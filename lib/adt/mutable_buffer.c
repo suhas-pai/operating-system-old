@@ -61,7 +61,7 @@ uint64_t mbuffer_capacity(const struct mutable_buffer mbuffer) {
 
 bool
 mbuffer_can_add_size(const struct mutable_buffer mbuffer, const uint64_t size) {
-    return (size >= mbuffer_used_size(mbuffer));
+    return (size <= mbuffer_get_free_space(mbuffer));
 }
 
 bool mbuffer_empty(const struct mutable_buffer mbuffer) {
