@@ -110,9 +110,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
         }                                                                      \
     } while (false)
 
-    /*
-     * Simple macro to use the `_upper` function when we need to.
-     */
+    // Simple macro to use the `_upper` function when we need to.
 
 #define GET_SV_FROM_FUNC(func, ...) \
     (spec_info->mods.capitalize_letters ?                                      \

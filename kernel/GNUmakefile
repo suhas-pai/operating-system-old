@@ -48,7 +48,7 @@ COMMON_FLAGS = -g3 -pipe -Wno-attributes -Wcast-align -Wcast-qual \
 			   -Wshadow -Wstrict-overflow=2 -Wundef -Wnull-dereference \
 			   -funsigned-char -Werror=format-security -I. -I../ \
 			   -Iarch/$(ARCH) -DBUILD_KERNEL -Wno-address-of-packed-member \
-			   -fno-omit-frame-pointer
+			   -fno-omit-frame-pointer -fsanitize=undefined
 
 # User controllable C flags.
 override DEFAULT_CFLAGS := $(COMMON_FLAGS)

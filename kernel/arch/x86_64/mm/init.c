@@ -4,11 +4,10 @@
  */
 
 #include "asm/msr.h"
+#include "dev/printk.h"
 
 #include "lib/align.h"
 #include "lib/size.h"
-
-#include "dev/printk.h"
 
 #include "mm/early.h"
 #include "mm/kmalloc.h"

@@ -38,20 +38,21 @@ struct freepages_info {
 };
 
 static struct list freepages_list = LIST_INIT(freepages_list);
+static uint64_t freepages_list_count = 0;
 static uint64_t total_free_pages = 0;
 
 static void claim_pages(const uint64_t first_phys, const uint64_t length) {
     const uint64_t page_count = PAGE_COUNT(length);
 
     // Check if the we can combine this entry and the prior one.
-    struct freepages_info *const back =
-        list_tail(&freepages_list, struct freepages_info, list_entry);
-
     // Store structure in the first page in list.
     struct freepages_info *const info = phys_to_virt(first_phys);
     total_free_pages += page_count;
 
-    if (back != NULL) {
+    if (freepages_list_count != 0) {
+        struct freepages_info *const back =
+            list_tail(&freepages_list, struct freepages_info, list_entry);
+
         if ((uint8_t *)back + (back->count * PAGE_SIZE) == (uint8_t *)info) {
             back->count += page_count;
             return;
@@ -59,7 +60,9 @@ static void claim_pages(const uint64_t first_phys, const uint64_t length) {
     }
 
     info->count = page_count;
+
     list_add(&freepages_list, &info->list_entry);
+    freepages_list_count++;
 }
 
 uint64_t early_alloc_page() {

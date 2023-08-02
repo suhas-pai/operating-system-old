@@ -155,6 +155,5 @@ vformat_to_string(struct string *const string,
                      string_sv_callback,
                      /*char_cb_info=*/string,
                      list);
-
     return result;
 }

@@ -30,10 +30,8 @@ static bool virtio_init(volatile struct virtio_device *const device) {
         return false;
     }
 
-    if (device->device_id == 0) {
-        printk(LOGLEVEL_WARN,
-               "virtio-mmio: device (at %p) has a device-id of 0\n",
-               device);
+    if (device->device_id == VIRTIO_DEVICE_KIND_INVALID) {
+        // Device is not present.
         return false;
     }
 
