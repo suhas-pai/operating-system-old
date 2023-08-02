@@ -72,6 +72,8 @@ arch_make_mapping(struct pagemap *const pagemap,
     struct pageop pageop;
     pageop_init(&pageop);
 
+    const int flag = spin_acquire_with_irq(&pagemap->lock);
+
     struct pt_walker walker;
     ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
 
@@ -84,6 +86,8 @@ arch_make_mapping(struct pagemap *const pagemap,
 
     if (ptwalker_result != E_PT_WALKER_OK) {
         pageop_finish(&pageop);
+        spin_release_with_irq(&pagemap->lock, flag);
+
         return false;
     }
 
@@ -109,6 +113,8 @@ arch_make_mapping(struct pagemap *const pagemap,
             ptwalker_result = ptwalker_next(&walker, &pageop);
             if (ptwalker_result != E_PT_WALKER_OK) {
                 pageop_finish(&pageop);
+                spin_release_with_irq(&pagemap->lock, flag);
+
                 return false;
             }
         }
@@ -121,6 +127,7 @@ arch_make_mapping(struct pagemap *const pagemap,
             if (ptwalker_result != E_PT_WALKER_OK) {
                 undo_changes(&walker, &pageop, i);
                 pageop_finish(&pageop);
+                spin_release_with_irq(&pagemap->lock, flag);
 
                 return false;
             }
@@ -128,5 +135,43 @@ arch_make_mapping(struct pagemap *const pagemap,
     }
 
     pageop_finish(&pageop);
+    spin_release_with_irq(&pagemap->lock, flag);
+
+    return true;
+}
+
+bool
+arch_unmap_mapping(struct pagemap *pagemap,
+                   uint64_t virt_addr,
+                   uint64_t size)
+{
+    struct pageop pageop;
+    pageop_init(&pageop);
+
+    const int flag = spin_acquire_with_irq(&pagemap->lock);
+
+    struct pt_walker walker;
+    ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
+
+    for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
+        const pte_t entry = walker.tables[0][walker.indices[0]];
+        walker.tables[0][walker.indices[0]] = 0;
+
+        if (pte_is_present(entry)) {
+            pageop_flush(&pageop, virt_addr + i);
+        }
+
+        const enum pt_walker_result result = ptwalker_next(&walker, &pageop);
+        if (result != E_PT_WALKER_OK) {
+            pageop_finish(&pageop);
+            spin_release_with_irq(&pagemap->lock, flag);
+
+            return false;
+        }
+    }
+
+    pageop_finish(&pageop);
+    spin_release_with_irq(&pagemap->lock, flag);
+
     return true;
 }

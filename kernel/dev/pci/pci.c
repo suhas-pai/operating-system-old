@@ -749,7 +749,8 @@ pci_add_pcie_domain(struct range bus_range,
     domain->mmio =
         vmap_mmio(config_space_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 
-    assert_msg(domain->mmio != NULL, "pcie: failed to mmio-map pci-domain mmio");
+    assert_msg(domain->mmio != NULL,
+               "pcie: failed to mmio-map pci-domain mmio");
 #else
     domain->mmio = kmalloc(sizeof(*domain->mmio));
     assert(domain->mmio != NULL);

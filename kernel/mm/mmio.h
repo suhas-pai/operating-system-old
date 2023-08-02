@@ -24,6 +24,8 @@ enum vmap_mmio_flags {
 struct mmio_region *
 vmap_mmio(struct range phys_range, uint8_t prot, uint64_t flags);
 
+bool vunmap_mmio(struct mmio_region *region);
+
 struct range mmio_region_get_range(const struct mmio_region *region);
 
 

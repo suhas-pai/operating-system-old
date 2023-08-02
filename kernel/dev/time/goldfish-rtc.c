@@ -11,13 +11,12 @@
 #include "lib/align.h"
 #include "mm/kmalloc.h"
 
-#include "../kstrftime.h"
+#include "time/kstrftime.h"
+#include "time/time.h"
 
 #if !defined(__x86_64__)
     #include "port.h"
 #endif /* !defined(__x86_64__) */
-
-#include "../time.h"
 
 struct goldfish_rtc {
     volatile uint32_t time_low;
@@ -82,14 +81,20 @@ bool goldfish_rtc_init_from_dtb(const void *const dtb, const int nodeoff) {
         return false;
     }
 
-    const struct range phys_range =
-        range_create(base_addr_reg.address,
-                     align_up_assert(base_addr_reg.size, PAGE_SIZE));
+    uint64_t size = 0;
+    if (!align_up(base_addr_reg.size, PAGE_SIZE, &size)) {
+        printk(LOGLEVEL_WARN,
+               "goldfish-rtc: size (%" PRIu64 "could not be aligned up to "
+               "page-size\n",
+               base_addr_reg.size);
+        return false;
+    }
 
-    struct mmio_region *const vma =
+    const struct range phys_range = range_create(base_addr_reg.address, size);
+    struct mmio_region *const mmio =
         vmap_mmio(phys_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 
-    if (vma == NULL) {
+    if (mmio == NULL) {
         printk(LOGLEVEL_WARN, "goldfish-rtc: failed to mmio-map region\n");
         return false;
     }
@@ -97,12 +102,14 @@ bool goldfish_rtc_init_from_dtb(const void *const dtb, const int nodeoff) {
     struct goldfish_rtc_info *const clock = kmalloc(sizeof(*clock));
     if (clock == NULL) {
         printk(LOGLEVEL_WARN, "goldfish-rtc: failed to alloc clock-info\n");
+        vunmap_mmio(mmio);
+
         return false;
     }
 
     list_init(&clock->clock_source.list);
 
-    clock->mmio = vma;
+    clock->mmio = mmio;
     clock->clock_source.read = goldfish_rtc_read;
 
     add_clock_source(&clock->clock_source);

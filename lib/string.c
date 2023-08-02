@@ -9,7 +9,7 @@
 #include "string.h"
 
 #if !defined(BUILD_TEST) && !defined(BUILD_KERNEL)
-size_t strlen(const char *str) {
+__optimize(3) size_t strlen(const char *str) {
     size_t result = 0;
 
     const char *iter = str;
@@ -18,7 +18,7 @@ size_t strlen(const char *str) {
     return result;
 }
 
-size_t strnlen(const char *const str, const size_t limit) {
+__optimize(3) size_t strnlen(const char *const str, const size_t limit) {
     size_t result = 0;
 
     const char *iter = str;
@@ -28,7 +28,7 @@ size_t strnlen(const char *const str, const size_t limit) {
     return result;
 }
 
-int strcmp(const char *const str1, const char *const str2) {
+__optimize(3) int strcmp(const char *const str1, const char *const str2) {
     const char *iter = str1;
     const char *jter = str2;
 
@@ -38,6 +38,7 @@ int strcmp(const char *const str1, const char *const str2) {
     return ch - jch;
 }
 
+__optimize(3)
 int strncmp(const char *str1, const char *const str2, const size_t length) {
     const char *iter = str1;
     const char *jter = str2;
@@ -52,7 +53,7 @@ int strncmp(const char *str1, const char *const str2, const size_t length) {
     return ch - jch;
 }
 
-char *strchr(const char *const str, const int ch) {
+__optimize(3) char *strchr(const char *const str, const int ch) {
     c_string_foreach (str, iter) {
         if (*iter == ch) {
         #pragma GCC diagnostic push

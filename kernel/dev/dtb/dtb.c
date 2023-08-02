@@ -117,7 +117,7 @@ dtb_get_reg_pairs(const void *const dtb,
         return false;
     }
 
-    const fdt32_t *const reg_end = (const void *)reg + reg_length;
+    const fdt32_t *const reg_end = reg + reg_length;
     const fdt32_t *reg_iter =
         reg + ((uint32_t)(addr_cells + size_cells) * start_index);
 

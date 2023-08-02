@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "lib/macros.h"
 #include "cpuid.h"
 
 /*
@@ -11,7 +12,7 @@
  * modified by the operation, so we need to tell the compiler about it
  */
 
-void
+__optimize(3) void
 cpuid(const uint32_t leaf,
       const uint32_t subleaf,
       uint64_t *const a,
@@ -30,7 +31,7 @@ cpuid(const uint32_t leaf,
  * Issue a complete request, storing general registers output as a string.
  */
 
-int cpuid_string(const int code, uint32_t where[const 4]) {
+__optimize(3) int cpuid_string(const int code, uint32_t where[const 4]) {
     asm volatile (
         "cpuid"
         : "=a"(*where), "=b"(*(where + 1)),

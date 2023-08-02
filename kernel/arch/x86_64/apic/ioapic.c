@@ -97,6 +97,8 @@ ioapic_add(const uint8_t apic_id, const uint32_t base, const uint32_t gsib) {
                       /*flags=*/0)
     };
 
+    assert_msg(info.regs_mmio != NULL, "ioapic: failed to map ioapic regs");
+
     const uint32_t id_reg = ioapic_read(info.regs_mmio->base, IOAPIC_REG_ID);
     assert_msg(info.id == ioapic_id_reg_get_id(id_reg),
                "io-apic ID in MADT doesn't match ID in MMIO");

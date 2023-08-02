@@ -3,12 +3,11 @@
  * © suhas pai
  */
 
-#include "dev/printk.h"
-
 #if defined(__x86_64__)
     #include "dev/ps2/driver.h"
 #endif /* defined(__x86_64__) */
 
+#include "dev/printk.h"
 #include "fadt.h"
 
 void fadt_init(const struct acpi_fadt *const fadt) {
@@ -26,7 +25,7 @@ void fadt_init(const struct acpi_fadt *const fadt) {
         printk(LOGLEVEL_WARN, "fadt: msi is not supported\n");
     }
 
-    if (fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042) {
+    if (!(fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042)) {
         printk(LOGLEVEL_WARN, "fadt: ps2 devices are not supported\n");
     }
 #elif defined(__aarch64__)

@@ -67,7 +67,7 @@ vma_create_at(struct pagemap *pagemap,
               uint8_t prot,
               enum vma_cachekind cachekind);
 
-bool
+extern bool
 arch_make_mapping(struct pagemap *pagemap,
                   uint64_t phys_addr,
                   uint64_t virt_addr,
@@ -75,3 +75,8 @@ arch_make_mapping(struct pagemap *pagemap,
                   uint8_t prot,
                   enum vma_cachekind cachekind,
                   bool is_overwrite);
+
+bool
+arch_unmap_mapping(struct pagemap *pagemap,
+                   uint64_t virt_addr,
+                   uint64_t size);

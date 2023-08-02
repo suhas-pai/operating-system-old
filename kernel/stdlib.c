@@ -5,7 +5,7 @@
 
 #include "dev/printk.h"
 
-size_t strlen(const char *str) {
+__optimize(3) size_t strlen(const char *str) {
     size_t result = 0;
 
     const char *iter = str;
@@ -14,7 +14,7 @@ size_t strlen(const char *str) {
     return result;
 }
 
-size_t strnlen(const char *const str, const size_t limit) {
+__optimize(3) size_t strnlen(const char *const str, const size_t limit) {
     size_t result = 0;
 
     const char *iter = str;
@@ -27,7 +27,7 @@ size_t strnlen(const char *const str, const size_t limit) {
     return result;
 }
 
-int strcmp(const char *const str1, const char *const str2) {
+__optimize(3) int strcmp(const char *const str1, const char *const str2) {
     const char *iter = str1;
     const char *jter = str2;
 
@@ -37,6 +37,7 @@ int strcmp(const char *const str1, const char *const str2) {
     return ch - jch;
 }
 
+__optimize(3)
 int strncmp(const char *str1, const char *const str2, size_t length) {
     const char *iter = str1;
     const char *jter = str2;
@@ -51,7 +52,7 @@ int strncmp(const char *str1, const char *const str2, size_t length) {
     return ch - jch;
 }
 
-char *strchr(const char *const str, const int ch) {
+__optimize(3) char *strchr(const char *const str, const int ch) {
     c_string_foreach (str, iter) {
         if (*iter == ch) {
         #pragma GCC diagnostic push
@@ -64,7 +65,7 @@ char *strchr(const char *const str, const int ch) {
     return NULL;
 }
 
-char *strrchr(const char *const str, const int ch) {
+__optimize(3) char *strrchr(const char *const str, const int ch) {
     char *result = NULL;
     c_string_foreach (str, iter) {
         if (*iter == ch) {
@@ -80,7 +81,7 @@ char *strrchr(const char *const str, const int ch) {
 
 // TODO: Fix
 #define DECL_MEM_CMP_FUNC(type)                                                \
-    static inline int                                                          \
+    __optimize(3) static inline int                                            \
     VAR_CONCAT(_memcmp_, type)(const void *left,                               \
                                const void *right,                              \
                                size_t len,                                     \
@@ -119,7 +120,7 @@ DECL_MEM_CMP_FUNC(uint64_t)
 
 #if !defined(__x86_64__)
     #define DECL_MEM_COPY_FUNC(type) \
-        static inline unsigned long  \
+        __optimize(3) static inline unsigned long  \
         VAR_CONCAT(_memcpy_, type)(void *dst,                  \
                                    const void *src,            \
                                    unsigned long n,            \
@@ -206,7 +207,7 @@ __optimize(3) void *memcpy(void *dst, const void *src, unsigned long n) {
 
 #if !defined(__x86_64__)
     #define DECL_MEM_COPY_BACK_FUNC(type) \
-        static inline unsigned long  \
+        __optimize(3) static inline unsigned long  \
         VAR_CONCAT(_memcpy_bw_, type)(void *const dst, \
                                       const void *src, \
                                       const unsigned long n, \
