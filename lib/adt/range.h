@@ -59,7 +59,9 @@ bool range_is_loc_below(struct range range, uint64_t index);
 bool range_has_align(struct range range, uint64_t align);
 
 uint64_t range_get_end_assert(struct range range);
+
 struct range subrange_from_index(struct range range, uint64_t index);
+struct range subrange_to_full(struct range range, struct range index);
 
 uint64_t range_loc_for_index(struct range range, uint64_t index);
 uint64_t range_index_for_loc(struct range range, uint64_t loc);

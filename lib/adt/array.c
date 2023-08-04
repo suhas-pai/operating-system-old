@@ -57,6 +57,10 @@ uint64_t array_free_count(struct array array) {
     return gbuffer_free_space(array.gbuffer) / array.object_size;
 }
 
+void *array_take(struct array *const array) {
+    return gbuffer_take_data(&array->gbuffer);
+}
+
 bool array_empty(const struct array array) {
     return gbuffer_empty(array.gbuffer);
 }

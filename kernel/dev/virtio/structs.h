@@ -81,7 +81,7 @@ enum virtio_pci_cap_cfg {
     VIRTIO_PCI_CAP_CFG_MAX = VIRTIO_PCI_CAP_VENDOR_CFG
 };
 
-struct virtio_pci_spec_cap {
+struct virtio_pci_cap {
     struct pci_spec_capability cap;
     uint8_t cap_len;
     uint8_t cfg_type; /* Identifies the structure. */
@@ -92,8 +92,8 @@ struct virtio_pci_spec_cap {
     uint32_t length; /* Length of the structure, in bytes. */
 } __packed;
 
-struct virtio_pci_spec_cap64 {
-    struct virtio_pci_spec_cap cap;
+struct virtio_pci_cap64 {
+    struct virtio_pci_cap cap;
     uint32_t offset_hi;
     uint32_t length_hi;
 } __packed;
@@ -120,6 +120,45 @@ struct virtio_pci_common_cfg {
     uint64_t queue_device;
     const uint16_t queue_notify_data;
     uint16_t queue_reset;
+} __packed;
+
+struct virtio_pci_notify_cap {
+    struct virtio_pci_cap cap;
+    uint32_t notify_off_multiplier; /* Multiplier for queue_notify_off. */
+} __packed;
+
+struct virtio_pci_cfg_cap {
+    /*
+     * The fields cap.bar, cap.length, cap.offset and pci_cfg_data are
+     * read-write (RW) for the driver.
+     *
+     * To access a device region, the driver writes into the capability
+     * structure (ie. within the PCI configuration space) as follows:
+     *  • The driver sets the BAR to access by writing to cap.bar.
+     *  • The driver sets the size of the access by writing 1, 2 or 4 to
+     *    cap.length.
+     *  • The driver sets the offset within the BAR by writing to cap.offset.
+     *
+     * At that point, pci_cfg_data will provide a window of size cap.length into
+     * the given cap.bar at offset cap.offset.
+     */
+
+    struct virtio_pci_cap cap;
+    uint8_t pci_cfg_data[4]; /* Data for BAR access. */
+} __packed;
+
+struct virtio_pci_isr_cap {
+    struct virtio_pci_cap cap;
+
+    /*
+     * To avoid an extra access, simply reading this register resets it to 0 and
+     * causes the device to de-assert the interrupt.
+     *
+     * In this way, driver read of ISR status causes the device to de-assert an
+     * interrupt.
+     */
+
+    uint8_t data[];
 } __packed;
 
 enum virtio_mmio_device_status {

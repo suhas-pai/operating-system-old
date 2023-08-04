@@ -8,7 +8,7 @@
 #include "mm/mmio.h"
 #include "structs.h"
 
-struct virtio_pci_cap {
+struct virtio_pci_cap_info {
     enum virtio_pci_cap_cfg cfg_type : 8; /* Identifies the structure. */
 
     uint8_t id; /* Multiple capabilities of the same type */
@@ -20,7 +20,7 @@ struct virtio_pci_cap {
 
 struct virtio_device {
     struct list list;
-    struct virtio_pci_cap *cap_list;
+    struct virtio_pci_cap_info *cap_list;
     struct pci_device_bar_info *bar;
 
     uint8_t cap_count;

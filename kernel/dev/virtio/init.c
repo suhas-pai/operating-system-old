@@ -282,7 +282,9 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
     list_init(&virt_device->list);
 
-    virt_device->cap_list = kmalloc(sizeof(struct virtio_pci_cap) * cap_count);
+    virt_device->cap_list =
+        kmalloc(sizeof(struct virtio_pci_cap_info) * cap_count);
+
     if (virt_device->cap_list == NULL) {
         printk(LOGLEVEL_WARN, "virtio-pci: failed to allocate cap-list\n");
         kfree(virt_device);
@@ -293,13 +295,13 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 #define pci_read_virtio_cap_field(field) \
     pci_read_with_offset(pci_device, \
                          *iter, \
-                         struct virtio_pci_spec_cap64, \
+                         struct virtio_pci_cap64, \
                          field)
 
     uint8_t cap_index = 0;
     array_foreach(&pci_device->vendor_cap_list, uint8_t, iter) {
         const uint8_t cap_len = pci_read_virtio_cap_field(cap.cap_len);
-        if (cap_len < sizeof(struct virtio_pci_spec_cap)) {
+        if (cap_len < sizeof(struct virtio_pci_cap)) {
             printk(LOGLEVEL_INFO,
                    "\tcapability-length (%" PRIu8 ") is too short\n",
                    cap_len);
@@ -308,8 +310,9 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
             continue;
         }
 
-        struct virtio_pci_cap *const cap = virt_device->cap_list + cap_index;
         const uint8_t bar_index = pci_read_virtio_cap_field(cap.bar);
+        struct virtio_pci_cap_info *const cap =
+            virt_device->cap_list + cap_index;
 
         if (bar_index > 5) {
             printk(LOGLEVEL_WARN,
@@ -345,7 +348,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         cap->offset = pci_read_virtio_cap_field(cap.offset);
         cap->length = pci_read_virtio_cap_field(cap.length);
 
-        if (cap_len >= sizeof(struct virtio_pci_spec_cap64)) {
+        if (cap_len >= sizeof(struct virtio_pci_cap64)) {
             cap->offset |= (uint64_t)pci_read_virtio_cap_field(offset_hi) << 32;
             cap->length |= (uint64_t)pci_read_virtio_cap_field(length_hi) << 32;
         }
@@ -375,6 +378,14 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                 break;
         }
 
+        const struct range index_range = range_create(cap->offset, cap->length);
+        const struct range interface_range =
+            subrange_to_full(
+                cap->bar->is_mmio ?
+                    mmio_region_get_range(cap->bar->mmio) :
+                    cap->bar->port_range,
+                index_range);
+
         printk(LOGLEVEL_INFO,
                "\tcapability %" PRIu8 ": %s\n"
                "\t\toffset: 0x%" PRIx64 "\n"
@@ -385,10 +396,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                cap->offset,
                cap->length,
                cap->bar->is_mmio ? "mmio" : "ports",
-               RANGE_FMT_ARGS(
-                cap->bar->is_mmio ?
-                    mmio_region_get_range(cap->bar->mmio) :
-                    cap->bar->port_range));
+               RANGE_FMT_ARGS(interface_range));
 
         cap_index++;
     }

@@ -36,5 +36,7 @@ void *array_at(struct array array, uint64_t index);
 uint64_t array_item_count(struct array array);
 uint64_t array_free_count(struct array array);
 
+void *array_take(struct array *array);
+
 bool array_empty(struct array array);
 void array_destroy(struct array *array);

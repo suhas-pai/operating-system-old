@@ -169,10 +169,17 @@ mmio_map:
         return E_PARSE_BAR_MMIO_MAP_FAIL;
     }
 
+    uint64_t flags = 0;
+    if (!(bar->is_64_bit)) {
+        flags |= __VMAP_MMIO_LOW4G;
+    }
+
+    if (bar->is_prefetchable) {
+        flags |= __VMAP_MMIO_WT;
+    }
+
     struct mmio_region *const mmio =
-        vmap_mmio(aligned_range,
-                  PROT_READ | PROT_WRITE,
-                  !bar->is_64_bit ? __VMAP_MMIO_LOW4G : 0);
+        vmap_mmio(aligned_range, PROT_READ | PROT_WRITE, flags);
 
     if (mmio == NULL) {
         printk(LOGLEVEL_WARN,
@@ -286,11 +293,18 @@ validate_cap_offset(struct array *const prev_cap_offsets,
 }
 
 static void pci_parse_capabilities(struct pci_device_info *const dev) {
+    if (!(dev->status & __PCI_DEVSTATUS_CAPABILITIES)) {
+        printk(LOGLEVEL_INFO, "\t\thas no capabilities\n");
+        return;
+    }
+
     uint8_t cap_offset =
         pci_read(dev, struct pci_spec_device_info, capabilities_offset);
 
     if (cap_offset == 0 || cap_offset == (uint8_t)-1) {
-        printk(LOGLEVEL_INFO, "\t\thas no capabilities\n");
+        printk(LOGLEVEL_INFO,
+               "\t\thas no capabilities, but pci-device is marked as having "
+               "some\n");
         return;
     }
 
@@ -758,19 +772,11 @@ pci_add_pcie_domain(struct range bus_range,
         range_create(base_addr,
                      align_up_assert(bus_range.size << 20, PAGE_SIZE));
 
-#if !(defined(__riscv) && defined(__LP64__))
     domain->mmio =
         vmap_mmio(config_space_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 
     assert_msg(domain->mmio != NULL,
                "pcie: failed to mmio-map pci-domain mmio");
-#else
-    domain->mmio = kmalloc(sizeof(*domain->mmio));
-    assert(domain->mmio != NULL);
-
-    domain->mmio->base = (volatile void *)config_space_range.front;
-    domain->mmio->size = config_space_range.size;
-#endif /* !(defined(__riscv) && defined(__LP64__)) */
 
     domain->bus_range = bus_range;
     domain->segment = segment;

@@ -142,6 +142,17 @@ subrange_from_index(const struct range range, const uint64_t index) {
     return result;
 }
 
+struct range
+subrange_to_full(const struct range range, const struct range index) {
+    assert(range_has_index_range(range, index));
+    const struct range result = {
+        .front = range.front + index.front,
+        .size = index.size
+    };
+
+    return result;
+}
+
 uint64_t range_loc_for_index(const struct range range, const uint64_t index) {
     assert(range_has_index(range, index));
     return range.front + index;

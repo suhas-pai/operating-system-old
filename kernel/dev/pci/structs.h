@@ -105,7 +105,7 @@ enum pci_spec_device_command_register_flags {
 };
 
 enum pci_spec_device_status_flags {
-    __PCI_DEVSTATUS_INT           = 1ull << 3,
+    __PCI_DEVSTATUS_INT = 1ull << 3,
     __PCI_DEVSTATUS_CAPABILITIES  = 1ull << 4,
     __PCI_DEVSTATUS_66MHZ_SUPPORT = 1ull << 5,
     __PCI_DEVSTATUS_UDF_SUPPORT   = 1ull << 6,

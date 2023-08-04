@@ -451,11 +451,13 @@ ptwalker_fill_in_lowest(struct pt_walker *const walker, struct page *const page)
     }
 
     const uint8_t level = walker->level - 1;
+
+    pte_t *const table = ptwalker_table_for_level(walker, level + 1);
     pte_t *const pte = ptwalker_pte_in_level(walker, level + 1);
 
     *pte = page_to_phys(page) | PGT_FLAGS;
 
-    ref_up(&phys_to_page(pte_to_phys(*pte))->table.refcount);
+    ref_up(&virt_to_page(table)->table.refcount);
     ref_up(&page->table.refcount);
 }
 

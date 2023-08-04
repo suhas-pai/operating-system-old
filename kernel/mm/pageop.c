@@ -40,6 +40,8 @@ void pageop_flush_range(struct pageop *const pageop, const struct range range) {
 void pageop_finish(struct pageop *const pageop) {
 #if defined(__x86_64__)
     tlb_flush_pageop(pageop);
+#elif defined(__riscv) && defined(__LP64__)
+    asm volatile ("fence.i" ::: "memory");
 #endif /* defined(__x86_64__) */
 
     pageop->flush_range = range_create_empty();
