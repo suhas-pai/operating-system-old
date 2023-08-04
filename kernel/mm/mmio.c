@@ -31,14 +31,20 @@ vmap_mmio(const struct range phys_range,
     struct mmio_region *const mmio = kmalloc(sizeof(*mmio));
     assert_msg(mmio != NULL, "mmio: failed to allocate mmio_region");
 
+    // Mmio ranges are mapped with a guard page placed right after the last page
+    // in the range.
+
+    const uint64_t guard_pages_size = PAGE_SIZE;
     uint64_t virt_addr = MMIO_BASE;
+
     if (flags & __VMAP_MMIO_LOW4G) {
         if (!list_empty(&lower_half_mmio_list)) {
             const struct mmio_region *const prev_mmio =
                 list_head(&lower_half_mmio_list, struct mmio_region, list);
 
             virt_addr =
-                check_add_assert((uint64_t)prev_mmio->base, prev_mmio->size);
+                check_add_assert((uint64_t)prev_mmio->base, prev_mmio->size) +
+                guard_pages_size;
         } else {
             virt_addr -= HHDM_OFFSET;
         }
@@ -48,12 +54,14 @@ vmap_mmio(const struct range phys_range,
                 list_head(&higher_half_mmio_list, struct mmio_region, list);
 
             virt_addr =
-                check_add_assert((uint64_t)prev_mmio->base, prev_mmio->size);
+                check_add_assert((uint64_t)prev_mmio->base, prev_mmio->size) +
+                guard_pages_size;
         }
     }
 
     uint64_t virt_end = 0;
-    assert_msg(!check_add(virt_addr, phys_range.size, &virt_end),
+    assert_msg(!check_add(virt_addr, phys_range.size, &virt_end) &&
+               !check_add(virt_end, guard_pages_size, &virt_end),
                "mmio: attempting to map mmio-range that goes past end of "
                "64-bit virtual address space");
 

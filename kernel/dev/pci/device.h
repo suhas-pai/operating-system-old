@@ -9,6 +9,7 @@
     #include "arch/x86_64/cpu.h"
 #endif /* defined(__x86_64__) */
 
+#include "lib/adt/array.h"
 #include "lib/adt/bitmap.h"
 
 #include "cpu/isr.h"
@@ -71,11 +72,6 @@ struct pci_domain {
 
     uint16_t segment;
 
-    uint32_t
-    (*read)(const struct pci_device_info *s,
-            uint32_t offset,
-            uint8_t access_size);
-
     bool
     (*write)(const struct pci_device_info *space,
              uint32_t offset,
@@ -83,12 +79,35 @@ struct pci_domain {
              uint8_t access_size);
 };
 
+extern uint32_t
+arch_pci_read(const struct pci_device_info *s,
+              uint32_t offset,
+              uint8_t access_size);
+
+extern bool
+arch_pci_write(const struct pci_device_info *s,
+               uint32_t offset,
+               uint32_t value,
+               uint8_t access_size);
+
+extern uint32_t
+arch_pcie_read(const struct pci_device_info *s,
+               uint32_t offset,
+               uint8_t access_size);
+
+extern bool
+arch_pcie_write(const struct pci_device_info *s,
+                uint32_t offset,
+                uint32_t value,
+                uint8_t access_size);
+
 struct pci_device_info {
     struct list list_in_domain;
     struct list list_in_devices;
 
     struct pci_domain *domain;
     struct pci_config_space config_space;
+    volatile void *pcie_info;
 
     uint16_t id;
     uint16_t vendor_id;
@@ -118,32 +137,30 @@ struct pci_device_info {
         };
     };
 
+    struct array vendor_cap_list;
     struct pci_device_bar_info *bar_list;
 };
 
 uint32_t pci_device_get_index(const struct pci_device_info *const device);
 
 #define pci_read(device, type, field) \
-    (device)->domain->read((device), \
-                           offsetof(type, field), \
-                           sizeof_field(type, field))
-
+    arch_pci_read((device), offsetof(type, field), sizeof_field(type, field))
 #define pci_write(device, type, field, value) \
-    (device)->domain->write((device),\
-                            offsetof(type, field),\
-                            sizeof_field(type, field),\
-                            value)
+    arch_pci_write((device),\
+                   offsetof(type, field),\
+                   value, \
+                   sizeof_field(type, field))
 
 #define pci_read_with_offset(device, offset, type, field) \
-    (device)->domain->read((device), \
-                           (offset) + offsetof(type, field), \
-                           sizeof_field(type, field))
+    arch_pci_read((device), \
+                  (offset) + offsetof(type, field), \
+                  sizeof_field(type, field))
 
 #define pci_write_with_offset(device, offset, type, field, value) \
-    (device)->domain->write((device),\
-                            (offset) + offsetof(type, field), \
-                            sizeof_field(type, field),\
-                            value)
+    arch_pci_write((device),\
+                   (offset) + offsetof(type, field), \
+                   value,\
+                   sizeof_field(type, field))
 
 #define PCI_DEVICE_INFO_FMT                                                    \
     "%" PRIx8 ":%" PRIx8 ":%" PRIx8 ":%" PRIx16 ":%" PRIx16 " (%" PRIx8 ":%"   \

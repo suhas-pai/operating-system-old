@@ -45,6 +45,7 @@ SECTIONS
 
     .data : {
         *(.data .data.*)
+        *(.sdata .sdata.*)
     } :data
 
     /* Dynamic section for relocations, both in its own PHDR and inside data PHDR */
@@ -57,6 +58,7 @@ SECTIONS
     /* If you need, for example, .init_array and .fini_array, those should be placed */
     /* above this. */
     .bss : {
+        *(.sbss .sbss.*)
         *(.bss .bss.*)
         *(COMMON)
     } :data

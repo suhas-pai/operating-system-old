@@ -4,9 +4,20 @@
  */
 
 #pragma once
-
 #include <stdint.h>
+
+#include "dev/pci/structs.h"
 #include "lib/macros.h"
+
+enum virtio_pci_trans_device_kind {
+    VIRTIO_PCI_TRANS_DEVICE_KIND_NETWORK_CARD = 0x1000,
+    VIRTIO_PCI_TRANS_DEVICE_KIND_BLOCK_DEVICE,
+    VIRTIO_PCI_TRANS_DEVICE_KIND_MEM_BALLOON_TRAD,
+    VIRTIO_PCI_TRANS_DEVICE_KIND_CONSOLE,
+    VIRTIO_PCI_TRANS_DEVICE_KIND_SCSI_HOST,
+    VIRTIO_PCI_TRANS_DEVICE_KIND_ENTROPY_SRC,
+    VIRTIO_PCI_TRANS_DEVICE_KIND_9P_TRANSPORT,
+};
 
 enum virtio_device_kind {
     VIRTIO_DEVICE_KIND_INVALID,
@@ -51,33 +62,93 @@ enum virtio_device_kind {
     VIRTIO_DEVICE_KIND_RDMA_DEVICE,
 };
 
-enum virtio_device_status {
+enum virtio_pci_cap_cfg {
+    /* Common configuration */
+    VIRTIO_PCI_CAP_COMMON_CFG = 1,
+    VIRTIO_PCI_CAP_CFG_MIN = VIRTIO_PCI_CAP_COMMON_CFG,
+    /* Notifications */
+    VIRTIO_PCI_CAP_NOTIFY_CFG,
+    /* ISR Status */
+    VIRTIO_PCI_CAP_ISR_CFG,
+    /* Device specific configuration */
+    VIRTIO_PCI_CAP_DEVICE_CFG,
+    /* PCI configuration access */
+    VIRTIO_PCI_CAP_PCI_CFG,
+    /* Shared memory region */
+    VIRTIO_PCI_CAP_SHARED_MEMORY_CFG = 8,
+    /* Vendor-specific data */
+    VIRTIO_PCI_CAP_VENDOR_CFG,
+    VIRTIO_PCI_CAP_CFG_MAX = VIRTIO_PCI_CAP_VENDOR_CFG
+};
+
+struct virtio_pci_spec_cap {
+    struct pci_spec_capability cap;
+    uint8_t cap_len;
+    uint8_t cfg_type; /* Identifies the structure. */
+    uint8_t bar; /* Where to find it. */
+    uint8_t id; /* Multiple capabilities of the same type */
+    uint8_t padding[2]; /* Pad to full dword. */
+    uint32_t offset; /* Offset within bar. */
+    uint32_t length; /* Length of the structure, in bytes. */
+} __packed;
+
+struct virtio_pci_spec_cap64 {
+    struct virtio_pci_spec_cap cap;
+    uint32_t offset_hi;
+    uint32_t length_hi;
+} __packed;
+
+struct virtio_pci_common_cfg {
+    /* About the whole device. */
+    uint32_t device_feature_select;
+    const uint32_t device_feature;
+    uint32_t driver_feature_select;
+    uint32_t driver_feature;
+    uint16_t config_msix_vector;
+    const uint16_t num_queues;
+    uint8_t device_status;
+    const uint8_t config_generation;
+
+    /* About a specific virtqueue. */
+    uint16_t queue_select;
+    uint16_t queue_size;
+    uint16_t queue_msix_vector;
+    uint16_t queue_enable;
+    const uint16_t queue_notify_off;
+    uint64_t queue_desc;
+    uint64_t queue_driver;
+    uint64_t queue_device;
+    const uint16_t queue_notify_data;
+    uint16_t queue_reset;
+} __packed;
+
+enum virtio_mmio_device_status {
     /*
      * Indicates that the guest OS has found the device and recognized it as a
      * valid virtio device.
      */
 
-    VIRTIO_DEVSTATUS_ACKNOWLEDGE = 1 << 0,
+    VIRTIO_MMIO_DEVSTATUS_ACKNOWLEDGE = 1 << 0,
 
     /* Indicates that the guest OS knows how to drive the device */
-    VIRTIO_DEVSTATUS_DRIVER = 1 << 1,
+    VIRTIO_MMIO_DEVSTATUS_DRIVER = 1 << 1,
 
     /* Indicates that the driver is set up and ready to drive the device. */
-    VIRTIO_DEVSTATUS_DRIVER_OK = 1 << 2,
+    VIRTIO_MMIO_DEVSTATUS_DRIVER_OK = 1 << 2,
 
     /*
      * Indicates that the driver has acknowledged all the features it
      * understands, and feature negotiation is complete.
      */
 
-    VIRTIO_DEVSTATUS_FEATURES_OK = 1 << 3,
+    VIRTIO_MMIO_DEVSTATUS_FEATURES_OK = 1 << 3,
 
     /*
      * Indicates that the device has experienced an error from which it can’t
      * re-cover.
      */
 
-    VIRTIO_DEVSTATUS_DEVICE_NEEDS_RESET = 1 << 6,
+    VIRTIO_MMIO_DEVSTATUS_DEVICE_NEEDS_RESET = 1 << 6,
 
     /*
      * Indicates that something went wrong in the guest, and it has given up on
@@ -86,12 +157,12 @@ enum virtio_device_status {
      * operation.
      */
 
-    VIRTIO_DEVSTATUS_FAILED = 1 << 7
+    VIRTIO_MMIO_DEVSTATUS_FAILED = 1 << 7
 };
 
 #define VIRTIO_DEVICE_MAGIC 0x74726976
 
-struct virtio_device {
+struct virtio_mmio_device {
     volatile const uint32_t magic;
     volatile const uint32_t version;
     volatile const uint32_t device_id;
@@ -140,7 +211,7 @@ struct virtio_device {
     volatile char config_space[];
 } __packed;
 
-struct virtio_device_legacy {
+struct virtio_mmio_device_legacy {
     volatile const uint32_t magic;
     volatile const uint32_t version;
     volatile const uint32_t device_id;

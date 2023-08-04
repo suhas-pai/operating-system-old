@@ -119,9 +119,9 @@ enum pci_spec_device_status_flags {
     __PCI_DEVSTATUS_PARITY_ERR_DETECTED = 1ull << 14,
 };
 
-enum pci_spec_dev_memspace_bar_kind {
-    __PCI_DEVBAR_MEMSPACE_32B = 0,
-    __PCI_DEVBAR_MEMSPACE_64B = 2,
+enum pci_spec_devbar_memspace_kind {
+    PCI_DEVBAR_MEMSPACE_32B = 0,
+    PCI_DEVBAR_MEMSPACE_64B = 2,
 };
 
 enum pci_spec_device_bar_flags {
@@ -135,18 +135,16 @@ enum pci_spec_device_bar_flags {
  * specificed in the PCI Specification.
  */
 
-struct pci_spec_device_info {
+struct pci_spec_device_info_base {
     uint16_t vendor_id;
     uint16_t device_id;
 
     uint16_t command;
     uint16_t status;
 
-    uint8_t revision_id;
-
     /* prog_if = "Programming Interface" */
+    uint8_t revision_id;
     uint8_t prog_if;
-
     uint8_t subclass;
     uint8_t class_code;
 
@@ -156,24 +154,30 @@ struct pci_spec_device_info {
     uint8_t bist;
 } __packed;
 
-struct pci_spec_general_device_info {
-    struct pci_spec_device_info base;
+struct pci_spec_device_info {
+    struct pci_spec_device_info_base base;
 
     uint32_t bar_list[6];
     uint32_t cardbus_cis_pointer;
+
     uint16_t subsystem_vendor_id;
     uint16_t subsystem_id;
+
     uint32_t expansion_rom_base_address;
+
     uint8_t capabilities_offset; /* Offset from start of this structure */
     uint8_t reserved[7];
+
     uint8_t interrupt_line;
     uint8_t interrupt_pin;
-    uint8_t min_grant;
-    uint8_t max_latency;
+    const uint8_t min_grant;
+    const uint8_t max_latency; // In units of 1/4 milliseconds
+
+    char data[4032];
 } __packed;
 
 struct pci_spec_pci_to_pci_bridge_device_info {
-    struct pci_spec_device_info base;
+    struct pci_spec_device_info_base base;
 
     uint32_t bar_list[2];
     uint8_t primary_bus_number;
@@ -197,6 +201,8 @@ struct pci_spec_pci_to_pci_bridge_device_info {
     uint8_t interrupt_line;
     uint8_t interrupt_pin;
     uint16_t bridge_control;
+
+    char data[4036];
 } __packed;
 
 enum pci_spec_cap_id {
@@ -284,7 +290,7 @@ struct pci_spec_cap_msix {
 } __packed;
 
 struct pci_spec_pci_to_cardbus_bridge_device_info {
-    struct pci_spec_device_info base;
+    struct pci_spec_device_info_base base;
 
     union {
         uint32_t cardbus_socket;

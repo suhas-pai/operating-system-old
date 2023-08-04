@@ -24,7 +24,11 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
                        const bool masked)
     {
         uint16_t msg_control =
-            pci_read(device, struct pci_spec_cap_msi, msg_control);
+            pci_read_with_offset(device,
+                                 device->pcie_msi_offset,
+                                 struct pci_spec_cap_msi,
+                                 msg_control);
+
         const bool is_64_bit =
             (msg_control & __PCI_CAPMSI_CTRL_64BIT_CAPABLE) != 0;
 
@@ -103,7 +107,11 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
          */
 
         uint16_t msg_control =
-            pci_read(device, struct pci_spec_cap_msix, msg_control);
+            pci_read_with_offset(device,
+                                 device->pcie_msix_offset,
+                                 struct pci_spec_cap_msix,
+                                 msg_control);
+
         const uint32_t table_size =
             (msg_control & __PCI_MSIX_CAP_TABLE_SIZE_MASK) + 1;
 
@@ -140,6 +148,10 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
         }
 
         struct pci_device_bar_info *const bar = &device->bar_list[bar_index];
+        if (!bar->is_mmio) {
+            printk(LOGLEVEL_WARN, "pcie: base-address-reg bar is not mmio\n");
+            return;
+        }
 
         const uint64_t bar_address = (uint64_t)bar->mmio->base;
         const uint64_t table_addr =
@@ -189,8 +201,8 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
 
 void pci_device_enable_bus_mastering(struct pci_device_info *const device) {
     const uint16_t old_command =
-        pci_read(device, struct pci_spec_device_info, command);
+        pci_read(device, struct pci_spec_device_info_base, command);
 
     const uint16_t new_command = old_command | __PCI_DEVCMDREG_BUS_MASTER;
-    pci_write(device, struct pci_spec_device_info, command, new_command);
+    pci_write(device, struct pci_spec_device_info_base, command, new_command);
 }
