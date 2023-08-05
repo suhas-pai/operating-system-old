@@ -328,6 +328,9 @@ static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
             case 3:
                 i += PAGE_SIZE * PGT_COUNT * PGT_COUNT;
                 break;
+            case 4:
+                i += PAGE_SIZE * PGT_COUNT * PGT_COUNT * PGT_COUNT;
+                break;
         }
     }
 }
@@ -389,6 +392,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // to go through each table used, and setup all pgtable metadata inside a
     // struct page
 
+    refcount_range(MMIO_BASE - HHDM_OFFSET, (MMIO_END - MMIO_BASE));
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         const struct limine_memmap_entry *const memmap = *memmap_iter;
         if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||

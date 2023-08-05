@@ -7,7 +7,7 @@
 #include "dev/pci/structs.h"
 
 #include "dev/printk.h"
-#include "port.h"
+#include "mmio.h"
 
 uint32_t
 arch_pcie_read(const struct pci_device_info *const device,
@@ -29,11 +29,11 @@ arch_pcie_read(const struct pci_device_info *const device,
     volatile const void *const pcie = device->pcie_info;
     switch (access_size) {
         case sizeof(uint8_t):
-            return port_in8((port_t)reg_to_ptr(volatile void, pcie, offset));
+            return mmio_read_8(pcie + offset);
         case sizeof(uint16_t):
-            return port_in16((port_t)reg_to_ptr(volatile void, pcie, offset));
+            return mmio_read_16(pcie + offset);
         case sizeof(uint32_t):
-            return port_in32((port_t)reg_to_ptr(volatile void, pcie, offset));
+            return mmio_read_32(pcie + offset);
     }
 
     verify_not_reached();
@@ -61,14 +61,16 @@ arch_pcie_write(const struct pci_device_info *const device,
     switch (access_size) {
         case sizeof(uint8_t):
             assert(value <= UINT8_MAX);
-            port_out8((port_t)reg_to_ptr(volatile void, pcie, offset), value);
+            mmio_write_8(reg_to_ptr(volatile void, pcie, offset), value);
+
             return true;
         case sizeof(uint16_t):
             assert(value <= UINT16_MAX);
-            port_out16((port_t)reg_to_ptr(volatile void, pcie, offset), value);
+            mmio_write_16(reg_to_ptr(volatile void, pcie, offset), value);
+
             return true;
         case sizeof(uint32_t):
-            port_out32((port_t)reg_to_ptr(volatile void, pcie, offset), value);
+            mmio_write_32(reg_to_ptr(volatile void, pcie, offset), value);
             return true;
     }
 

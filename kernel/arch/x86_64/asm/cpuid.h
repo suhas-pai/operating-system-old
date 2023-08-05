@@ -690,6 +690,28 @@ enum {
      */
 
     CPUID_FEAT_EXT7_ECX1_EAX_HRESET = 1ull << 22,
+
+    CPUID_FEAT_EXT80000001_ECX_LAHF_SAFH_IN_64B = 1ull << 0,
+    /* Bits 1 through 4 reserved */
+    CPUID_FEAT_EXT80000001_ECX_LZCNT = 1ull << 5,
+    /* Bits 6 through 7 reserved */
+    CPUID_FEAT_EXT80000001_ECX_PREFETCHW = 1ull << 8,
+    /* Bits 9 through 31 reserved */
+
+    /* Bits 0 through 10 reserved */
+    CPUID_FEAT_EXT80000001_EDX_SYSCALL_SYSRET = 1ull << 11,
+    /* Bits 12 through 20 reserved */
+    CPUID_FEAT_EXT80000001_EDX_DISABLE_BIT = 1ull << 20,
+    /* Bits 21 through 25 reserved */
+    CPUID_FEAT_EXT80000001_EDX_1GIB_PAGES = 1ull << 26,
+    CPUID_FEAT_EXT80000001_EDX_RDTSCP_IA32_TSC_AUX = 1ull << 27,
+    /* Bits 28 reserved */
+    CPUID_FEAT_EXT80000001_EDX_64B = 1ull << 29,
+    /* Bits 30 through 31 reserved */
+
+    /* Bits 0 through 7 reserved */
+    CPUID_FEAT_EXT80000007_EDX_TSC_INVARIANT = 1ull << 8,
+    /* Bits 9 through 31 reserved */
 };
 
 enum cpuid_requests {

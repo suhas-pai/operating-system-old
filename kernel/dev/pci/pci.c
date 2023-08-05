@@ -11,6 +11,7 @@
 #include "lib/align.h"
 #include "mm/kmalloc.h"
 
+#include "mmio.h"
 #include "port.h"
 #include "structs.h"
 
@@ -207,9 +208,7 @@ pci_device_bar_read8(struct pci_device_bar_info *const bar,
 {
     return
         bar->is_mmio ?
-            *reg_to_ptr(volatile const uint8_t,
-                        bar->mmio->base + bar->index_in_mmio,
-                        offset) :
+            mmio_read_8(bar->mmio->base + bar->index_in_mmio + offset) :
             port_in8((port_t)(bar->port_range.front + offset));
 }
 
@@ -219,9 +218,7 @@ pci_device_bar_read16(struct pci_device_bar_info *const bar,
 {
     return
         bar->is_mmio ?
-            *reg_to_ptr(volatile const uint16_t,
-                        bar->mmio->base + bar->index_in_mmio,
-                        offset) :
+            mmio_read_16(bar->mmio->base + bar->index_in_mmio + offset) :
             port_in16((port_t)(bar->port_range.front + offset));
 }
 
@@ -231,9 +228,7 @@ pci_device_bar_read32(struct pci_device_bar_info *const bar,
 {
     return
         bar->is_mmio ?
-            *reg_to_ptr(volatile const uint32_t,
-                        bar->mmio->base + bar->index_in_mmio,
-                        offset) :
+            mmio_read_32(bar->mmio->base + bar->index_in_mmio + offset) :
             port_in32((port_t)(bar->port_range.front + offset));
 }
 
@@ -243,16 +238,11 @@ pci_device_bar_read64(struct pci_device_bar_info *const bar,
 {
 #if defined(__x86_64__)
     assert(bar->is_mmio);
-    return
-        *reg_to_ptr(volatile const uint64_t,
-                    bar->mmio->base + bar->index_in_mmio,
-                    offset);
+    return mmio_read_64(bar->mmio->base + bar->index_in_mmio + offset);
 #else
     return
         (bar->is_mmio) ?
-            *reg_to_ptr(volatile const uint64_t,
-                        bar->mmio->base + bar->index_in_mmio,
-                        offset) :
+            mmio_read_64(bar->mmio->base + bar->index_in_mmio + offset) :
             port_in64((port_t)(bar->port_range.front + offset));
 #endif /* defined(__x86_64__) */
 }
@@ -528,8 +518,7 @@ parse_function(struct pci_domain *const domain,
     const uint8_t hdrkind = header_kind & (uint8_t)~__PCI_DEVHDR_MULTFUNC;
     const uint8_t irq_pin =
         hdrkind == PCI_SPEC_DEVHDR_KIND_GENERAL ?
-            pci_read(&info, struct pci_spec_device_info, interrupt_pin)
-            : 0;
+            pci_read(&info, struct pci_spec_device_info, interrupt_pin) : 0;
 
     array_init(&info.vendor_cap_list, sizeof(uint8_t));
 

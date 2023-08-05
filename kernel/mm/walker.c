@@ -327,6 +327,7 @@ ptwalker_next_custom(struct pt_walker *const walker,
         }
 
         if (level == orig_level) {
+            reset_levels_lower_than(walker, level);
             return E_PT_WALKER_OK;
         }
 

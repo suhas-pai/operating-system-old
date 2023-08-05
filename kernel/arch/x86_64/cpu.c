@@ -118,6 +118,39 @@ static void init_cpuid_features() {
 
         assert((eax & expected_eax_features) == expected_eax_features);
     }
+    {
+        uint64_t eax, ebx, ecx = 0, edx;
+        cpuid(CPUID_GET_LARGEST_EXTENDED_FUNCTION |
+                CPUID_GET_FEATURES,
+              /*subleaf=*/0,
+              &eax,
+              &ebx,
+              &ecx,
+              &edx);
+
+        printk(LOGLEVEL_INFO,
+               "cpuid: get_features_extended_0x800000007: "
+               "eax: 0x%" PRIX64 " "
+               "ebx: 0x%" PRIX64 " "
+               "ecx: 0x%" PRIX64 " "
+               "edx: 0x%" PRIX64 "\n",
+               eax, ebx, ecx, edx);
+
+        const uint32_t expected_edx_features =
+            CPUID_FEAT_EXT80000001_EDX_SYSCALL_SYSRET;
+
+        assert((edx & expected_edx_features) == expected_edx_features);
+        if (!g_base_cpu_init) {
+            g_cpu_capabilities.supports_1gib_pages =
+                (edx & CPUID_FEAT_EXT80000001_EDX_1GIB_PAGES);
+
+            if (g_cpu_capabilities.supports_1gib_pages) {
+                printk(LOGLEVEL_INFO, "cpu: supports 1gib pages\n");
+            } else {
+                printk(LOGLEVEL_INFO, "cpu: does NOT supports 1gib pages\n");
+            }
+        }
+    }
 
     write_cr0(read_cr0() | CR0_BIT_MP);
 

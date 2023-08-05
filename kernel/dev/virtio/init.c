@@ -12,6 +12,7 @@
 #include "mm/kmalloc.h"
 
 #include "device.h"
+#include "mmio.h"
 
 static struct list device_list = LIST_INIT(device_list);
 static uint64_t device_count = 0;
@@ -39,6 +40,11 @@ static bool virtio_init(volatile struct virtio_mmio_device *const device) {
         // Device is not present.
         return false;
     }
+
+    mmio_write(&device->status, 0);
+    mmio_write(&device->status, VIRTIO_MMIO_DEVSTATUS_ACKNOWLEDGE);
+    mmio_write(&device->status,
+               mmio_read(&device->status) | VIRTIO_MMIO_DEVSTATUS_DRIVER);
 
     printk(LOGLEVEL_INFO, "virtio-mmio: device at %p recognized\n", device);
     return true;
@@ -281,16 +287,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
     }
 
     list_init(&virt_device->list);
-
-    virt_device->cap_list =
-        kmalloc(sizeof(struct virtio_pci_cap_info) * cap_count);
-
-    if (virt_device->cap_list == NULL) {
-        printk(LOGLEVEL_WARN, "virtio-pci: failed to allocate cap-list\n");
-        kfree(virt_device);
-
-        return;
-    }
+    virt_device->pci_device = pci_device;
 
 #define pci_read_virtio_cap_field(field) \
     pci_read_with_offset(pci_device, \
@@ -311,9 +308,6 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         }
 
         const uint8_t bar_index = pci_read_virtio_cap_field(cap.bar);
-        struct virtio_pci_cap_info *const cap =
-            virt_device->cap_list + cap_index;
-
         if (bar_index > 5) {
             printk(LOGLEVEL_WARN,
                    "\tindex of bar of capability %" PRIu8 " > 5\n",
@@ -333,8 +327,10 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
             continue;
         }
 
-        cap->bar = pci_device->bar_list + bar_index;
-        if (!cap->bar->is_present) {
+        struct pci_device_bar_info *const bar =
+            pci_device->bar_list + bar_index;
+
+        if (!bar->is_present) {
             printk(LOGLEVEL_INFO,
                    "\tbase-address-reg (%" PRIu8 ") bar is not present\n",
                    bar_index);
@@ -343,26 +339,70 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
             continue;
         }
 
-        cap->cfg_type = pci_read_virtio_cap_field(cap.cfg_type);
-        cap->id = pci_read_virtio_cap_field(cap.id);
-        cap->offset = pci_read_virtio_cap_field(cap.offset);
-        cap->length = pci_read_virtio_cap_field(cap.length);
+        const uint8_t cfg_type = pci_read_virtio_cap_field(cap.cfg_type);
+
+        uint64_t offset = pci_read_virtio_cap_field(cap.offset);
+        uint64_t length = pci_read_virtio_cap_field(cap.length);
 
         if (cap_len >= sizeof(struct virtio_pci_cap64)) {
-            cap->offset |= (uint64_t)pci_read_virtio_cap_field(offset_hi) << 32;
-            cap->length |= (uint64_t)pci_read_virtio_cap_field(length_hi) << 32;
+            offset |= (uint64_t)pci_read_virtio_cap_field(offset_hi) << 32;
+            length |= (uint64_t)pci_read_virtio_cap_field(length_hi) << 32;
+        }
+
+        const struct range index_range = range_create(offset, length);
+        const struct range io_range =
+            bar->is_mmio ? mmio_region_get_range(bar->mmio) : bar->port_range;
+
+        if (!range_has_index_range(io_range, index_range)) {
+            printk(LOGLEVEL_WARN,
+                   "\tcapability has an offset+length pair that falls "
+                   "outside device's io range (" RANGE_FMT ")\n",
+                   RANGE_FMT_ARGS(io_range));
+
+            cap_index++;
+            continue;
         }
 
         const char *cfg_kind = NULL;
-        switch (cap->cfg_type) {
+        switch (cfg_type) {
             case VIRTIO_PCI_CAP_COMMON_CFG:
+                if (length < sizeof(struct virtio_pci_common_cfg)) {
+                    printk(LOGLEVEL_WARN,
+                           "\tcommon-cfg capability is too short\n");
+
+                    cap_index++;
+                    continue;
+                }
+
+                virt_device->common_cfg = bar->mmio->base + offset;
                 cfg_kind = "common-cfg";
+
                 break;
             case VIRTIO_PCI_CAP_NOTIFY_CFG:
+                if (cap_len < sizeof(struct virtio_pci_notify_cap)) {
+                    printk(LOGLEVEL_WARN,
+                           "\tnotify-cfg capability is too short\n");
+
+                    cap_index++;
+                    continue;
+                }
+
+                virt_device->notify_cfg_offset = *iter;
                 cfg_kind = "notify-cfg";
+
                 break;
             case VIRTIO_PCI_CAP_ISR_CFG:
+                if (cap_len < sizeof(struct virtio_pci_isr_cap)) {
+                    printk(LOGLEVEL_WARN,
+                           "\tnotify-cfg capability is too short\n");
+
+                    cap_index++;
+                    continue;
+                }
+
+                virt_device->isr_cfg_offset = *iter;
                 cfg_kind = "isr-cfg";
+
                 break;
             case VIRTIO_PCI_CAP_DEVICE_CFG:
                 cfg_kind = "device-cfg";
@@ -378,13 +418,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                 break;
         }
 
-        const struct range index_range = range_create(cap->offset, cap->length);
         const struct range interface_range =
-            subrange_to_full(
-                cap->bar->is_mmio ?
-                    mmio_region_get_range(cap->bar->mmio) :
-                    cap->bar->port_range,
-                index_range);
+            subrange_to_full(io_range, index_range);
 
         printk(LOGLEVEL_INFO,
                "\tcapability %" PRIu8 ": %s\n"
@@ -393,9 +428,9 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                "\t\t%s: " RANGE_FMT "\n",
                cap_index,
                cfg_kind,
-               cap->offset,
-               cap->length,
-               cap->bar->is_mmio ? "mmio" : "ports",
+               offset,
+               length,
+               bar->is_mmio ? "mmio" : "ports",
                RANGE_FMT_ARGS(interface_range));
 
         cap_index++;
