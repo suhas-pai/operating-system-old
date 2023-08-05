@@ -601,10 +601,8 @@ parse_function(struct pci_domain *const domain,
 
                 if (result != E_PARSE_BAR_OK) {
                     printk(LOGLEVEL_WARN,
-                           "pcie: failed to parse bar %" PRIu8 " result=%d for "
-                           "device\n",
-                           index,
-                           result);
+                           "pcie: failed to parse bar %" PRIu8 " for device\n",
+                           index);
 
                     bar->is_present = false;
                     break;
@@ -659,10 +657,9 @@ parse_function(struct pci_domain *const domain,
 
                 if (result != E_PARSE_BAR_OK) {
                     printk(LOGLEVEL_INFO,
-                           "pcie: failed to parse bar %" PRIu8 " result=%d for "
+                           "pcie: failed to parse bar %" PRIu8 " for "
                            "device, " PCI_DEVICE_INFO_FMT "\n",
                             index,
-                            result,
                             PCI_DEVICE_INFO_FMT_ARGS(&info));
                     break;
                 }

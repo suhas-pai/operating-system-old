@@ -4,15 +4,13 @@
  */
 
 #include "dev/printk.h"
-
-#include "lib/adt/range.h"
-#include "lib/overflow.h"
 #include "lib/size.h"
 
 #include "kmalloc.h"
 #include "mmio.h"
 #include "pagemap.h"
 
+// FIXME: Use an avltree
 static struct list lower_half_mmio_list = LIST_INIT(lower_half_mmio_list);
 static struct list higher_half_mmio_list = LIST_INIT(higher_half_mmio_list);
 
@@ -50,16 +48,27 @@ get_virt_range(const struct range phys_range, const uint64_t flags) {
     {
         printk(LOGLEVEL_WARN,
                "mmio: attempting to map mmio-range that goes past end of "
-               "64-bit virtual address space");
+               "64-bit virtual address space\n");
         return range_create_empty();
     }
 #else
     // Don't use guard-pages here
     (void)guard_pages_size;
 
+    struct list *list = &higher_half_mmio_list;
+    uint64_t virt_addr = phys_range.front;
+
+    if (flags & __VMAP_MMIO_LOW4G) {
+        list = &lower_half_mmio_list;
+    } else {
+        virt_addr = (uint64_t)phys_to_virt(virt_addr);
+    }
+
     struct mmio_region *iter = NULL;
-    list_foreach(iter, &lower_half_mmio_list, list) {
-        if (range_overlaps(mmio_region_get_range(iter), phys_range)) {
+    const struct range virt_range = range_create(virt_addr, phys_range.size);
+
+    list_foreach(iter, list, list) {
+        if (range_overlaps(mmio_region_get_range(iter), virt_range)) {
             printk(LOGLEVEL_WARN,
                    "mmio: failing to mmio map requested range because it "
                    "overlaps with an already existing map\n");
@@ -67,12 +76,9 @@ get_virt_range(const struct range phys_range, const uint64_t flags) {
         }
     }
 
-    const uint64_t virt_addr = phys_range.front;
     uint64_t virt_end = 0;
-
-    if (!range_get_end(phys_range, &virt_end)) {
-        printk(LOGLEVEL_WARN,
-               "mmio: phys-range of map goes beyong end of address-space\n");
+    if (!range_get_end(virt_range, &virt_end)) {
+        printk(LOGLEVEL_WARN, "mmio: map goes beyong end of address-space\n");
         return range_create_empty();
     }
 #endif /* !(defined(__riscv) && defined(__LP64__)) */
@@ -81,7 +87,7 @@ get_virt_range(const struct range phys_range, const uint64_t flags) {
         if (virt_end > gib(4)) {
             printk(LOGLEVEL_WARN,
                    "mmio: attempting to map mmio-range that goes beyond 4G in "
-                   "lower 4G");
+                   "lower 4G\n");
             return range_create_empty();
         }
     }
@@ -98,13 +104,23 @@ vmap_mmio(const struct range phys_range,
                "mmio phys-range (" RANGE_FMT ") isn't aligned to the page size",
                RANGE_FMT_ARGS(phys_range));
 
-    assert_msg(prot != PROT_NONE,
+    if (prot == PROT_NONE) {
+        printk(LOGLEVEL_INFO,
                "mmio: attempting to map mmio range w/o access permissions");
-    assert_msg((prot & PROT_EXEC) == 0,
+        return NULL;
+    }
+
+    if (prot & PROT_EXEC) {
+        printk(LOGLEVEL_DEBUG,
                "mmio: attempting to map mmio range with execute permissions");
+        return NULL;
+    }
 
     struct mmio_region *const mmio = kmalloc(sizeof(*mmio));
-    assert_msg(mmio != NULL, "mmio: failed to allocate mmio_region");
+    if (mmio == NULL) {
+        printk(LOGLEVEL_INFO, "mmio: failed to allocate mmio_region");
+        return NULL;
+    }
 
     // Mmio ranges are mapped with a guard page placed right after the last page
     // in the range.
@@ -118,11 +134,10 @@ vmap_mmio(const struct range phys_range,
         arch_make_mapping(&kernel_pagemap,
                           phys_range.front,
                           virt_range.front,
-                          virt_range.size,
+                          phys_range.size,
                           prot,
                           (flags & __VMAP_MMIO_WT) ?
-                            VMA_CACHEKIND_WRITETHROUGH :
-                            VMA_CACHEKIND_MMIO,
+                            VMA_CACHEKIND_WRITETHROUGH : VMA_CACHEKIND_MMIO,
                           /*is_overwrite=*/true);
 
     if (!map_success) {
@@ -138,15 +153,11 @@ vmap_mmio(const struct range phys_range,
     mmio->base = (volatile void *)virt_range.front;
     mmio->size = phys_range.size;
 
-#if !(defined(__riscv) && defined(__LP64__))
     if (flags & __VMAP_MMIO_LOW4G) {
         list_add(&lower_half_mmio_list, &mmio->list);
     } else {
         list_add(&higher_half_mmio_list, &mmio->list);
     }
-#else
-    list_add(&lower_half_mmio_list, &mmio->list);
-#endif /* !(defined(__riscv) && defined(__LP64__)) */
 
     return mmio;
 }
