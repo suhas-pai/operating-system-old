@@ -164,10 +164,11 @@ void mm_early_init() {
     assert(kern_addr_request.response != NULL);
     assert(memmap_request.response != NULL);
 
-    KERNEL_BASE = kern_addr_request.response->virtual_base;
     HHDM_OFFSET = hhdm_request.response->offset;
+    KERNEL_BASE = kern_addr_request.response->virtual_base;
 
     printk(LOGLEVEL_INFO, "mm: hhdm at %p\n", (void *)HHDM_OFFSET);
+    printk(LOGLEVEL_INFO, "mm: kernel at %p\n", (void *)KERNEL_BASE);
 
     const struct limine_memmap_response *const resp = memmap_request.response;
 

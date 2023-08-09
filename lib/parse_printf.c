@@ -57,7 +57,8 @@ read_int_from_fmt_string(const char *const c_str, const char **const iter_out) {
             break;
         }
 
-        if (check_mul(result, 10, &result) || check_add(result, digit, &result))
+        if (!check_mul(result, 10, &result) ||
+            !check_add(result, digit, &result))
         {
             *iter_out = iter;
             return -1;
@@ -104,8 +105,8 @@ parse_precision(struct printf_spec_info *const curr_spec,
                 struct va_list_struct *const list_struct,
                 const char **const iter_out)
 {
-    curr_spec->precision = -1;
     if (*iter != '.') {
+        curr_spec->precision = -1;
         return true;
     }
 

@@ -16,10 +16,11 @@ struct bitmap bitmap_alloc(const uint64_t bit_count) {
 
 struct bitmap bitmap_open(void *const buffer, const uint64_t byte_count) {
     return (struct bitmap){
-        .gbuffer = gbuffer_open(buffer,
-                                /*used=*/byte_count,
-                                /*capacity=*/byte_count,
-                                /*is_alloc=*/false),
+        .gbuffer =
+            gbuffer_open(buffer,
+                         /*used=*/byte_count,
+                         /*capacity=*/byte_count,
+                         /*is_alloc=*/false),
     };
 }
 

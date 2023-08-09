@@ -30,6 +30,10 @@ static inline struct string_view sv_create_empty() {
     return (struct string_view){ .begin = "", .length = 0 };
 }
 
+static inline struct string_view sv_create(const char *const str) {
+    return (struct string_view){ .begin = str, .length = strlen(str) };
+}
+
 static inline struct string_view
 sv_create_nocheck(const char *const c_str, const uint64_t length) {
     return (struct string_view){

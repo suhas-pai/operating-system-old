@@ -6,6 +6,7 @@
 #ifndef KERNEL_SANITIZERS_UNDEFINED_DEFINITIONS_H
 #define KERNEL_SANITIZERS_UNDEFINED_DEFINITIONS_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "lib/macros.h"
 
@@ -59,7 +60,7 @@ struct type_descriptor {
 };
 
 static inline
-uint8_t typedesc_is_signed_int(const struct type_descriptor *const desc) {
+bool typedesc_is_signed_int(const struct type_descriptor *const desc) {
     return (desc->info & 1);
 }
 

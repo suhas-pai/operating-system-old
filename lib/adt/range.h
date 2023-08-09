@@ -29,9 +29,10 @@ struct range {
 
 struct range range_create(uint64_t front, uint64_t size);
 struct range range_create_end(uint64_t front, uint64_t size);
-
-struct range range_multiply(struct range range, uint64_t mult);
 struct range range_align_in(struct range range, uint64_t boundary);
+
+bool
+range_multiply(struct range range, uint64_t mult, struct range *result_out);
 
 bool
 range_round_up(struct range range, uint64_t mult, struct range *result_out);

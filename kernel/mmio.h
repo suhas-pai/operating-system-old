@@ -19,7 +19,7 @@ void mmio_write_32(volatile void *ptr, uint32_t value);
 void mmio_write_64(volatile void *ptr, uint64_t value);
 
 #define mmio_read(ptr) ({ \
-    typeof(*(ptr)) __result__ = 0; \
+    __auto_type __result__ = (typeof(*(ptr)))0; \
     switch (sizeof(*(ptr))) { \
         case sizeof(uint8_t): \
             __result__ = mmio_read_8(ptr); \

@@ -26,7 +26,7 @@ struct array array_alloc(uint64_t object_size, uint64_t item_capacity);
 
 bool array_append(struct array *array, const void *item);
 void array_remove_index(struct array *array, uint64_t index);
-void array_remove_range(struct array *array, struct range range);
+bool array_remove_range(struct array *array, struct range range);
 
 void *array_begin(struct array array);
 const void *array_end(struct array array);

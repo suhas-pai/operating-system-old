@@ -91,7 +91,7 @@ enum {
 
     /* SSE4_2 = Streaming SIMD Extensions 4.2 */
     CPUID_FEAT_ECX_SSE4_2  = 1ull << 20,
-    CPUID_FEAT_ECX_x2APIC  = 1ull << 21,
+    CPUID_FEAT_ECX_X2APIC  = 1ull << 21,
 
     /* Supports MOVBE Instruction */
     CPUID_FEAT_ECX_MOVBE   = 1ull << 22,

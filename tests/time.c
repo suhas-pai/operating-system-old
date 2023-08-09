@@ -18,7 +18,7 @@ static struct tm *get_time_now() {
     return localtime(&ts);
 }
 
-static void test_match(const char *fmt) {
+static void test_match(const char *const fmt) {
     const struct tm *const tm = get_time_now();
 
     char buffer[1024] = {0};

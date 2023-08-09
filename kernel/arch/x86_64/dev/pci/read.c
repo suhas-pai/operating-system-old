@@ -10,6 +10,7 @@
 #include "dev/printk.h"
 
 #include "lib/align.h"
+#include "mmio.h"
 
 uint32_t
 arch_pcie_read(const struct pci_device_info *const device,
@@ -28,14 +29,13 @@ arch_pcie_read(const struct pci_device_info *const device,
         return false;
     }
 
-    volatile const void *const pcie = device->pcie_info;
     switch (access_size) {
         case sizeof(uint8_t):
-            return *reg_to_ptr(volatile uint8_t, pcie, offset);
+            return mmio_read_8(device->pcie_info + offset);
         case sizeof(uint16_t):
-            return *reg_to_ptr(volatile uint16_t, pcie, offset);
+            return mmio_read_16(device->pcie_info + offset);
         case sizeof(uint32_t):
-            return *reg_to_ptr(volatile uint32_t, pcie, offset);
+            return mmio_read_32(device->pcie_info + offset);
     }
 
     verify_not_reached();
@@ -59,20 +59,19 @@ arch_pcie_write(const struct pci_device_info *const device,
         return false;
     }
 
-    volatile const void *const pcie = device->pcie_info;
     switch (access_size) {
         case sizeof(uint8_t):
             assert(value <= UINT8_MAX);
-            *reg_to_ptr(volatile uint8_t, pcie, offset) = value;
+            mmio_write_8(device->pcie_info + offset, value);
 
             return true;
         case sizeof(uint16_t):
             assert(value <= UINT16_MAX);
-            *reg_to_ptr(volatile uint16_t, pcie, offset) = value;
+            mmio_write_16(device->pcie_info + offset, value);
 
             return true;
         case sizeof(uint32_t):
-            *reg_to_ptr(volatile uint32_t, pcie, offset) = value;
+            mmio_write_32(device->pcie_info + offset, value);
             return true;
     }
 

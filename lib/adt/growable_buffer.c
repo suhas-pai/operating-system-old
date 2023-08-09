@@ -44,9 +44,7 @@ gbuffer_open(void *const buffer,
 }
 
 struct growable_buffer
-gbuffer_open_mutable_buffer(const struct mutable_buffer mbuffer,
-                            const bool is_alloc)
-{
+gbuffer_open_mbuffer(const struct mutable_buffer mbuffer, const bool is_alloc) {
     const struct growable_buffer gbuffer =
         gbuffer_open(mbuffer.begin,
                      mbuffer_used_size(mbuffer),

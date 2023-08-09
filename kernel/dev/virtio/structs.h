@@ -122,7 +122,7 @@ struct virtio_pci_common_cfg {
     uint16_t queue_reset;
 } __packed;
 
-struct virtio_pci_notify_cap {
+struct virtio_pci_notify_cfg_cap {
     struct virtio_pci_cap cap;
     uint32_t notify_off_multiplier; /* Multiplier for queue_notify_off. */
 } __packed;
@@ -147,7 +147,7 @@ struct virtio_pci_cfg_cap {
     uint8_t pci_cfg_data[4]; /* Data for BAR access. */
 } __packed;
 
-struct virtio_pci_isr_cap {
+struct virtio_pci_isr_cfg_cap {
     struct virtio_pci_cap cap;
 
     /*
@@ -161,33 +161,33 @@ struct virtio_pci_isr_cap {
     uint8_t data[];
 } __packed;
 
-enum virtio_mmio_device_status {
+enum virtio_device_status {
     /*
      * Indicates that the guest OS has found the device and recognized it as a
      * valid virtio device.
      */
 
-    VIRTIO_MMIO_DEVSTATUS_ACKNOWLEDGE = 1 << 0,
+    VIRTIO_DEVSTATUS_ACKNOWLEDGE = 1 << 0,
 
     /* Indicates that the guest OS knows how to drive the device */
-    VIRTIO_MMIO_DEVSTATUS_DRIVER = 1 << 1,
+    VIRTIO_DEVSTATUS_DRIVER = 1 << 1,
 
     /* Indicates that the driver is set up and ready to drive the device. */
-    VIRTIO_MMIO_DEVSTATUS_DRIVER_OK = 1 << 2,
+    VIRTIO_DEVSTATUS_DRIVER_OK = 1 << 2,
 
     /*
      * Indicates that the driver has acknowledged all the features it
      * understands, and feature negotiation is complete.
      */
 
-    VIRTIO_MMIO_DEVSTATUS_FEATURES_OK = 1 << 3,
+    VIRTIO_DEVSTATUS_FEATURES_OK = 1 << 3,
 
     /*
      * Indicates that the device has experienced an error from which it can’t
      * re-cover.
      */
 
-    VIRTIO_MMIO_DEVSTATUS_DEVICE_NEEDS_RESET = 1 << 6,
+    VIRTIO_DEVSTATUS_DEVICE_NEEDS_RESET = 1 << 6,
 
     /*
      * Indicates that something went wrong in the guest, and it has given up on
@@ -196,7 +196,133 @@ enum virtio_mmio_device_status {
      * operation.
      */
 
-    VIRTIO_MMIO_DEVSTATUS_FAILED = 1 << 7
+    VIRTIO_DEVSTATUS_FAILED = 1 << 7
+};
+
+enum virtio_device_feature_bits {
+    /*
+     * Negotiating this feature indicates that the driver can use descriptors
+     * with the VIRTQ_DESC_F_INDIRECT flag set, as described in 2.7.5.3 Indirect
+     * Descriptors and 2.8.7 Indirect Flag: Scatter-Gather Support.
+     */
+
+    VIRTIO_DEVFEATURE_INDR_DESC = 1ull << 28,
+
+    /*
+     * This feature enables the used_event and the avail_event fields as
+     * described in 2.7.7, 2.7.8 and 2.8.10
+     */
+
+    VIRTIO_DEVFEATURE_EVENT_IDX = 1ull << 29,
+
+    /*
+     * This indicates compliance with this specification, giving a simple way to
+     * detect legacy devices or drivers.
+     */
+
+    VIRTIO_DEVFEATURE_VERSION_1 = 1ull << 32,
+
+    /*
+     * This feature indicates that the device can be used on a platform where
+     * device access to data in memory is limited and/or translated.
+     *
+     * E.g. this is the case if the device can be located behind an IOMMU that
+     * translates bus addresses from the device into physical addresses in
+     * memory, if the device can be limited to only access certain memory
+     * addresses or if special commands such as a cache flush can be needed to
+     * synchronise data in memory with the device.
+     *
+     * Whether accesses are actually limited or translated is described by
+     * platform-specific means.
+     * If this feature bit is set to 0, then the device has same access to
+     * memory addresses supplied to it as the driver has.
+     * In particular, the device will always use physical addresses matching
+     * addresses used by the driver (typically meaning physical addresses used
+     * by the CPU) and not translated further, and can access any address
+     * supplied to it by the driver.
+     *
+     * When clear, this overrides any platform-specific description of whether
+     * device access is limited or translated in any way, e.g. whether an IOMMU
+     * may be present.
+     */
+
+    VIRTIO_DEVFEATURE_ACCESS_PLATFORM = 1ull << 33,
+
+    /*
+     * This feature indicates support for the packed virtqueue layout as
+     * described in 2.8 Packed Virtqueues.
+     */
+
+    VIRTIO_DEVFEATURES_PACKED_RING = 1ull << 34,
+
+    /*
+     * This feature indicates that all buffers are used by the device in the
+     * same order in which they have been made available.
+     */
+
+    VIRTIO_DEVFEATURES_IN_ORDER = 1ull << 35,
+
+    /*
+     * This feature indicates that memory accesses by the driver and the device
+     * are ordered in a way described by the platform.
+     * If this feature bit is negotiated, the ordering in effect for any memory
+     * accesses by the driver that need to be ordered in a specific way with
+     * respect to accesses by the device is the one suitable for devices
+     * described by the platform.
+     * This implies that the driver needs to use memory barriers suitable for
+     * devices described by the platform; e.g. for the PCI transport in the case
+     * of hardware PCI devices.
+     * If this feature bit is not negotiated, then the device and driver are
+     * assumed to be implemented in software, that is they can be assumed to run
+     * on identical CPUs in an SMP configuration.
+     * Thus a weaker form of memory barriers is sufficient to yield better
+     * performance.
+     */
+
+    VIRTIO_DEVFEATURES_ORDER_PLATFORM = 1ull << 37,
+
+    /*
+     * This feature indicates that the device supports Single Root I/O
+     * Virtualization. Currently only PCI devices support this feature.
+     */
+
+    VIRTIO_DEVFEATURES_SR_IOV = 1ull << 38,
+
+    /*
+     * This feature indicates that the driver passes extra data (besides
+     * identifying the virtqueue) in its device notifications.
+     * See 2.9 Driver Notifications.
+     */
+
+    VIRTIO_DEVFEATURES_NOTIFICATION_DATA = 1ull << 39,
+
+    /*
+     * This feature indicates that the driver uses the data provided by the
+     * device as a virtqueue identifier in available buffer notifications.
+     * As mentioned in section 2.9, when the driver is required to send an
+     * available buffer notification to the device, it sends the virtqueue
+     * number to be notified.
+     * The method of delivering notifications is transport specific.
+     * With the PCI transport, the device can optionally provide a per-virtqueue
+     * value for the driver to use in driver notifications, instead of the
+     * number.
+     * Some devices may benefit from this flexibility by providing, for example,
+     * an internal virtqueue identifier, or an internal offset related to the
+     * virtqueue number.
+     * This feature indicates the availability of such value.
+     * The definition of the data to be provided in driver notification and the
+     * delivery method is transport specific.
+     * For more details about driver notifications over PCI see 4.1.5.2.
+     */
+
+    VIRTIO_DEVFEATURES_NOTIF_CONFIG_DATA = 1ull << 39,
+
+    /*
+     * This feature indicates that the driver can reset a queue individually.
+     * See 2.6.1
+     */
+
+    VIRTIO_DEVFEATURES_RESET = 1ull << 39,
 };
 
 #define VIRTIO_DEVICE_MAGIC 0x74726976

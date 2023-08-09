@@ -29,9 +29,14 @@ void array_remove_index(struct array *const array, const uint64_t index) {
     gbuffer_remove_range(&array->gbuffer, range_create(byte_index, end));
 }
 
-void array_remove_range(struct array *const array, const struct range range) {
-    const struct range byte_range = range_multiply(range, array->object_size);
+bool array_remove_range(struct array *const array, const struct range range) {
+    struct range byte_range = {};
+    if (!range_multiply(range, array->object_size, &byte_range)) {
+        return false;
+    }
+
     gbuffer_remove_range(&array->gbuffer, byte_range);
+    return true;
 }
 
 void *array_begin(const struct array array) {

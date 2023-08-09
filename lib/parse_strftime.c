@@ -111,11 +111,9 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
     } while (false)
 
     // Simple macro to use the `_upper` function when we need to.
-
 #define GET_SV_FROM_FUNC(func, ...) \
     (spec_info->mods.capitalize_letters ?                                      \
-        VAR_CONCAT(func, _upper)(__VA_ARGS__) :                                \
-        func(__VA_ARGS__))                                                     \
+        VAR_CONCAT(func, _upper)(__VA_ARGS__) : func(__VA_ARGS__))             \
 
     char conv_buffer[MAX_CONVERT_CAP] = {0};
     switch (spec_info->spec) {
@@ -534,8 +532,8 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-#endif /* defined(HAVE_SUNOS_EXT) */
-#if defined(HAVE_VMS_EXT)
+#endif /* HAVE_SUNOS_EXT */
+#if HAVE_VMS_EXT
         case 'v': /* date as dd-bbb-YYYY */ {
             RECURSIVE_CALL_FOR_SPEC('d');
             CALL_CALLBACK(SV_STATIC("-"));
@@ -636,8 +634,6 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
         } else {
             unformat_buffer_ptr = orig_iter;
         }
-
-        /* Don't skip past the specifier, as the for-loop does that for us */
     }
 
     if (*unformat_buffer_ptr != '\0') {

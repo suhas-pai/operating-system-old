@@ -29,7 +29,7 @@ struct growable_buffer
 gbuffer_open(void *buffer, uint64_t used, uint64_t capacity, bool is_alloc);
 
 struct growable_buffer
-gbuffer_open_mutable_buffer(struct mutable_buffer mbuffer, bool is_alloc);
+gbuffer_open_mutbuffer(struct mutable_buffer mbuffer, bool is_alloc);
 
 bool gbuffer_ensure_can_add_capacity(struct growable_buffer *gb, uint64_t add);
 

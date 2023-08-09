@@ -44,7 +44,10 @@ struct pci_device_bar_info {
     bool is_mmio : 1;
     bool is_prefetchable : 1;
     bool is_64_bit : 1;
+    bool is_mapped : 1;
 };
+
+bool pci_map_bar(struct pci_device_bar_info *bar);
 
 uint8_t
 pci_device_bar_read8(struct pci_device_bar_info *const bar,
@@ -137,6 +140,7 @@ struct pci_device_info {
         };
     };
 
+    // Array of uint8_t
     struct array vendor_cap_list;
     struct pci_device_bar_info *bar_list;
 };

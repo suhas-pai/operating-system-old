@@ -352,7 +352,8 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
 
     uint64_t kernel_memmap_size = 0;
 
-    // Map all 'good' regions into the hhdm
+    // Map all 'good' regions into the hhdm, except the kernel, which goes in
+    // its own range
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         const struct limine_memmap_entry *const memmap = *memmap_iter;
         if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
@@ -414,7 +415,6 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
 
 static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
     // Setup vma_tree to include all ranges we've mapped.
-
     struct vm_area *const null_area =
         vma_alloc(&kernel_pagemap,
                   range_create(0, PAGE_SIZE),

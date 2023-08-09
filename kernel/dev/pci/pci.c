@@ -159,17 +159,22 @@ mmio_map:
     bar->is_mmio = true;
     bar->is_prefetchable = (bar_0 & __PCI_DEVBAR_PREFETCHABLE) != 0;
 
-    // We use port_range to internally store the phys range.
-    const struct range phys_range = bar->port_range;
-    struct range aligned_range = {};
+    return E_PARSE_BAR_OK;
+}
 
-    if (!range_align_out(phys_range, PAGE_SIZE, &aligned_range)) {
-        printk(LOGLEVEL_WARN,
-               "pcie: failed to align map bar %" PRIu8 " for device\n",
-               bar_0_index);
-        return E_PARSE_BAR_MMIO_MAP_FAIL;
+#undef write_bar
+#undef read_bar
+
+bool pci_map_bar(struct pci_device_bar_info *const bar) {
+    if (!bar->is_mmio) {
+        return false;
     }
 
+    if (bar->is_mapped) {
+        return true;
+    }
+
+    // We use port_range to internally store the phys range.
     uint64_t flags = 0;
     if (!(bar->is_64_bit)) {
         flags |= __VMAP_MMIO_LOW4G;
@@ -179,14 +184,21 @@ mmio_map:
         flags |= __VMAP_MMIO_WT;
     }
 
+    const struct range phys_range = bar->port_range;
+    struct range aligned_range = {};
+
+    if (!range_align_out(phys_range, PAGE_SIZE, &aligned_range)) {
+        printk(LOGLEVEL_WARN,
+               "pcie: failed to align map bar, range couldn't be aligned\n");
+        return false;
+    }
+
     struct mmio_region *const mmio =
         vmap_mmio(aligned_range, PROT_READ | PROT_WRITE, flags);
 
     if (mmio == NULL) {
         printk(LOGLEVEL_WARN,
-               "pcie: failed to mmio map bar %" PRIu8 " at phys "
-               "range: " RANGE_FMT "\n",
-               bar_0_index,
+               "pcie: failed to mmio map bar at phys range: " RANGE_FMT "\n",
                RANGE_FMT_ARGS(bar->port_range));
         return E_PARSE_BAR_MMIO_MAP_FAIL;
     }
@@ -195,17 +207,19 @@ mmio_map:
 
     bar->mmio = mmio;
     bar->index_in_mmio = index_in_map;
+    bar->is_mapped = true;
 
-    return E_PARSE_BAR_OK;
+    return true;
 }
-
-#undef write_bar
-#undef read_bar
 
 uint8_t
 pci_device_bar_read8(struct pci_device_bar_info *const bar,
                      const uint32_t offset)
 {
+    if (!bar->is_mapped) {
+        return UINT8_MAX;
+    }
+
     return
         bar->is_mmio ?
             mmio_read_8(bar->mmio->base + bar->index_in_mmio + offset) :
@@ -216,6 +230,10 @@ uint16_t
 pci_device_bar_read16(struct pci_device_bar_info *const bar,
                       const uint32_t offset)
 {
+    if (!bar->is_mapped) {
+        return UINT16_MAX;
+    }
+
     return
         bar->is_mmio ?
             mmio_read_16(bar->mmio->base + bar->index_in_mmio + offset) :
@@ -226,6 +244,10 @@ uint32_t
 pci_device_bar_read32(struct pci_device_bar_info *const bar,
                       const uint32_t offset)
 {
+    if (!bar->is_mapped) {
+        return UINT32_MAX;
+    }
+
     return
         bar->is_mmio ?
             mmio_read_32(bar->mmio->base + bar->index_in_mmio + offset) :
@@ -236,6 +258,10 @@ uint64_t
 pci_device_bar_read64(struct pci_device_bar_info *const bar,
                       const uint32_t offset)
 {
+    if (!bar->is_mapped) {
+        return UINT64_MAX;
+    }
+
 #if defined(__x86_64__)
     assert(bar->is_mmio);
     return mmio_read_64(bar->mmio->base + bar->index_in_mmio + offset);
@@ -473,7 +499,7 @@ static void free_inside_device_info(struct pci_device_info *const device) {
 
     for (uint8_t i = 0; i != bar_count; i++) {
         struct pci_device_bar_info *const bar = bar_list + i;
-        if (bar->is_mmio) {
+        if (bar->is_mapped) {
             vunmap_mmio(bar->mmio);
         }
     }
@@ -602,15 +628,12 @@ parse_function(struct pci_domain *const domain,
                        "size: %" PRIu64 "\n",
                        bar_index,
                        bar->is_mmio ? "mmio" : "ports",
-                       RANGE_FMT_ARGS(
-                        bar->is_mmio ?
-                            mmio_region_get_range(bar->mmio) : bar->port_range),
+                       RANGE_FMT_ARGS(bar->port_range),
                        bar->is_prefetchable ?
                         "prefetchable" : "not-prefetchable",
                        bar->is_mmio ?
-                        bar->is_64_bit ? "64-bit, " : "32-bit, "
-                        : "",
-                       bar->is_mmio ? bar->mmio->size : bar->port_range.size);
+                        bar->is_64_bit ? "64-bit, " : "32-bit, " : "",
+                       bar->port_range.size);
 
                 bar++;
             }
@@ -648,8 +671,8 @@ parse_function(struct pci_domain *const domain,
                     printk(LOGLEVEL_INFO,
                            "pcie: failed to parse bar %" PRIu8 " for "
                            "device, " PCI_DEVICE_INFO_FMT "\n",
-                            index,
-                            PCI_DEVICE_INFO_FMT_ARGS(&info));
+                           index,
+                           PCI_DEVICE_INFO_FMT_ARGS(&info));
                     break;
                 }
 
@@ -658,15 +681,12 @@ parse_function(struct pci_domain *const domain,
                        "size: %" PRIu64 "\n",
                        bar_index,
                        bar->is_mmio ? "mmio" : "ports",
-                       RANGE_FMT_ARGS(
-                        bar->is_mmio ?
-                            mmio_region_get_range(bar->mmio) : bar->port_range),
+                       RANGE_FMT_ARGS(bar->port_range),
                        bar->is_prefetchable ?
                         "prefetchable" : "not-prefetchable",
                        bar->is_mmio ?
-                        bar->is_64_bit ? "64-bit, " : "32-bit, "
-                        : "",
-                       bar->is_mmio ? bar->mmio->size : bar->port_range.size);
+                        bar->is_64_bit ? "64-bit, " : "32-bit, " : "",
+                       bar->port_range.size);
                 bar++;
             }
 

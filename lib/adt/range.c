@@ -20,9 +20,22 @@ struct range range_create_end(const uint64_t front, const uint64_t end) {
     return range_create(front, (end - front));
 }
 
-struct range range_multiply(const struct range range, const uint64_t mult) {
-    return range_create(check_mul_assert(range.front, mult),
-                        check_mul_assert(range.size, mult));
+bool
+range_multiply(const struct range range,
+               const uint64_t mult,
+               struct range *const result_out)
+{
+    struct range result = {};
+    if (!check_mul(range.front, mult, &result.front)) {
+        return false;
+    }
+
+    if (!check_mul(range.size, mult, &result.size)) {
+        return false;
+    }
+
+    *result_out = result;
+    return true;
 }
 
 struct range range_align_in(struct range range, uint64_t boundary) {
@@ -97,7 +110,7 @@ bool range_has_end(const struct range range, const uint64_t loc) {
 }
 
 bool range_get_end(const struct range range, uint64_t *const end_out) {
-    return !check_add(range.front, range.size, end_out);
+    return check_add(range.front, range.size, end_out);
 }
 
 bool range_above(const struct range range, const struct range above) {

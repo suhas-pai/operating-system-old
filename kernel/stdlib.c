@@ -5,7 +5,7 @@
 
 #include "dev/printk.h"
 
-__optimize(3) size_t strlen(const char *str) {
+__optimize(3) size_t strlen(const char *const str) {
     size_t result = 0;
 
     const char *iter = str;
@@ -38,7 +38,7 @@ __optimize(3) int strcmp(const char *const str1, const char *const str2) {
 }
 
 __optimize(3)
-int strncmp(const char *str1, const char *const str2, size_t length) {
+int strncmp(const char *str1, const char *const str2, const size_t length) {
     const char *iter = str1;
     const char *jter = str2;
 
@@ -216,7 +216,8 @@ __optimize(3) void *memcpy(void *dst, const void *src, unsigned long n) {
         {                                                                      \
             for (int off = n - sizeof(type);                                   \
                  off >= 0;                                                     \
-                 off -= (int)sizeof(type)) {                                   \
+                 off -= (int)sizeof(type))                                     \
+            {                                                                  \
                 ((type *)dst)[off] = ((const type *)src)[off];                 \
             }                                                                  \
                                                                                \

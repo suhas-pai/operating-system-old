@@ -58,7 +58,12 @@ convert_cstr_to_64int(const char *string,
         }
     }
 
+    // If we have just a zero, and no further digits, then the `!found_digits`
+    // check will fail below, so we must account for that here.
+
+    bool found_zero = false;
     uint8_t base = options.default_base;
+
     if (ch == '0') {
         ch = *(++string);
         switch (ch) {
@@ -80,7 +85,7 @@ convert_cstr_to_64int(const char *string,
 
             common_a:
                 if (options.dont_allow_base_36) {
-                    return E_STR_TO_NUM_UNALLOWED_PREFIX;
+                    return E_STR_TO_NUM_UNALLOWED_BASE;
                 }
 
                 base = 36;
@@ -149,11 +154,15 @@ convert_cstr_to_64int(const char *string,
                 break;
             default:
                 base = 8;
+                found_zero = true;
+
                 break;
         }
     }
 
-    bool found_digit = false;
+    *result_out = 0;
+
+    bool found_digit = found_zero;
     for (;; ch = *(++string)) {
         if (ch == '\0') {
             *end_out = NULL;
@@ -175,12 +184,12 @@ convert_cstr_to_64int(const char *string,
             }
 
             *end_out = string;
-            return E_STR_TO_NUM_OK;
+            break;
         }
 
         found_digit = true;
-        if (check_mul(*result_out, base, result_out) ||
-            check_add(*result_out, digit, result_out))
+        if (!check_mul(*result_out, base, result_out) ||
+            !check_add(*result_out, digit, result_out))
         {
             return E_STR_TO_NUM_OVERFLOW;
         }
@@ -253,7 +262,12 @@ convert_sv_to_64int(struct string_view sv,
         }
     }
 
-    uint8_t base = 10;
+    // If we have just a zero, and no further digits, then the `!found_digits`
+    // check will fail below, so we must account for that here.
+
+    bool found_zero = false;
+    uint8_t base = options.default_base;
+
     if (*sv.begin == '0') {
         sv = sv_drop_front(sv);
         if (sv.length == 0) {
@@ -276,8 +290,9 @@ convert_sv_to_64int(struct string_view sv,
                 }
 
             common_a:
+                sv = sv_drop_front(sv);
                 if (options.dont_allow_base_36) {
-                    return E_STR_TO_NUM_UNALLOWED_PREFIX;
+                    return E_STR_TO_NUM_UNALLOWED_BASE;
                 }
 
                 base = 36;
@@ -294,6 +309,7 @@ convert_sv_to_64int(struct string_view sv,
                 }
 
             common_b:
+                sv = sv_drop_front(sv);
                 if (options.dont_allow_base_2) {
                     return E_STR_TO_NUM_UNALLOWED_BASE;
                 }
@@ -312,6 +328,7 @@ convert_sv_to_64int(struct string_view sv,
                 }
 
             common_o:
+                sv = sv_drop_front(sv);
                 if (options.dont_allow_base_8) {
                     return E_STR_TO_NUM_UNALLOWED_BASE;
                 }
@@ -330,6 +347,7 @@ convert_sv_to_64int(struct string_view sv,
                 }
 
             common_x:
+                sv = sv_drop_front(sv);
                 if (options.dont_allow_base_16) {
                     return E_STR_TO_NUM_UNALLOWED_BASE;
                 }
@@ -337,13 +355,16 @@ convert_sv_to_64int(struct string_view sv,
                 base = 16;
                 break;
             default:
+                base = 8;
+                found_zero = true;
+
                 break;
         }
-
-        sv = sv_drop_front(sv);
     }
 
-    bool found_digit = false;
+    *result_out = 0;
+
+    bool found_digit = found_zero;
     for (;; sv = sv_drop_front(sv)) {
         if (sv.length == 0) {
             *end_out = sv_create_empty();
@@ -366,12 +387,13 @@ convert_sv_to_64int(struct string_view sv,
                 return E_STR_TO_NUM_INVALID_CHAR;
             }
 
-            return E_STR_TO_NUM_OK;
+            *end_out = sv;
+            break;
         }
 
         found_digit = true;
-        if (check_mul(*result_out, base, result_out) ||
-            check_add(*result_out, digit, result_out))
+        if (!check_mul(*result_out, base, result_out) ||
+            !check_add(*result_out, digit, result_out))
         {
             return E_STR_TO_NUM_OVERFLOW;
         }
@@ -636,7 +658,6 @@ signed_to_string_view(int64_t number,
     return sv_create_end(&buffer[i], buffer + final_index);
 }
 
-
 unsigned long int
 strtoul(const char *const str, char **const endptr, const int base) {
     uint64_t result = 0;
@@ -653,6 +674,15 @@ strtoul(const char *const str, char **const endptr, const int base) {
     switch (base) {
         case 0:
             break;
+        case 2:
+            options.dont_allow_base_8 = true;
+            options.dont_allow_base_10 = true;
+            options.dont_allow_base_16 = true;
+            options.dont_allow_0o_prefix = true;
+            options.dont_allow_0X_prefix = true;
+            options.dont_allow_0x_prefix = true;
+
+            break;
         case 8:
             options.dont_allow_base_2 = true;
             options.dont_allow_base_10 = true;
@@ -665,9 +695,9 @@ strtoul(const char *const str, char **const endptr, const int base) {
             options.dont_allow_base_2 = true;
             options.dont_allow_base_8 = true;
             options.dont_allow_base_16 = true;
+            options.dont_allow_0o_prefix = true;
             options.dont_allow_0X_prefix = true;
             options.dont_allow_0x_prefix = true;
-            options.dont_allow_0o_prefix = true;
 
             break;
         case 16:

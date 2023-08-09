@@ -131,7 +131,7 @@ travserse_tree(struct pagemap *const pagemap,
                 }
 
                 uint64_t end = 0;
-                if (check_add(aligned_result, size, &end)) {
+                if (!check_add(aligned_result, size, &end)) {
                     *result_out = INVALID_ADDR;
                     return TRAVERSAL_DONE;
                 }

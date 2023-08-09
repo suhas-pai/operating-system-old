@@ -22,7 +22,8 @@ static void init_cpuid_features() {
         uint64_t eax, ebx, ecx, edx;
         cpuid(CPUID_GET_FEATURES, /*subleaf=*/0, &eax, &ebx, &ecx, &edx);
 
-        printk(LOGLEVEL_INFO, "cpuid: cpuid_get_features: "
+        printk(LOGLEVEL_INFO,
+               "cpuid: cpuid_get_features: "
                "eax: 0x%" PRIX64 " "
                "ebx: 0x%" PRIX64 " "
                "ecx: 0x%" PRIX64 " "
@@ -61,7 +62,7 @@ static void init_cpuid_features() {
         assert((edx & expected_edx_features) == expected_edx_features);
 
         if (!g_base_cpu_init) {
-            g_cpu_capabilities.supports_x2apic = (ecx & CPUID_FEAT_ECX_x2APIC);
+            g_cpu_capabilities.supports_x2apic = (ecx & CPUID_FEAT_ECX_X2APIC);
         }
     }
     {
@@ -120,8 +121,7 @@ static void init_cpuid_features() {
     }
     {
         uint64_t eax, ebx, ecx = 0, edx;
-        cpuid(CPUID_GET_LARGEST_EXTENDED_FUNCTION |
-                CPUID_GET_FEATURES,
+        cpuid(CPUID_GET_LARGEST_EXTENDED_FUNCTION | CPUID_GET_FEATURES,
               /*subleaf=*/0,
               &eax,
               &ebx,
@@ -147,7 +147,7 @@ static void init_cpuid_features() {
             if (g_cpu_capabilities.supports_1gib_pages) {
                 printk(LOGLEVEL_INFO, "cpu: supports 1gib pages\n");
             } else {
-                printk(LOGLEVEL_INFO, "cpu: does NOT supports 1gib pages\n");
+                printk(LOGLEVEL_INFO, "cpu: does NOT support 1gib pages\n");
             }
         }
     }

@@ -346,7 +346,7 @@ void run_str_to_num_test(const struct str_to_num_test *const test) {
     const char *end = NULL;
     if (test->is_signed) {
         int64_t number = 0;
-        const enum str_to_num_result result =
+        enum str_to_num_result result =
             cstr_to_signed(test->string, test->options, &end, &number);
 
         assert(result == test->expected_result);
@@ -355,9 +355,23 @@ void run_str_to_num_test(const struct str_to_num_test *const test) {
         if (test->expected_end_index != UINT64_MAX) {
             assert(end == (test->string + test->expected_end_index));
         }
+
+        struct string_view sv_end = {};
+        result =
+            sv_to_signed(sv_create(test->string),
+                         test->options,
+                         &sv_end,
+                         &number);
+
+        assert(result == test->expected_result);
+        assert(number == test->expected_number);
+
+        if (test->expected_end_index != UINT64_MAX) {
+            assert(sv_end.begin == (test->string + test->expected_end_index));
+        }
     } else {
         uint64_t number = 0;
-        const enum str_to_num_result result =
+        enum str_to_num_result result =
             cstr_to_unsigned(test->string, test->options, &end, &number);
 
         assert(result == test->expected_result);
@@ -365,6 +379,20 @@ void run_str_to_num_test(const struct str_to_num_test *const test) {
 
         if (test->expected_end_index != UINT64_MAX) {
             assert(end == (test->string + test->expected_end_index));
+        }
+
+        struct string_view sv_end = {};
+        result =
+            sv_to_unsigned(sv_create(test->string),
+                           test->options,
+                           &sv_end,
+                           &number);
+
+        assert(result == test->expected_result);
+        assert(number == test->expected_number);
+
+        if (test->expected_end_index != UINT64_MAX) {
+            assert(sv_end.begin == (test->string + test->expected_end_index));
         }
     }
 }

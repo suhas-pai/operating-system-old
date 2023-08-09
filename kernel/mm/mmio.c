@@ -43,8 +43,8 @@ get_virt_range(const struct range phys_range, const uint64_t flags) {
     }
 
     uint64_t virt_end = 0;
-    if (check_add(virt_addr, phys_range.size, &virt_end) ||
-        check_add(virt_end, guard_pages_size, &virt_end))
+    if (!check_add(virt_addr, phys_range.size, &virt_end) ||
+        !check_add(virt_end, guard_pages_size, &virt_end))
     {
         printk(LOGLEVEL_WARN,
                "mmio: attempting to map mmio-range that goes past end of "
@@ -100,30 +100,43 @@ vmap_mmio(const struct range phys_range,
           const uint8_t prot,
           const uint64_t flags)
 {
-    assert_msg(range_has_align(phys_range, PAGE_SIZE),
-               "mmio phys-range (" RANGE_FMT ") isn't aligned to the page size",
+    if (range_empty(phys_range)) {
+        printk(LOGLEVEL_WARN, "mmio: attempting to map empty phys-range\n");
+        return NULL;
+    }
+
+    if (!range_has_align(phys_range, PAGE_SIZE)) {
+        printk(LOGLEVEL_WARN,
+               "mmio: phys-range " RANGE_FMT " isn't aligned to the page "
+               "size\n",
                RANGE_FMT_ARGS(phys_range));
+        return NULL;
+    }
 
     if (prot == PROT_NONE) {
-        printk(LOGLEVEL_INFO,
-               "mmio: attempting to map mmio range w/o access permissions");
+        printk(LOGLEVEL_WARN,
+               "mmio: attempting to map mmio range " RANGE_FMT " w/o access "
+               "permissions\n",
+               RANGE_FMT_ARGS(phys_range));
         return NULL;
     }
 
     if (prot & PROT_EXEC) {
-        printk(LOGLEVEL_DEBUG,
-               "mmio: attempting to map mmio range with execute permissions");
+        printk(LOGLEVEL_WARN,
+               "mmio: attempting to map mmio range " RANGE_FMT " with execute "
+               "permissions\n",
+               RANGE_FMT_ARGS(phys_range));
         return NULL;
     }
 
     struct mmio_region *const mmio = kmalloc(sizeof(*mmio));
     if (mmio == NULL) {
-        printk(LOGLEVEL_INFO, "mmio: failed to allocate mmio_region");
+        printk(LOGLEVEL_WARN,
+               "mmio: failed to allocate mmio_region to map phys-range "
+               RANGE_FMT "\n",
+               RANGE_FMT_ARGS(phys_range));
         return NULL;
     }
-
-    // Mmio ranges are mapped with a guard page placed right after the last page
-    // in the range.
 
     const struct range virt_range = get_virt_range(phys_range, flags);
     if (range_empty(virt_range)) {
@@ -146,7 +159,6 @@ vmap_mmio(const struct range phys_range,
                RANGE_FMT "\n",
                RANGE_FMT_ARGS(phys_range),
                RANGE_FMT_ARGS(virt_range));
-
         return NULL;
     }
 

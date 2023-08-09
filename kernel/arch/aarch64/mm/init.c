@@ -6,10 +6,10 @@
 #include "asm/mair.h"
 #include "asm/ttbr.h"
 
+#include "dev/printk.h"
+
 #include "lib/align.h"
 #include "lib/size.h"
-
-#include "dev/printk.h"
 
 #include "mm/early.h"
 #include "mm/kmalloc.h"
@@ -17,9 +17,9 @@
 #include "mm/pagemap.h"
 
 #include "limine.h"
+#include "mm/types.h"
 
 extern volatile struct limine_memmap_request memmap_request;
-
 volatile struct limine_paging_mode_request paging_mode_request = {
     .id = LIMINE_PAGING_MODE_REQUEST,
     .revision = 0,
@@ -58,7 +58,7 @@ map_region(const uint64_t root_phys,
                                /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
                                /*free_pgtable=*/NULL);
 
-    if (map_size >= PAGE_SIZE_1GIB && (virt_addr & (PAGE_SIZE_1GIB - 1)) == 0) {
+    if (map_size >= PAGE_SIZE_1GIB && has_align(virt_addr, PAGE_SIZE_1GIB)) {
         walker_result =
             ptwalker_fill_in_to(&pt_walker,
                                 /*level=*/3,
@@ -106,7 +106,7 @@ map_region(const uint64_t root_phys,
         } while (true);
     }
 
-    if (map_size >= PAGE_SIZE_2MIB && (virt_addr & (PAGE_SIZE_2MIB - 1)) == 0) {
+    if (map_size >= PAGE_SIZE_2MIB && has_align(virt_addr, PAGE_SIZE_2MIB)) {
         walker_result =
             ptwalker_fill_in_to(&pt_walker,
                                 /*level=*/2,
