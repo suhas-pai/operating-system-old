@@ -23,7 +23,7 @@ time_format_to_string_sv_callback(
 }
 
 struct string kstrftime(const char *const format, const struct tm *const tm) {
-    struct string string = {};
+    struct string string = string_create();
     parse_strftime_format(time_format_to_string_sv_callback,
                           &string,
                           format,

@@ -5,7 +5,8 @@
 
 #include "scsi.h"
 
-bool virtio_scsi_driver_init(struct virtio_device *const device) {
+struct virtio_device *
+virtio_scsi_driver_init(struct virtio_device *const device) {
     (void)device;
-    return false;
+    return NULL;
 }

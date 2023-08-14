@@ -111,8 +111,7 @@ get_free_ptr(struct page *const page, struct slab_allocator *const alloc) {
     }
 
     const uint64_t byte_index =
-        check_mul_assert(page->slab.head.first_free_index,
-                                alloc->object_size);
+        check_mul_assert(page->slab.head.first_free_index, alloc->object_size);
 
     return page_to_virt(page) + byte_index;
 }

@@ -174,7 +174,6 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
         return true;
     }
 
-    // We use port_range to internally store the phys range.
     uint64_t flags = 0;
     if (!(bar->is_64_bit)) {
         flags |= __VMAP_MMIO_LOW4G;
@@ -184,8 +183,9 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
         flags |= __VMAP_MMIO_WT;
     }
 
+    // We use port_range to internally store the phys range.
     const struct range phys_range = bar->port_range;
-    struct range aligned_range = {};
+    struct range aligned_range = {0};
 
     if (!range_align_out(phys_range, PAGE_SIZE, &aligned_range)) {
         printk(LOGLEVEL_WARN,
@@ -258,14 +258,18 @@ uint64_t
 pci_device_bar_read64(struct pci_device_bar_info *const bar,
                       const uint32_t offset)
 {
+#if defined(__x86_64__)
+    assert(bar->is_mmio);
     if (!bar->is_mapped) {
         return UINT64_MAX;
     }
 
-#if defined(__x86_64__)
-    assert(bar->is_mmio);
     return mmio_read_64(bar->mmio->base + bar->index_in_mmio + offset);
 #else
+    if (!bar->is_mapped) {
+        return UINT64_MAX;
+    }
+
     return
         (bar->is_mmio) ?
             mmio_read_64(bar->mmio->base + bar->index_in_mmio + offset) :
@@ -768,7 +772,7 @@ pci_add_pcie_domain(struct range bus_range,
 {
     struct pci_domain *const domain = kmalloc(sizeof(*domain));
     if (domain == NULL) {
-        return domain;
+        return NULL;
     }
 
     list_init(&domain->list);
@@ -782,7 +786,7 @@ pci_add_pcie_domain(struct range bus_range,
         vmap_mmio(config_space_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 
     assert_msg(domain->mmio != NULL,
-               "pcie: failed to mmio-map pci-domain mmio");
+               "pcie: failed to mmio-map pci-domain config-space");
 
     domain->bus_range = bus_range;
     domain->segment = segment;

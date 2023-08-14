@@ -30,7 +30,7 @@ void array_remove_index(struct array *const array, const uint64_t index) {
 }
 
 bool array_remove_range(struct array *const array, const struct range range) {
-    struct range byte_range = {};
+    struct range byte_range = range_create_empty();
     if (!range_multiply(range, array->object_size, &byte_range)) {
         return false;
     }

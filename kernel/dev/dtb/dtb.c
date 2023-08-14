@@ -47,42 +47,6 @@ dtb_get_array_prop(const void *const dtb,
     return true;
 }
 
-int dtb_node_get_parent(const void *const dtb, const int nodeoff) {
-    int parents[32] = {0};
-    int offset = 0;
-    int depth = 0;
-
-    while (offset >= 0 && offset <= nodeoff) {
-        if (offset == nodeoff) {
-            return parents[depth - 1];
-        }
-
-        int new_depth = depth;
-        int new_offset = fdt_next_node(dtb, offset, &new_depth);
-
-        if (new_depth >= depth) {
-            if (depth >= 32) {
-                return -FDT_ERR_NOTFOUND;
-            }
-
-            parents[depth] = offset;
-        }
-
-        offset = new_offset;
-        depth = new_depth;
-    }
-
-    if (offset == -FDT_ERR_NOTFOUND || offset >= 0) {
-        return -FDT_ERR_BADOFFSET;
-    }
-
-    if (offset == -FDT_ERR_BADOFFSET) {
-        return -FDT_ERR_BADSTRUCTURE;
-    }
-
-    return offset; /* error from fdt_next_node() */
-}
-
 bool
 dtb_get_reg_pairs(const void *const dtb,
                   const int nodeoff,
@@ -90,7 +54,7 @@ dtb_get_reg_pairs(const void *const dtb,
                   uint32_t *const entry_count_in,
                   struct dtb_addr_size_pair *const pairs_out)
 {
-    const int parent_off = dtb_node_get_parent(dtb, nodeoff);
+    const int parent_off = fdt_parent_offset(dtb, nodeoff);
     if (parent_off < 0) {
         return false;
     }

@@ -11,7 +11,7 @@ uint8_t find_lsb_one_bit(const uint64_t number, const uint64_t start_index) {
 }
 
 uint8_t find_lsb_zero_bit(const uint64_t number, const uint64_t start_index) {
-    /* Invert the number so we count the lsb 1's to get the lsb zero index */
+    // Invert the number so we count the lsb 1's to get the lsb zero index
     return count_lsb_one_bits(number, start_index) + start_index;
 }
 

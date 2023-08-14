@@ -5,6 +5,8 @@
 
 #include "dev/printk.h"
 #include "lib/align.h"
+#include "lib/math.h"
+#include "mm/walker.h"
 
 #include "limine.h"
 #include "kmalloc.h"
@@ -237,6 +239,88 @@ void mm_early_init() {
     printk(LOGLEVEL_INFO,
            "mm: system has %" PRIu64 " usable pages\n",
            total_free_pages);
+}
+
+static void init_table_page(struct page *const page) {
+    list_init(&page->table.delayed_free_list);
+    refcount_init(&page->table.refcount);
+}
+
+void
+mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
+    struct pt_walker walker = {0};
+    ptwalker_create(&walker,
+                    virt_addr,
+                    /*alloc_pgtable=*/NULL,
+                    /*free_pgtable=*/NULL);
+
+    for (uint8_t level = (uint8_t)walker.level;
+         level <= walker.top_level;
+         level++)
+    {
+        struct page *const page = virt_to_page(walker.tables[level - 1]);
+        init_table_page(page);
+    }
+
+    // Track changes to the `walker.tables` array by
+    //   (1) Seeing if the index of the lowest level ever reaches
+    //       (PGT_COUNT - 1).
+    //   (2) Comparing the previous level with the latest level. When the
+    //       previous level is greater, the walker has incremented past a
+    //       large page, so there may be some tables in between the large page
+    //       level and the current level that need to be initialized.
+
+    uint8_t prev_level = walker.level;
+    bool prev_was_at_end = 0;
+
+    for (uint64_t i = 0; i < length;) {
+        const enum pt_walker_result advance_result =
+            ptwalker_next_with_options(&walker,
+                                       /*level=*/walker.level,
+                                       /*alloc_parents=*/false,
+                                       /*alloc_level=*/false,
+                                       /*should_ref=*/false,
+                                       /*alloc_pgtable_cb_info=*/NULL,
+                                       /*free_pgtable_cb_info=*/NULL);
+
+        if (advance_result != E_PT_WALKER_OK) {
+            panic("mm: failed to setup kernel pagemap, result=%d\n",
+                  advance_result);
+        }
+
+        // When either condition is true, all levels below the highest level
+        // incremented will have their index set to 0.
+        // To initialize only the tables that have been updated, we start from
+        // the current level and ascend to the top level. If an index is
+        // non-zero, then we have reached the level that was incremented, and
+        // can then exit.
+
+        if (prev_was_at_end || prev_level > walker.level) {
+            for (uint8_t level = (uint8_t)walker.level;
+                 level < walker.top_level;
+                 level++)
+            {
+                const uint64_t index = walker.indices[level - 1];
+                if (index != 0) {
+                    break;
+                }
+
+                pte_t *const table = walker.tables[level - 1];
+                struct page *const page = pte_to_page(*table);
+
+                init_table_page(page);
+            }
+        }
+
+        uint64_t page_size = PAGE_SIZE;
+        for (uint8_t j = 1; j != walker.level; j++) {
+            page_size *= PGT_COUNT;
+        }
+
+        i += page_size;
+        prev_level = walker.level;
+        prev_was_at_end = walker.indices[walker.level - 1] == PGT_COUNT - 1;
+    }
 }
 
 void mm_early_post_arch_init() {

@@ -34,10 +34,11 @@ select_64_bits(volatile uint32_t *const select,
     return ((uint64_t)upper << 32 | lower);
 }
 
-static void virtio_pci_init(struct virtio_device *const device) {
+static
+struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
     if (drivers[device->kind] == NULL) {
         printk(LOGLEVEL_WARN, "virtio-pci: ignoring device, no driver found\n");
-        return;
+        return NULL;
     }
 
     volatile struct virtio_pci_common_cfg *const cfg = device->common_cfg;
@@ -57,19 +58,23 @@ static void virtio_pci_init(struct virtio_device *const device) {
         mmio_write(&cfg->device_status, VIRTIO_DEVSTATUS_FEATURES_OK);
         if (!(features & VIRTIO_DEVSTATUS_FEATURES_OK)) {
             printk(LOGLEVEL_WARN, "virtio-pci: failed to accept features\n");
-            return;
+            return NULL;
         }
     } else {
         printk(LOGLEVEL_INFO, "virtio-pci: device is legacy\n");
     }
 
-    if (!drivers[device->kind](device)) {
+    struct virtio_device *const ret_device = drivers[device->kind](device);
+    if (ret_device == NULL) {
         mmio_write(&cfg->device_status,
                    mmio_read(&cfg->device_status) | VIRTIO_DEVSTATUS_FAILED);
+        return NULL;
     }
 
     mmio_write(&cfg->device_status,
                mmio_read(&cfg->device_status) | VIRTIO_DEVSTATUS_DRIVER_OK);
+
+    return ret_device;
 }
 
 static const char *device_kind_string(const enum virtio_device_kind kind) {
@@ -260,27 +265,22 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
            kind,
            is_trans ? " (transitional)" : "");
 
-    struct virtio_device *const virt_device = kmalloc(sizeof(*virt_device));
-    if (pci_device == NULL) {
-        printk(LOGLEVEL_WARN, "virtio-pci: failed to allocate device-info\n");
-        return;
-    }
-
-    virt_device->kind = device_kind;
-    virt_device->is_transitional = is_trans;
-
-    array_init(&virt_device->vendor_cfg_list, sizeof(uint8_t));
-    array_init(&virt_device->shmem_regions,
-               sizeof(struct virtio_device_shmem_region));
-
     const uint8_t cap_count = array_item_count(pci_device->vendor_cap_list);
     if (cap_count == 0) {
         printk(LOGLEVEL_WARN, "virtio-pci: device has no capabilities\n");
         return;
     }
 
-    list_init(&virt_device->list);
-    virt_device->pci_device = pci_device;
+    struct virtio_device virt_device = {0};
+
+    virt_device.kind = device_kind;
+    virt_device.is_transitional = is_trans;
+
+    array_init(&virt_device.vendor_cfg_list, sizeof(uint8_t));
+    array_init(&virt_device.shmem_regions,
+               sizeof(struct virtio_device_shmem_region));
+
+    virt_device.pci_device = pci_device;
 
 #define pci_read_virtio_cap_field(field) \
     pci_read_with_offset(pci_device, \
@@ -373,7 +373,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device->common_cfg = bar->mmio->base + offset;
+                virt_device.common_cfg = bar->mmio->base + offset;
                 cfg_kind = "common-cfg";
 
                 break;
@@ -386,7 +386,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device->notify_cfg_offset = *iter;
+                virt_device.notify_cfg_offset = *iter;
                 cfg_kind = "notify-cfg";
 
                 break;
@@ -399,7 +399,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device->isr_cfg_offset = *iter;
+                virt_device.isr_cfg_offset = *iter;
                 cfg_kind = "isr-cfg";
 
                 break;
@@ -415,7 +415,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device->pci_cfg_offset = *iter;
+                virt_device.pci_cfg_offset = *iter;
                 cfg_kind = "pci-cfg";
 
                 break;
@@ -441,7 +441,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     .id = pci_read_virtio_cap_field(cap.id)
                 };
 
-                if (!array_append(&virt_device->shmem_regions, &region)) {
+                if (!array_append(&virt_device.shmem_regions, &region)) {
                     printk(LOGLEVEL_WARN,
                            "virtio-pci: failed to add shmem region to array\n");
 
@@ -452,7 +452,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                 cfg_kind = "shared-memory-cfg";
                 break;
             case VIRTIO_PCI_CAP_VENDOR_CFG:
-                if (!array_append(&virt_device->vendor_cfg_list, iter)) {
+                if (!array_append(&virt_device.vendor_cfg_list, iter)) {
                     printk(LOGLEVEL_WARN,
                            "virtio-pci: failed to add vendor-cfg to array\n");
 
@@ -482,15 +482,15 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         cap_index++;
     }
 
-    if (virt_device->common_cfg == NULL) {
+    if (virt_device.common_cfg == NULL) {
         printk(LOGLEVEL_WARN, "virtio-pci: device is missing a common-cfg\n");
         return;
     }
 
-    virtio_pci_init(virt_device);
+    virtio_pci_init(&virt_device);
 #undef pci_read_virtio_cap_field
 
-    list_add(&device_list, &virt_device->list);
+    list_add(&device_list, &virt_device.list);
     device_count++;
 }
 

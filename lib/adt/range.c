@@ -25,7 +25,7 @@ range_multiply(const struct range range,
                const uint64_t mult,
                struct range *const result_out)
 {
-    struct range result = {};
+    struct range result = range_create_empty();
     if (!check_mul(range.front, mult, &result.front)) {
         return false;
     }
@@ -82,7 +82,7 @@ range_round_up_subrange(const struct range range,
                         const uint64_t mult,
                         struct range *const result_out)
 {
-    struct range result = {};
+    struct range result = range_create_empty();
     if (!round_up(range.front, mult, &result.front)) {
         return false;
     }

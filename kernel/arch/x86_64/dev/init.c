@@ -25,7 +25,7 @@ void arch_init_dev() {
 
     rtc_init();
 
-    struct rtc_cmos_info rtc_info = {};
+    struct rtc_cmos_info rtc_info = {0};
     if (rtc_read_cmos_info(&rtc_info)) {
         const struct tm tm = tm_from_rtc_cmos_info(&rtc_info);
         struct string string = kstrftime("%c", &tm);

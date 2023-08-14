@@ -51,8 +51,8 @@ enum pte_flags {
     __PTE_RO = 1 << 7,
 
     __PTE_UNPREDICT = 0b01 << 8,
-    __PTE_OUTER_SHARE = 0b10 << 8,
-    __PTE_INNER_SHARE = 0b11 << 8,
+    __PTE_OUTER_SH = 0b10 << 8,
+    __PTE_INNER_SH = 0b11 << 8,
 
     __PTE_ACCESS = 1ull << 10,
     __PTE_NONGLOBAL = 1 << 11,

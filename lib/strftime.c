@@ -64,9 +64,7 @@ time_format_get_length_sv_callback(
 }
 
 uint64_t
-get_length_of_time_format(const char *const format,
-                          const struct tm *const tm)
-{
+get_length_of_time_format(const char *const format, const struct tm *const tm) {
     const uint64_t result =
         parse_strftime_format(time_format_get_length_sv_callback,
                               /*sv_cb_info=*/NULL,

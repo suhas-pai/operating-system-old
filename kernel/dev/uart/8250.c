@@ -48,7 +48,7 @@ struct uart8250_info {
 };
 
 // for use when initializing serial before mm/kmalloc
-static struct uart8250_info early_infos[64] = {};
+static struct uart8250_info early_infos[8] = {};
 static uint16_t early_info_count = 0;
 
 static inline uint32_t
@@ -220,7 +220,7 @@ bool init_from_dtb(const void *const dtb, const int nodeoff) {
         return false;
     }
 
-    struct string_view clock_freq_string = {};
+    struct string_view clock_freq_string = sv_create_empty();
     const bool get_clock_freq_result =
         dtb_get_string_prop(dtb,
                             nodeoff,

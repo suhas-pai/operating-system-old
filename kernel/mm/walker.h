@@ -87,13 +87,13 @@ ptwalker_prev_custom(struct pt_walker *walker,
                      void *const free_pgtable_cb_info);
 
 enum pt_walker_result
-ptwalker_next_custom(struct pt_walker *walker,
-                     uint8_t level,
-                     bool alloc_parents,
-                     bool alloc_level,
-                     bool should_ref,
-                     void *alloc_pgtable_cb_info,
-                     void *const free_pgtable_cb_info);
+ptwalker_next_with_options(struct pt_walker *walker,
+                           uint8_t level,
+                           bool alloc_parents,
+                           bool alloc_level,
+                           bool should_ref,
+                           void *alloc_pgtable_cb_info,
+                           void *const free_pgtable_cb_info);
 
 void ptwalker_fill_in_lowest(struct pt_walker *walker, struct page *page);
 

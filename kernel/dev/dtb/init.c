@@ -39,7 +39,7 @@ static volatile struct limine_dtb_request dtb_request = {
                   "malformed\n");
         }
 
-        struct string_view clock_freq_string = {};
+        struct string_view clock_freq_string = sv_create_empty();
         const bool get_clock_freq_result =
             dtb_get_string_prop(dtb,
                                 nodeoff,
@@ -60,7 +60,7 @@ static volatile struct limine_dtb_request dtb_request = {
 #endif /* defined(__riscv) && defined(__LP64__) */
 
 static void init_pci_node(const void *const dtb, const int pci_offset) {
-    struct string_view device_type = {};
+    struct string_view device_type = sv_create_empty();
     const bool get_compat_result =
         dtb_get_string_prop(dtb, pci_offset, "device_type", &device_type);
 

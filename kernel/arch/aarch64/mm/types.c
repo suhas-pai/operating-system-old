@@ -28,9 +28,12 @@ bool pte_is_present(const pte_t pte) {
     return (pte & __PTE_VALID) != 0;
 }
 
-bool pte_is_large(const pte_t pte, const uint8_t level) {
-    return (level == 2 || level == 3) &&
-           ((pte & (__PTE_VALID | __PTE_TABLE)) == __PTE_VALID);
+bool pte_level_can_have_large(const uint8_t level) {
+    return (level == 2 || level == 3 || level == 4);
+}
+
+bool pte_is_large(const pte_t pte) {
+    return (pte & (__PTE_VALID | __PTE_TABLE)) == __PTE_VALID;
 }
 
 uint64_t pte_get_addr(const pte_t pte) {

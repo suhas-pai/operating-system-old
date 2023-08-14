@@ -15,7 +15,6 @@ const uint64_t VMAP_END = 0xfffffff000000000;
 
 uint64_t MMIO_BASE = 0;
 uint64_t MMIO_END = 0;
-
 uint64_t PAGING_MODE = 0;
 
 uint8_t pgt_get_top_level() {
@@ -35,9 +34,13 @@ bool pte_is_present(const pte_t pte) {
     return (pte & __PTE_VALID) != 0;
 }
 
-bool pte_is_large(const pte_t pte, const uint8_t level) {
-    return (level > 1) &&
-           ((pte & (__PTE_READ | __PTE_WRITE | __PTE_EXEC)) != 0);
+bool pte_level_can_have_large(const uint8_t level) {
+    return level > 1;
+}
+
+bool pte_is_large(const pte_t pte) {
+    return ((pte & (__PTE_VALID | __PTE_READ | __PTE_WRITE | __PTE_EXEC))
+                > __PTE_VALID);
 }
 
 uint64_t pte_get_phys_addr(const pte_t pte) {

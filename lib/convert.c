@@ -673,6 +673,7 @@ strtoul(const char *const str, char **const endptr, const int base) {
 
     switch (base) {
         case 0:
+            options.default_base = 10;
             break;
         case 2:
             options.dont_allow_base_8 = true;

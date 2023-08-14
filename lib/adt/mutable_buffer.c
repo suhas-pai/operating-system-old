@@ -34,6 +34,7 @@ mbuffer_open_static(void *const buffer,
                     const uint64_t used,
                     const uint64_t capacity)
 {
+    assert(used <= capacity);
     struct mutable_buffer mbuffer = {
         .begin = buffer,
         .ptr = (void *)check_add_assert((uint64_t)mbuffer.begin, used),
@@ -102,7 +103,7 @@ mbuffer_append_byte(struct mutable_buffer *const mbuffer,
                     uint64_t count)
 {
     uint8_t *const ptr = preprocess_for_append(mbuffer, count, &count);
-    memset(ptr, count, byte);
+    memset(ptr, byte, count);
 
     return count;
 }

@@ -26,8 +26,6 @@ dtb_get_array_prop(const void *dtb,
                    const fdt32_t **data_out,
                    uint32_t *const length_out);
 
-int dtb_node_get_parent(const void *const dtb, const int nodeoff);
-
 struct dtb_addr_size_pair {
     uint64_t address;
     uint64_t size;

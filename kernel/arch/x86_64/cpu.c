@@ -80,7 +80,10 @@ static void init_cpuid_features() {
                "ebx: 0x%" PRIX64 " "
                "ecx: 0x%" PRIX64 " "
                "edx: 0x%" PRIX64 "\n",
-               eax, ebx, ecx, edx);
+               eax,
+               ebx,
+               ecx,
+               edx);
 
         const uint32_t expected_ebx_features =
             CPUID_FEAT_EXT7_ECX0_EBX_FSGSBASE |
@@ -134,7 +137,10 @@ static void init_cpuid_features() {
                "ebx: 0x%" PRIX64 " "
                "ecx: 0x%" PRIX64 " "
                "edx: 0x%" PRIX64 "\n",
-               eax, ebx, ecx, edx);
+               eax,
+               ebx,
+               ecx,
+               edx);
 
         const uint32_t expected_edx_features =
             CPUID_FEAT_EXT80000001_EDX_SYSCALL_SYSRET;

@@ -23,7 +23,7 @@ struct page {
                     struct slab_allocator *allocator;
                     struct list slab_list;
 
-                    uint16_t free_obj_count;
+                    uint32_t free_obj_count;
                     uint32_t first_free_index;
                 } head;
                 struct {

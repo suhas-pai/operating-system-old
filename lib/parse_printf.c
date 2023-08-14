@@ -651,7 +651,7 @@ parse_printf(const char *const fmt,
         }
 
         // Parse specifier
-        struct string_view parsed = {0};
+        struct string_view parsed = sv_create_empty();
         bool is_null = false;
 
         curr_spec.spec = *iter;

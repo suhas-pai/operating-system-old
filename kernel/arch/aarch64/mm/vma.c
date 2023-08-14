@@ -8,7 +8,7 @@
 static inline uint64_t
 flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
     uint64_t result =
-        __PTE_VALID | __PTE_INNER_SHARE | __PTE_ACCESS | __PTE_4KPAGE;
+        __PTE_VALID | __PTE_INNER_SH | __PTE_ACCESS | __PTE_4KPAGE;
 
     if (!(prot & PROT_WRITE)) {
         result |= __PTE_RO;
@@ -101,7 +101,7 @@ arch_make_mapping(struct pagemap *const pagemap,
             if (pte_is_present(entry)) {
                 const uint64_t flags_mask =
                     __PTE_VALID | __PTE_TABLE | __PTE_USER | __PTE_RO |
-                    __PTE_INNER_SHARE | __PTE_ACCESS | __PTE_PXN | __PTE_UXN;
+                    __PTE_INNER_SH | __PTE_ACCESS | __PTE_PXN | __PTE_UXN;
 
                 if ((entry & flags_mask) != (new_entry & flags_mask) ||
                     pte_to_phys(entry) != pte_to_phys(new_entry))

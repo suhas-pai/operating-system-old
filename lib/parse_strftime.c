@@ -260,7 +260,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
                 year -= 1;
             }
 
-            struct string_view sv = {0};
+            struct string_view sv = sv_create_empty();
             if (spec_info->spec == 'g') {
                 sv =
                     unsigned_to_string_view(year % 100,

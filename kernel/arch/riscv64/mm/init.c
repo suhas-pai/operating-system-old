@@ -9,8 +9,6 @@
 #include "dev/printk.h"
 
 #include "mm/early.h"
-#include "mm/kmalloc.h"
-#include "mm/page_alloc.h"
 #include "mm/pagemap.h"
 
 #include "limine.h"
@@ -55,7 +53,7 @@ map_region(const uint64_t root_phys,
                                /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
                                /*free_pgtable=*/NULL);
 
-    if (map_size >= PAGE_SIZE_1GIB && (virt_addr & (PAGE_SIZE_1GIB - 1)) == 0) {
+    if (map_size >= PAGE_SIZE_1GIB && has_align(virt_addr, PAGE_SIZE_1GIB)) {
         walker_result =
             ptwalker_fill_in_to(&pt_walker,
                                 /*level=*/3,
@@ -82,13 +80,13 @@ map_region(const uint64_t root_phys,
                 __PTE_ACCESSED | __PTE_DIRTY;
 
             walker_result =
-                ptwalker_next_custom(&pt_walker,
-                                     /*level=*/3,
-                                     /*alloc_parents=*/true,
-                                     /*alloc_level=*/true,
-                                     /*should_ref=*/false,
-                                     /*alloc_pgtable_cb_info=*/NULL,
-                                     /*free_pgtable_cb_info=*/NULL);
+                ptwalker_next_with_options(&pt_walker,
+                                           /*level=*/3,
+                                           /*alloc_parents=*/true,
+                                           /*alloc_level=*/true,
+                                           /*should_ref=*/false,
+                                           /*alloc_pgtable_cb_info=*/NULL,
+                                           /*free_pgtable_cb_info=*/NULL);
 
             if (walker_result != E_PT_WALKER_OK) {
                 goto panic;
@@ -103,7 +101,7 @@ map_region(const uint64_t root_phys,
         } while (true);
     }
 
-    if (map_size >= PAGE_SIZE_2MIB && (virt_addr & (PAGE_SIZE_2MIB - 1)) == 0) {
+    if (map_size >= PAGE_SIZE_2MIB && has_align(virt_addr, PAGE_SIZE_2MIB)) {
         walker_result =
             ptwalker_fill_in_to(&pt_walker,
                                 /*level=*/2,
@@ -128,13 +126,13 @@ map_region(const uint64_t root_phys,
                 __PTE_ACCESSED | __PTE_DIRTY;
 
             walker_result =
-                ptwalker_next_custom(&pt_walker,
-                                     /*level=*/2,
-                                     /*alloc_parents=*/true,
-                                     /*alloc_level=*/true,
-                                     /*should_ref=*/false,
-                                     /*alloc_pgtable_cb_info=*/NULL,
-                                     /*free_pgtable_cb_info=*/NULL);
+                ptwalker_next_with_options(&pt_walker,
+                                           /*level=*/2,
+                                           /*alloc_parents=*/true,
+                                           /*alloc_level=*/true,
+                                           /*should_ref=*/false,
+                                           /*alloc_pgtable_cb_info=*/NULL,
+                                           /*free_pgtable_cb_info=*/NULL);
 
             if (walker_result != E_PT_WALKER_OK) {
                 goto panic;
@@ -164,9 +162,7 @@ map_region(const uint64_t root_phys,
         do {
             const uint64_t page = early_alloc_page();
             if (page == INVALID_PHYS) {
-                // We failed to alloc a 2mib page, so fill with 4kib pages
-                // instead.
-                break;
+                goto panic;
             }
 
             *ptwalker_pte_in_level(&pt_walker, /*level=*/1) =
@@ -174,20 +170,20 @@ map_region(const uint64_t root_phys,
                 __PTE_ACCESSED | __PTE_DIRTY;
 
             walker_result =
-                ptwalker_next_custom(&pt_walker,
-                                     /*level=*/1,
-                                     /*alloc_parents=*/true,
-                                     /*alloc_level=*/true,
-                                     /*should_ref=*/false,
-                                     /*alloc_pgtable_cb_info=*/NULL,
-                                     /*free_pgtable_cb_info=*/NULL);
+                ptwalker_next_with_options(&pt_walker,
+                                           /*level=*/1,
+                                           /*alloc_parents=*/true,
+                                           /*alloc_level=*/true,
+                                           /*should_ref=*/false,
+                                           /*alloc_pgtable_cb_info=*/NULL,
+                                           /*free_pgtable_cb_info=*/NULL);
 
             if (walker_result != E_PT_WALKER_OK) {
                 goto panic;
             }
 
             map_size -= PAGE_SIZE;
-            if (map_size < PAGE_SIZE) {
+            if (map_size == 0) {
                 break;
             }
 
@@ -228,6 +224,73 @@ map_into_kernel_pagemap(const uint64_t root_phys,
                                ptwalker_alloc_pgtable_cb,
                                /*free_pgtable=*/NULL);
 
+    uint64_t index = 0;
+    if (has_align(phys_addr, PAGE_SIZE_1GIB) &&
+        has_align(virt_addr, PAGE_SIZE_1GIB))
+    {
+        enum pt_walker_result ptwalker_result =
+            ptwalker_fill_in_to(&walker,
+                                /*level=*/3,
+                                /*should_ref=*/false,
+                                /*alloc_pgtable_cb_info=*/NULL,
+                                /*free_pgtable_cb_info=*/NULL);
+
+        for (; index + PAGE_SIZE_1GIB <= size; index += PAGE_SIZE_1GIB) {
+            if (ptwalker_result != E_PT_WALKER_OK) {
+                panic("mm: failed to setup kernel pagemap, result=%d\n",
+                      ptwalker_result);
+            }
+
+            walker.tables[2][walker.indices[2]] =
+                phys_create_pte(phys_addr + index) | pte_flags | __PTE_VALID |
+                __PTE_READ | __PTE_ACCESSED | __PTE_DIRTY | __PTE_GLOBAL;
+
+            ptwalker_result =
+                ptwalker_next_with_options(&walker,
+                                           /*level=*/3,
+                                           /*alloc_parents=*/true,
+                                           /*alloc_level=*/true,
+                                           /*should_ref=*/false,
+                                           /*alloc_pgtable_cb_info=*/NULL,
+                                           /*free_pgtable_cb_info=*/NULL);
+        }
+    }
+
+    if (has_align(phys_addr, PAGE_SIZE_2MIB) &&
+        has_align(virt_addr, PAGE_SIZE_2MIB))
+    {
+        enum pt_walker_result ptwalker_result =
+            ptwalker_fill_in_to(&walker,
+                                /*level=*/2,
+                                /*should_ref=*/false,
+                                /*alloc_pgtable_cb_info=*/NULL,
+                                /*free_pgtable_cb_info=*/NULL);
+
+        for (; index + PAGE_SIZE_2MIB <= size; index += PAGE_SIZE_2MIB) {
+            if (ptwalker_result != E_PT_WALKER_OK) {
+                panic("mm: failed to setup kernel pagemap, result=%d\n",
+                      ptwalker_result);
+            }
+
+            walker.tables[1][walker.indices[1]] =
+                phys_create_pte(phys_addr + index) | pte_flags | __PTE_VALID |
+                __PTE_READ | __PTE_ACCESSED | __PTE_DIRTY | __PTE_GLOBAL;
+
+            ptwalker_result =
+                ptwalker_next_with_options(&walker,
+                                           /*level=*/2,
+                                           /*alloc_parents=*/true,
+                                           /*alloc_level=*/true,
+                                           /*should_ref=*/false,
+                                           /*alloc_pgtable_cb_info=*/NULL,
+                                           /*free_pgtable_cb_info=*/NULL);
+        }
+    }
+
+    if (index >= size) {
+        return;
+    }
+
     enum pt_walker_result ptwalker_result =
         ptwalker_fill_in_to(&walker,
                             /*level=*/1,
@@ -235,97 +298,28 @@ map_into_kernel_pagemap(const uint64_t root_phys,
                             /*alloc_pgtable_cb_info=*/NULL,
                             /*free_pgtable_cb_info=*/NULL);
 
-    // TODO: The kernel+modules should be mapped 1gib large pages
-    for (uint64_t i = 0; i < size; i += PAGE_SIZE) {
+    for (; index < size; index += PAGE_SIZE) {
+        if (index == 0x3ffbf000) {
+            printk(LOGLEVEL_DEBUG, "h");
+        }
+
         if (ptwalker_result != E_PT_WALKER_OK) {
-            panic("mm: failed to setup kernel pagemap");
+            panic("mm: failed to setup kernel pagemap, result=%d\n",
+                  ptwalker_result);
         }
 
         walker.tables[0][walker.indices[0]] =
-            phys_create_pte(phys_addr + i) | pte_flags | __PTE_VALID |
+            phys_create_pte(phys_addr + index) | pte_flags | __PTE_VALID |
             __PTE_READ | __PTE_ACCESSED | __PTE_DIRTY | __PTE_GLOBAL;
 
         ptwalker_result =
-            ptwalker_next_custom(&walker,
-                                 /*level=*/1,
-                                 /*alloc_parents=*/true,
-                                 /*alloc_level=*/true,
-                                 /*should_ref=*/false,
-                                 /*alloc_pgtable_cb_info=*/NULL,
-                                 /*free_pgtable_cb_info=*/NULL);
-    }
-}
-
-static void init_table_page(struct page *const page) {
-    list_init(&page->table.delayed_free_list);
-    refcount_init(&page->table.refcount);
-}
-
-static void refcount_range(const uint64_t virt_addr, const uint64_t length) {
-    struct pt_walker walker = {0};
-    ptwalker_create(&walker,
-                    virt_addr,
-                    /*alloc_pgtable=*/NULL,
-                    /*free_pgtable=*/NULL);
-
-    for (uint8_t level = (uint8_t)walker.level;
-         level <= walker.top_level;
-         level++)
-    {
-        struct page *const page = virt_to_page(walker.tables[level - 1]);
-        init_table_page(page);
-    }
-
-    // Track changes to the `walker.tables` array by seeing if the index of
-    // the lowest level ever reaches (PGT_COUNT - 1). When it does,
-    // set ref_pages = true
-
-    bool ref_pages = false;
-    for (uint64_t i = 0; i < length;) {
-        const enum pt_walker_result advance_result =
-            ptwalker_next(&walker, /*op=*/NULL);
-
-        if (advance_result != E_PT_WALKER_OK) {
-            panic("mm: failed to setup kernel pagemap");
-        }
-
-        // When ref_pages is true, the lowest level will have an index 0
-        // after incrementing.
-        // All levels higher will also be reset to 0, but only until a level
-        // with an index not equal to 0.
-
-        if (ref_pages) {
-            for (uint8_t level = (uint8_t)walker.level;
-                level < walker.top_level;
-                level++)
-            {
-                const uint64_t index = walker.indices[level - 1];
-                if (index != 0) {
-                    break;
-                }
-
-                pte_t *const table = walker.tables[level - 1];
-                struct page *const page = virt_to_page(table);
-
-                init_table_page(page);
-            }
-        }
-
-        ref_pages = walker.indices[walker.level - 1] == PGT_COUNT - 1;
-        switch (walker.level) {
-            case 1:
-                i += PAGE_SIZE;
-                break;
-            case 2:
-                i += PAGE_SIZE_2MIB;
-                break;
-            case 3:
-                i += PAGE_SIZE_1GIB;
-                break;
-            case 4:
-                i += PAGE_SIZE_512GIB;
-                break;
-        }
+            ptwalker_next_with_options(&walker,
+                                       /*level=*/1,
+                                       /*alloc_parents=*/true,
+                                       /*alloc_level=*/true,
+                                       /*should_ref=*/false,
+                                       /*alloc_pgtable_cb_info=*/NULL,
+                                       /*free_pgtable_cb_info=*/NULL);
     }
 }
 
@@ -388,7 +382,6 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // to go through each table used, and setup all pgtable metadata inside a
     // struct page
 
-    refcount_range(MMIO_BASE - HHDM_OFFSET, (MMIO_END - MMIO_BASE));
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         const struct limine_memmap_entry *const memmap = *memmap_iter;
         if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
@@ -404,7 +397,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
             virt_addr = (uint64_t)phys_to_virt(memmap->base);
         }
 
-        refcount_range(virt_addr, memmap->length);
+        mm_early_refcount_alloced_map(virt_addr, memmap->length);
     }
 
     printk(LOGLEVEL_INFO, "mm: finished setting up kernel-pagemap!\n");

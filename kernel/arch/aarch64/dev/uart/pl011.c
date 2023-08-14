@@ -7,6 +7,7 @@
 #include "dev/printk.h"
 #include "mm/kmalloc.h"
 
+#include "mmio.h"
 #include "pl011.h"
 
 struct pl011_device {
@@ -55,12 +56,12 @@ struct pl011_device_info {
 };
 
 // for use when initializing serial before mm/kmalloc
-static struct pl011_device_info early_infos[64] = {};
+static struct pl011_device_info early_infos[8] = {};
 static uint16_t early_info_count = 0;
 
 static void wait_tx_complete(volatile const struct pl011_device *const dev) {
     for (uint64_t i = 0; i != MAX_ATTEMPTS; i++) {
-        if ((dev->fr_offset & FR_BUSY) == 0) {
+        if ((mmio_read(&dev->fr_offset) & FR_BUSY) == 0) {
             return;
         }
     }
@@ -77,15 +78,15 @@ pl011_send_char(struct terminal *const term,
     wait_tx_complete(device);
     if (ch == '\n') {
         for (uint64_t i = 0; i != amount; i++) {
-            device->dr_offset = '\r';
+            mmio_write(&device->dr_offset, '\r');
             wait_tx_complete(device);
 
-            device->dr_offset = ch;
+            mmio_write(&device->dr_offset, ch);
             wait_tx_complete(device);
         }
     } else {
         for (uint64_t i = 0; i != amount; i++) {
-            device->dr_offset = ch;
+            mmio_write(&device->dr_offset, ch);
             wait_tx_complete(device);
         }
     }
@@ -100,11 +101,11 @@ pl011_send_sv(struct terminal *const term, const struct string_view sv) {
     sv_foreach(sv, iter) {
         char ch = *iter;
         if (ch == '\n') {
-            device->dr_offset = '\r';
+            mmio_write(&device->dr_offset, '\r');
             wait_tx_complete(device);
         }
 
-        device->dr_offset = ch;
+        mmio_write(&device->dr_offset, ch);
         wait_tx_complete(device);
     }
 }
@@ -137,17 +138,17 @@ pl011_init(const port_t base,
     volatile struct pl011_device *const device =
         (volatile struct pl011_device *)base;
 
-    uint32_t cr = device->cr_offset;
-    uint32_t lcr = device->lcr_offset;
+    uint32_t cr = mmio_read(&device->cr_offset);
+    uint32_t lcr = mmio_read(&device->lcr_offset);
 
     // Disable UART before anything else
-    device->cr_offset = cr & CR_UARTEN;
+    mmio_write(&device->cr_offset, cr & CR_UARTEN);
 
     // Wait for any ongoing transmissions to complete
     wait_tx_complete(device);
 
     // Flush FIFOs
-    device->lcr_offset = (lcr & ~LCR_FEN);
+    mmio_write(&device->lcr_offset, (lcr & ~LCR_FEN));
 
     // Set frequency divisors (UARTIBRD and UARTFBRD) to configure the speed
     const uint32_t div = 4 * PL011_BASE_CLOCK / baudrate;
@@ -155,8 +156,8 @@ pl011_init(const port_t base,
     uint32_t ibrd = div & 0x3f;
     uint32_t fbrd = (div >> 6) & 0xffff;
 
-    device->ibrd_offset = ibrd;
-    device->fbrd_offset = fbrd;
+    mmio_write(&device->ibrd_offset, ibrd);
+    mmio_write(&device->fbrd_offset, fbrd);
 
     // Configure data frame format according to the parameters (UARTLCR_H).
     // We don't actually use all the possibilities, so this part of the code
@@ -172,16 +173,16 @@ pl011_init(const port_t base,
     }
 
     // Mask all interrupts by setting corresponding bits to 1
-    device->imsc_offset = 0x7ff;
+    mmio_write(&device->imsc_offset, 0x7ff);
 
     // Disable DMA by setting all bits to 0
-    device->dmacr_offset = 0x0;
+    mmio_write(&device->dmacr_offset, 0x0);
 
     // I only need transmission, so that's the only thing I enabled.
-    device->cr_offset = CR_TXEN;
+    mmio_write(&device->cr_offset, CR_TXEN);
 
     // Finally enable UART
-    device->cr_offset = CR_TXEN | CR_UARTEN;
+    mmio_write(&device->cr_offset, CR_TXEN | CR_UARTEN);
 
     info->device = device;
     info->term.emit_ch = pl011_send_char,

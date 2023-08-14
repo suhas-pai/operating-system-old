@@ -21,12 +21,6 @@ format_to_buffer(char *const buffer,
     return result;
 }
 
-struct buffer_info {
-    char *buffer;
-    uint64_t index;
-    uint64_t capacity;
-};
-
 static uint64_t
 buffer_char_callback(struct printf_spec_info *const spec_info,
                      void *const cb_info,
@@ -36,18 +30,14 @@ buffer_char_callback(struct printf_spec_info *const spec_info,
 {
     (void)spec_info;
 
-    struct buffer_info *const info = cb_info;
-    const uint64_t left = info->capacity - info->index;
+    struct mutable_buffer *const mbuffer = cb_info;
+    const uint64_t appended = mbuffer_append_byte(mbuffer, ch, amount);
 
-    if (left <= amount) {
-        amount = left;
+    if (appended != amount) {
         *cont_out = false;
     }
 
-    memset(info->buffer + info->index, ch, amount);
-    info->index += amount;
-
-    return amount;
+    return appended;
 }
 
 static uint64_t
@@ -58,19 +48,14 @@ buffer_sv_callback(struct printf_spec_info *const spec_info,
 {
     (void)spec_info;
 
-    struct buffer_info *const info = cb_info;
-    const uint64_t left = info->capacity - info->index;
+    struct mutable_buffer *const mbuffer = cb_info;
+    const uint64_t appended = mbuffer_append_sv(mbuffer, sv);
 
-    uint64_t amount = sv.length;
-    if (left <= amount) {
-        amount = left;
+    if (appended != sv.length) {
         *cont_out = false;
     }
 
-    memcpy(info->buffer + info->index, sv.begin, amount);
-    info->index += amount;
-
-    return amount;
+    return appended;
 }
 
 uint64_t
@@ -79,26 +64,20 @@ vformat_to_buffer(char *const buffer,
                   const char *const fmt,
                   va_list list)
 {
-    struct buffer_info info = {
-        .buffer = buffer,
-        .capacity = buffer_length
-    };
-
+    struct mutable_buffer mbuffer =
+        mbuffer_open(buffer, /*used=*/0, buffer_length);
     const uint64_t result =
         parse_printf(fmt,
                      buffer_char_callback,
-                     &info,
+                     &mbuffer,
                      buffer_sv_callback,
-                     &info,
+                     &mbuffer,
                      list);
     return result;
 }
 
 uint64_t
-format_to_string(struct string *const string,
-                 const char *const fmt,
-                 ...)
-{
+format_to_string(struct string *const string, const char *const fmt, ...) {
     va_list list;
     va_start(list, fmt);
 

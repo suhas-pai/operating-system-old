@@ -10,4 +10,4 @@ struct virtio_scsi_host_device {
 
 };
 
-bool virtio_scsi_driver_init(struct virtio_device *device);
+struct virtio_device *virtio_scsi_driver_init(struct virtio_device *device);

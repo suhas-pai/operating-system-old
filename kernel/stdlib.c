@@ -94,11 +94,11 @@ __optimize(3) char *strrchr(const char *const str, const int ch) {
         }                                                                      \
                                                                                \
         do {                                                                   \
-            const int left_ch = (int)(*(const type *)left);                    \
-            const int right_ch = (int)(*(const type *)right);                  \
+            const type left_ch = *(const type *)left;                          \
+            const type right_ch = *(const type *)right;                        \
                                                                                \
             if (left_ch != right_ch) {                                         \
-                return (left_ch - right_ch);                                   \
+                return (int)(left_ch - right_ch);                              \
             }                                                                  \
                                                                                \
             left += sizeof(type);                                              \
@@ -289,11 +289,46 @@ __optimize(3) void *memmove(void *dst, const void *src, unsigned long n) {
     return ret;
 }
 
-__optimize(3)
-void *memset(void *const dst, const int val, const unsigned long n) {
+__optimize(3) void *memset(void *dst, const int val, unsigned long n) {
 #if defined(__x86_64__)
     asm volatile ("rep stosb" :: "D"(dst), "al"(val), "c"(n) : "memory");
 #else
+    uint64_t value64 = 0;
+    if (n >= sizeof(uint64_t)) {
+        if (val != 0) {
+            value64 =
+                (uint64_t)val << 56 |
+                (uint64_t)val << 48 |
+                (uint64_t)val << 40 |
+                (uint64_t)val << 32 |
+                (uint64_t)val << 24 |
+                (uint64_t)val << 16 |
+                (uint64_t)val << 8 |
+                (uint64_t)val;
+        }
+
+        do {
+            *(uint64_t *)dst = value64;
+
+            dst += sizeof(uint64_t);
+            n -= sizeof(uint64_t);
+        } while (n >= sizeof(uint64_t));
+
+        while (n >= sizeof(uint32_t)) {
+            *(uint32_t *)dst = value64;
+
+            dst += sizeof(uint32_t);
+            n -= sizeof(uint32_t);
+        }
+
+        while (n >= sizeof(uint16_t)) {
+            *(uint16_t *)dst = value64;
+
+            dst += sizeof(uint16_t);
+            n -= sizeof(uint16_t);
+        }
+    }
+
     for (unsigned long i = 0; i != n; i++) {
         ((uint8_t *)dst)[i] = (uint8_t)val;
     }
