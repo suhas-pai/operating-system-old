@@ -19,8 +19,8 @@ arch_pcie_read(const struct pci_device_info *const device,
                                sizeof(struct pci_spec_device_info)))
     {
         printk(LOGLEVEL_WARN,
-               "pcie: attempting to write %" PRIu8 " bytes to "
-               "offset %" PRIu32 ", which is outside pci-device's descriptor\n",
+               "pcie: attempting to write %" PRIu8 " bytes to offset %" PRIu32
+               ", which is outside pci-device's descriptor\n",
                access_size,
                offset);
         return (uint32_t)-1;
@@ -49,8 +49,8 @@ arch_pcie_write(const struct pci_device_info *const device,
                                sizeof(struct pci_spec_device_info)))
     {
         printk(LOGLEVEL_WARN,
-               "pcie: attempting to read %" PRIu8 " bytes from "
-               "offset %" PRIu32 ", which is outside pci-device's descriptor\n",
+               "pcie: attempting to read %" PRIu8 " bytes from offset %" PRIu32
+               ", which is outside pci-device's descriptor\n",
                access_size,
                offset);
         return (uint32_t)-1;

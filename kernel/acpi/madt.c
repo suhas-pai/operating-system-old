@@ -10,12 +10,14 @@
     #include "apic/ioapic.h"
     #include "apic/lapic.h"
     #include "apic/init.h"
-#elif defined(__aarch64__)
-    #include "mm/mmio.h"
 #endif /* defined(__x86_64__) */
 
 #include "dev/printk.h"
 #include "lib/align.h"
+
+#if defined(__aarch64__)
+    #include "mm/mmio.h"
+#endif /* defined(__aarch64__) */
 
 #include "mm/page.h"
 #include "mm/pagemap.h"
@@ -424,11 +426,10 @@ void madt_init(const struct acpi_madt *const madt) {
                     continue;
                 }
 
+                const struct range mmio_range =
+                    range_create(frame->phys_base_address, PAGE_SIZE);
                 struct mmio_region *const mmio =
-                    vmap_mmio(
-                        range_create(frame->phys_base_address, PAGE_SIZE),
-                        PROT_READ | PROT_WRITE,
-                        /*flags=*/0);
+                    vmap_mmio(mmio_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 
                 if (mmio == NULL) {
                     printk(LOGLEVEL_WARN,

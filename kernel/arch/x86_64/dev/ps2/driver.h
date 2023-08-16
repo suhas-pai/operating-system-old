@@ -56,14 +56,18 @@ enum ps2_test_controller_result {
     E_PS2_TEST_CNTRLR_FAILED = PS2_RESPONSE_FAIL,
 };
 
+enum ps2_test_port_result {
+    E_PS2_TEST_PORT_OK,
+};
+
 enum ps2_controller_config_byte_masks {
-    __PS2_CNTRLR_CONFIG_1ST_DEVICE_INTERRUPT = (1ull << 0),
-    __PS2_CNTRLR_CONFIG_2ND_DEVICE_INTERRUPT = (1ull << 1),
+    __PS2_CNTRLR_CONFIG_1ST_PORT_INTERRUPT = (1ull << 0),
+    __PS2_CNTRLR_CONFIG_2ND_PORT_INTERRUPT = (1ull << 1),
 
-    __PS2_CNTRLR_CONFIG_1ST_DEVICE_CLOCK = (1ull << 4),
-    __PS2_CNTRLR_CONFIG_2ND_DEVICE_CLOCK = (1ull << 5),
+    __PS2_CNTRLR_CONFIG_1ST_PORT_CLOCK = (1ull << 4),
+    __PS2_CNTRLR_CONFIG_2ND_PORT_CLOCK = (1ull << 5),
 
-    __PS2_CNTRLR_CONFIG_1ST_DEVICE_TRANSLATION = (1ull << 6),
+    __PS2_CNTRLR_CONFIG_1ST_PORT_TRANSLATION = (1ull << 6),
 };
 
 enum ps2_status_register_masks {
@@ -85,9 +89,9 @@ enum ps2_device_kind {
     PS2_DEVICE_KIND_MF2_KBD = (uint16_t)(0xAB << 8) | 0x83
 };
 
-enum ps2_device_id {
-    PS2_FIRST_DEVICE,
-    PS2_SECOND_DEVICE
+enum ps2_port_id {
+    PS2_FIRST_PORT = 1,
+    PS2_SECOND_PORT
 };
 
 void ps2_init();
@@ -95,4 +99,4 @@ void ps2_init();
 int16_t ps2_read_input_byte();
 int16_t ps2_read_config();
 
-int16_t ps2_send_to_device(const enum ps2_device_id device, const uint8_t byte);
+int16_t ps2_send_to_port(const enum ps2_port_id device, const uint8_t byte);

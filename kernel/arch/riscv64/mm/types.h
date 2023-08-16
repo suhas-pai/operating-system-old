@@ -65,5 +65,3 @@ static const uint8_t LARGEPAGE_SHIFTS[] = {
 #define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
 
 struct page;
-
-extern uint64_t PAGING_MODE;

@@ -175,7 +175,7 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
     }
 
     uint64_t flags = 0;
-    if (!(bar->is_64_bit)) {
+    if (!bar->is_64_bit) {
         flags |= __VMAP_MMIO_LOW4G;
     }
 

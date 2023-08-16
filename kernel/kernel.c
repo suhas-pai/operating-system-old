@@ -10,6 +10,8 @@
 #include "dev/printk.h"
 
 #include "mm/early.h"
+
+#include "boot.h"
 #include "limine.h"
 
 // The Limine requests can be placed anywhere, but it is important that
@@ -58,6 +60,7 @@ void _start(void) {
     serial_init();
     printk(LOGLEVEL_INFO, "Console is working?\n");
 
+    boot_init();
     mm_early_init();
 
     arch_init();

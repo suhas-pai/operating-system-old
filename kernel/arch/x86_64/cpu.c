@@ -13,10 +13,10 @@
 
 #include "cpu.h"
 
-static bool g_base_cpu_init = false;
 static struct cpu_capabilities g_cpu_capabilities = {0};
 static struct cpu_info g_base_cpu_info = {0};
 
+static bool g_base_cpu_init = false;
 static void init_cpuid_features() {
     {
         uint64_t eax, ebx, ecx, edx;

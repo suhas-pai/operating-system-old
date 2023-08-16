@@ -78,13 +78,13 @@ enum pt_walker_result
 ptwalker_next(struct pt_walker *walker, struct pageop *op);
 
 enum pt_walker_result
-ptwalker_prev_custom(struct pt_walker *walker,
-                     uint8_t level,
-                     bool alloc_parents,
-                     bool alloc_level,
-                     bool should_ref,
-                     void *alloc_pgtable_cb_info,
-                     void *const free_pgtable_cb_info);
+ptwalker_prev_with_options(struct pt_walker *walker,
+                           uint8_t level,
+                           bool alloc_parents,
+                           bool alloc_level,
+                           bool should_ref,
+                           void *alloc_pgtable_cb_info,
+                           void *const free_pgtable_cb_info);
 
 enum pt_walker_result
 ptwalker_next_with_options(struct pt_walker *walker,

@@ -63,6 +63,7 @@ extern const uint64_t VMAP_END;
 // The mmio range is reserved but not actually mapped
 extern uint64_t MMIO_BASE;
 extern uint64_t MMIO_END;
+extern uint64_t PAGING_MODE;
 
 enum prot_flags {
     PROT_NONE,

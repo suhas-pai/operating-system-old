@@ -5,32 +5,12 @@
 
 #include "dev/printk.h"
 #include "lib/align.h"
-#include "lib/math.h"
 #include "mm/walker.h"
 
-#include "limine.h"
+#include "boot.h"
 #include "kmalloc.h"
 
 #include "page_alloc.h"
-#include "page.h"
-
-static volatile struct limine_hhdm_request hhdm_request = {
-    .id = LIMINE_HHDM_REQUEST,
-    .revision = 0,
-    .response = NULL
-};
-
-static volatile struct limine_kernel_address_request kern_addr_request = {
-    .id = LIMINE_KERNEL_ADDRESS_REQUEST,
-    .revision = 0,
-    .response = NULL
-};
-
-volatile struct limine_memmap_request memmap_request = {
-    .id = LIMINE_MEMMAP_REQUEST,
-    .revision = 0,
-    .response = NULL
-};
 
 struct freepages_info {
     struct list list_entry;
@@ -43,12 +23,12 @@ static struct list freepages_list = LIST_INIT(freepages_list);
 static uint64_t freepages_list_count = 0;
 static uint64_t total_free_pages = 0;
 
-static void claim_pages(const uint64_t first_phys, const uint64_t length) {
-    const uint64_t page_count = PAGE_COUNT(length);
+static void claim_pages(const struct range range) {
+    const uint64_t page_count = PAGE_COUNT(range.size);
 
     // Check if the we can combine this entry and the prior one.
     // Store structure in the first page in list.
-    struct freepages_info *const info = phys_to_virt(first_phys);
+    struct freepages_info *const info = phys_to_virt(range.front);
     total_free_pages += page_count;
 
     if (freepages_list_count != 0) {
@@ -162,78 +142,67 @@ uint64_t KERNEL_BASE = 0;
 uint64_t memmap_last_repr_index = 0;
 
 void mm_early_init() {
-    assert(hhdm_request.response != NULL);
-    assert(kern_addr_request.response != NULL);
-    assert(memmap_request.response != NULL);
-
-    HHDM_OFFSET = hhdm_request.response->offset;
-    KERNEL_BASE = kern_addr_request.response->virtual_base;
-
     printk(LOGLEVEL_INFO, "mm: hhdm at %p\n", (void *)HHDM_OFFSET);
     printk(LOGLEVEL_INFO, "mm: kernel at %p\n", (void *)KERNEL_BASE);
 
-    const struct limine_memmap_response *const resp = memmap_request.response;
-
-    struct limine_memmap_entry *const *entries = resp->entries;
-    struct limine_memmap_entry *const *const end = entries + resp->entry_count;
-
-    uint64_t memmap_index = 0;
-    for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
-        const struct limine_memmap_entry *const memmap = *memmap_iter;
+    for (uint64_t index = 0; index != mm_get_memmap_count(); index++) {
+        const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
         const char *type_desc = "<unknown>";
 
         // Don't claim pages in *Reclaimable memmaps yet, although we do map it
         // in the structpage table.
 
-        switch (memmap->type) {
-            case LIMINE_MEMMAP_USABLE:
-                claim_pages(memmap->base, memmap->length);
+        switch (memmap->kind) {
+            case MM_MEMMAP_KIND_NONE:
+                verify_not_reached();
+            case MM_MEMMAP_KIND_USABLE:
+                claim_pages(memmap->range);
 
                 type_desc = "usable";
-                memmap_last_repr_index = memmap_index;
+                memmap_last_repr_index = index;
 
                 break;
-            case LIMINE_MEMMAP_RESERVED:
+            case MM_MEMMAP_KIND_RESERVED:
                 type_desc = "reserved";
                 break;
-            case LIMINE_MEMMAP_ACPI_RECLAIMABLE:
+            case MM_MEMMAP_KIND_ACPI_RECLAIMABLE:
                 type_desc = "acpi-reclaimable";
-                memmap_last_repr_index = memmap_index;
+                memmap_last_repr_index = index;
 
                 break;
-            case LIMINE_MEMMAP_ACPI_NVS:
+            case MM_MEMMAP_KIND_ACPI_NVS:
                 type_desc = "acpi-nvs";
-                memmap_last_repr_index = memmap_index;
+                memmap_last_repr_index = index;
 
                 break;
-            case LIMINE_MEMMAP_BAD_MEMORY:
+            case MM_MEMMAP_KIND_BAD_MEMORY:
                 type_desc = "bad-memory";
                 break;
-            case LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE:
+            case MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE:
+                claim_pages(memmap->range);
+
                 type_desc = "bootloader-reclaimable";
-                memmap_last_repr_index = memmap_index;
+                memmap_last_repr_index = index;
 
                 break;
-            case LIMINE_MEMMAP_KERNEL_AND_MODULES:
+            case MM_MEMMAP_KIND_KERNEL_AND_MODULES:
                 type_desc = "kernel-and-modules";
-                memmap_last_repr_index = memmap_index;
+                memmap_last_repr_index = index;
 
                 break;
-            case LIMINE_MEMMAP_FRAMEBUFFER:
+            case MM_MEMMAP_KIND_FRAMEBUFFER:
                 type_desc = "framebuffer";
-                memmap_last_repr_index = memmap_index;
+                memmap_last_repr_index = index;
 
                 break;
         }
 
         printk(LOGLEVEL_INFO,
                "mm: memmap %" PRIu64 ": [%p-%p] %s\n",
-               memmap_index + 1,
-               (void *)memmap->base,
-               (void *)(memmap->base + memmap->length),
+               index + 1,
+               (void *)memmap->range.front,
+               (void *)range_get_end_assert(memmap->range),
                type_desc);
-
-        memmap_index++;
     }
 
     printk(LOGLEVEL_INFO,
@@ -324,14 +293,12 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
 }
 
 void mm_early_post_arch_init() {
-    const struct limine_memmap_response *const resp = memmap_request.response;
-
-    struct limine_memmap_entry *const *entries = resp->entries;
-    const struct limine_memmap_entry *const first_memmap = entries[0];
-
-    if (first_memmap->base != 0) {
+    const struct mm_memmap *const first_memmap = mm_get_memmap_list() + 0;
+    if (first_memmap->range.front != 0) {
         struct page *page = phys_to_page(0);
-        for (uint64_t j = 0; j != PAGE_COUNT(first_memmap->base); j++, page++) {
+        const uint64_t page_count = PAGE_COUNT(first_memmap->range.front);
+
+        for (uint64_t j = 0; j != page_count; j++, page++) {
             // Avoid using `set_page_bit()` because we don't need atomic ops
             // this early.
 
@@ -340,13 +307,15 @@ void mm_early_post_arch_init() {
     }
 
     for (uint64_t i = 0; i <= memmap_last_repr_index; i++) {
-        struct limine_memmap_entry *const memmap = entries[i];
-        if (memmap->type == LIMINE_MEMMAP_USABLE) {
+        const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
+        if (memmap->kind == MM_MEMMAP_KIND_USABLE) {
             continue;
         }
 
-        struct page *page = phys_to_page(memmap->base);
-        for (uint64_t j = 0; j != PAGE_COUNT(memmap->length); j++, page++) {
+        struct page *page = phys_to_page(memmap->range.front);
+        const uint64_t page_count = PAGE_COUNT(memmap->range.size);
+
+        for (uint64_t j = 0; j != page_count; j++, page++) {
             // Avoid using `set_page_bit()` because we don't need atomic ops
             // this early.
 
@@ -357,7 +326,7 @@ void mm_early_post_arch_init() {
     printk(LOGLEVEL_INFO, "mm: finished setting up structpage table\n");
     pagezones_init();
 
-    // TODO: Claim bootloader-reclaimable and acpi-reclaimable pages
+    // TODO: Claim acpi-reclaimable pages
     struct freepages_info *walker = NULL;
     struct freepages_info *tmp = NULL;
 

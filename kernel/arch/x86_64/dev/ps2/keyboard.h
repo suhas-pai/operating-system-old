@@ -43,5 +43,5 @@ enum ps2_keyboard_special_byte {
 };
 
 
-void ps2_keyboard_init(const enum ps2_device_id device_id);
+void ps2_keyboard_init(const enum ps2_port_id device_id);
 void ps2_keyboard_interrupt(uint64_t int_no, irq_context_t *context);

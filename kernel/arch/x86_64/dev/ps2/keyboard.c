@@ -180,10 +180,10 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
     string_destroy(&string);
 }
 
-void ps2_keyboard_init(const enum ps2_device_id device_id) {
-    ps2_send_to_device(device_id, PS2_KBD_CMD_SCAN_CODE_SET);
+void ps2_keyboard_init(const enum ps2_port_id device_id) {
+    ps2_send_to_port(device_id, PS2_KBD_CMD_SCAN_CODE_SET);
     const int16_t get_response =
-        ps2_send_to_device(device_id, PS2_KBD_SCAN_CODE_SET_SUBCMD_GET);
+        ps2_send_to_port(device_id, PS2_KBD_SCAN_CODE_SET_SUBCMD_GET);
 
     if (get_response != PS2_RESPONSE_ACKNOWLEDGE) {
         printk(LOGLEVEL_WARN,

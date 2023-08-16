@@ -14,9 +14,7 @@
 #include "time/kstrftime.h"
 #include "time/time.h"
 
-#if !defined(__x86_64__)
-    #include "port.h"
-#endif /* !defined(__x86_64__) */
+#include "mmio.h"
 
 struct goldfish_rtc {
     volatile uint32_t time_low;
@@ -43,15 +41,9 @@ static uint64_t goldfish_rtc_read(struct clock_source *const clock_source) {
         container_of(clock_source, struct goldfish_rtc_info, clock_source);
 
     volatile const struct goldfish_rtc *const rtc = info->mmio->base;
-#if defined(__x86_64__)
-    const uint64_t lower = rtc->time_low;
-    const uint64_t higher = rtc->time_high;
-#else
-    const uint64_t lower =
-        port_in32((port_t)field_to_ptr(struct goldfish_rtc, rtc, time_low));
-    const uint64_t higher =
-        port_in32((port_t)field_to_ptr(struct goldfish_rtc, rtc, time_high));
-#endif
+
+    const uint64_t lower = mmio_read(&rtc->time_low);
+    const uint64_t higher = mmio_read(&rtc->time_high);
 
     return (higher << 32 | lower);
 }

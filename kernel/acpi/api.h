@@ -51,6 +51,7 @@ struct acpi_info {
 };
 
 void acpi_init();
+
 struct acpi_sdt *acpi_lookup_sdt(const char signature[static 4]);
 
 const struct acpi_info *get_acpi_info();

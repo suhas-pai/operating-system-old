@@ -14,13 +14,10 @@ const uint64_t VMAP_END = 0xffffe00000000000;
 
 uint64_t MMIO_BASE = 0;
 uint64_t MMIO_END = 0;
-
-extern struct limine_paging_mode_request paging_mode_request;
+uint64_t PAGING_MODE = 0;
 
 uint8_t pgt_get_top_level() {
-    const bool has_5lvl_paging =
-        paging_mode_request.response->mode == LIMINE_PAGING_MODE_AARCH64_5LVL;
-
+    const bool has_5lvl_paging = PAGING_MODE == LIMINE_PAGING_MODE_AARCH64_5LVL;
     return has_5lvl_paging ? 5 : 4;
 }
 

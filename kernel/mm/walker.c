@@ -260,7 +260,10 @@ alloc_levels_down_to(struct pt_walker *const walker,
     }
 
     do {
-        pte_t *const pte = ptwalker_pte_in_level(walker, level + 1);
+        // Get pte in (level + 1), where the index would be ((level + 1) - 1)
+        pte_t *table = walker->tables[level];
+        pte_t *const pte = &table[walker->indices[level]];
+
         if (!alloc_single_pte(walker,
                               alloc_pgtable_cb_info,
                               free_pgtable_cb_info,
@@ -274,7 +277,9 @@ alloc_levels_down_to(struct pt_walker *const walker,
         }
 
         if (should_ref) {
-            pte_t *const table = ptwalker_table_for_level(walker, level + 1);
+            // Get pte in (level + 1), where the index would be
+            // ((level + 1) - 1)
+
             ref_up(&virt_to_page(table)->table.refcount);
         }
 
@@ -314,13 +319,14 @@ ptwalker_next_with_options(struct pt_walker *const walker,
 
     walker->indices[level - 1]++;
     if (walker->indices[level - 1] < PGT_COUNT) {
-        if (level == 1 || !pte_level_can_have_large(level)) {
+        if (!pte_level_can_have_large(level)) {
             return E_PT_WALKER_OK;
         }
 
-        pte_t *const pte = ptwalker_pte_in_level(walker, level);
-        const pte_t entry = *pte;
+        pte_t *const pte =
+            &walker->tables[level - 1][walker->indices[level - 1]];
 
+        const pte_t entry = *pte;
         if (!pte_is_present(entry) || pte_is_large(entry)) {
             return E_PT_WALKER_OK;
         }
@@ -387,23 +393,23 @@ ptwalker_next_with_options(struct pt_walker *const walker,
 
 enum pt_walker_result
 ptwalker_prev(struct pt_walker *const walker, struct pageop *const pageop) {
-    return ptwalker_prev_custom(walker,
-                                /*level=*/1,
-                                /*alloc_parents=*/true,
-                                /*alloc_level=*/true,
-                                /*should_ref=*/true,
-                                /*alloc_pgtable_cb_info=*/NULL,
-                                /*free_pgtable_cb_info=*/pageop);
+    return ptwalker_prev_with_options(walker,
+                                      /*level=*/1,
+                                      /*alloc_parents=*/true,
+                                      /*alloc_level=*/true,
+                                      /*should_ref=*/true,
+                                      /*alloc_pgtable_cb_info=*/NULL,
+                                      /*free_pgtable_cb_info=*/pageop);
 }
 
 enum pt_walker_result
-ptwalker_prev_custom(struct pt_walker *const walker,
-                     uint8_t level,
-                     const bool alloc_parents,
-                     const bool alloc_level,
-                     const bool should_ref,
-                     void *const alloc_pgtable_cb_info,
-                     void *const free_pgtable_cb_info)
+ptwalker_prev_with_options(struct pt_walker *const walker,
+                           uint8_t level,
+                           const bool alloc_parents,
+                           const bool alloc_level,
+                           const bool should_ref,
+                           void *const alloc_pgtable_cb_info,
+                           void *const free_pgtable_cb_info)
 {
     // Bad increment as tables+indices haven't been filled down to the level
     // requested.
@@ -418,13 +424,14 @@ ptwalker_prev_custom(struct pt_walker *const walker,
 
     if (walker->indices[level - 1] != 0) {
         walker->indices[level - 1]--;
-        if (level == 1 || !pte_level_can_have_large(level)) {
+        if (!pte_level_can_have_large(level)) {
             return E_PT_WALKER_OK;
         }
 
-        pte_t *const pte = ptwalker_pte_in_level(walker, level);
-        const pte_t entry = *pte;
+        pte_t *const pte =
+            &walker->tables[level - 1][walker->indices[level - 1]];
 
+        const pte_t entry = *pte;
         if (!pte_is_present(entry) || pte_is_large(entry)) {
             return E_PT_WALKER_OK;
         }

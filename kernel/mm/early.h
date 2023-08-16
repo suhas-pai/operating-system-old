@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include <stdint.h>
+#include "lib/adt/range.h"
 
 void mm_early_init();
 void mm_early_post_arch_init();

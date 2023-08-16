@@ -12,16 +12,8 @@
 #include "mm/early.h"
 #include "mm/pagemap.h"
 
+#include "boot.h"
 #include "cpu.h"
-#include "limine.h"
-
-volatile struct limine_paging_mode_request paging_mode_request = {
-    .id = LIMINE_PAGING_MODE_REQUEST,
-    .revision = 0,
-    .response = NULL
-};
-
-extern volatile struct limine_memmap_request memmap_request;
 
 struct freepages_info {
     struct list list_entry;
@@ -338,40 +330,35 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     }
 
     kernel_pagemap.root = phys_to_page(root);
-    const struct limine_memmap_response *const resp = memmap_request.response;
-
-    struct limine_memmap_entry *const *entries = resp->entries;
-    struct limine_memmap_entry *const *const end = entries + resp->entry_count;
-
     uint64_t kernel_memmap_size = 0;
 
     // Map all 'good' regions into the hhdm, except the kernel, which goes in
     // its own range
-    for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
-        const struct limine_memmap_entry *const memmap = *memmap_iter;
-        if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
-            memmap->type == LIMINE_MEMMAP_RESERVED)
+    for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
+        const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
+        if (memmap->kind == MM_MEMMAP_KIND_BAD_MEMORY ||
+            memmap->kind == MM_MEMMAP_KIND_RESERVED)
         {
             continue;
         }
 
-        if (memmap->type == LIMINE_MEMMAP_KERNEL_AND_MODULES) {
-            kernel_memmap_size = memmap->length;
+        if (memmap->kind == MM_MEMMAP_KIND_KERNEL_AND_MODULES) {
+            kernel_memmap_size = memmap->range.size;
             map_into_kernel_pagemap(root,
-                                    /*phys_addr=*/memmap->base,
+                                    /*phys_addr=*/memmap->range.front,
                                     /*virt_addr=*/KERNEL_BASE,
-                                    memmap->length,
+                                    kernel_memmap_size,
                                     __PTE_WRITE);
         } else {
             uint64_t flags = __PTE_WRITE | __PTE_NOEXEC;
-            if (memmap->type == LIMINE_MEMMAP_FRAMEBUFFER) {
+            if (memmap->kind == MM_MEMMAP_KIND_FRAMEBUFFER) {
                 flags |= __PTE_PAT;
             }
 
             map_into_kernel_pagemap(root,
-                                    /*phys_addr=*/memmap->base,
-                                    (uint64_t)phys_to_virt(memmap->base),
-                                    memmap->length,
+                                    /*phys_addr=*/memmap->range.front,
+                                    (uint64_t)phys_to_virt(memmap->range.front),
+                                    memmap->range.size,
                                     flags);
         }
     }
@@ -386,22 +373,22 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // to go through each table used, and setup all pgtable metadata inside a
     // struct page
 
-    for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
-        const struct limine_memmap_entry *const memmap = *memmap_iter;
-        if (memmap->type == LIMINE_MEMMAP_BAD_MEMORY ||
-            memmap->type == LIMINE_MEMMAP_RESERVED)
+    for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
+        const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
+        if (memmap->kind == MM_MEMMAP_KIND_BAD_MEMORY ||
+            memmap->kind == MM_MEMMAP_KIND_RESERVED)
         {
             continue;
         }
 
         uint64_t virt_addr = 0;
-        if (memmap->type == LIMINE_MEMMAP_KERNEL_AND_MODULES) {
+        if (memmap->kind == MM_MEMMAP_KIND_KERNEL_AND_MODULES) {
             virt_addr = KERNEL_BASE;
         } else {
-            virt_addr = (uint64_t)phys_to_virt(memmap->base);
+            virt_addr = (uint64_t)phys_to_virt(memmap->range.front);
         }
 
-        mm_early_refcount_alloced_map(virt_addr, memmap->length);
+        mm_early_refcount_alloced_map(virt_addr, memmap->range.size);
     }
 }
 
@@ -459,9 +446,6 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
 
 extern uint64_t memmap_last_repr_index;
 void mm_init() {
-    assert(memmap_request.response != NULL);
-    assert(paging_mode_request.response != NULL);
-
     MMIO_BASE = HHDM_OFFSET + kib(16);
     MMIO_END = MMIO_BASE + gib(4);
 
@@ -473,13 +457,10 @@ void mm_init() {
 
     write_msr(IA32_MSR_PAT, pat_msr | write_combining_mask);
 
-    const struct limine_memmap_response *const resp = memmap_request.response;
-    struct limine_memmap_entry *const *entries = resp->entries;
-
-    const struct limine_memmap_entry *const last_repr_memmap =
-        entries[memmap_last_repr_index];
+    const struct mm_memmap *const last_repr_memmap =
+        mm_get_memmap_list() + memmap_last_repr_index;
     const uint64_t total_bytes_repr_by_structpage_table =
-        last_repr_memmap->base + last_repr_memmap->length;
+        range_get_end_assert(last_repr_memmap->range);
 
     uint64_t kernel_memmap_size = 0;
     setup_kernel_pagemap(total_bytes_repr_by_structpage_table,
