@@ -14,7 +14,7 @@ enum irq_number {
 };
 
 static inline bool are_interrupts_enabled() {
-    return (x86_64_read_rflags() & RFLAGS_INTERRUPTS_ENABLED) != 0;
+    return (read_rflags() & RFLAGS_INTERRUPTS_ENABLED) != 0;
 }
 
 static inline void disable_all_interrupts() { asm volatile("cli"); }

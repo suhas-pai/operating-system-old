@@ -16,6 +16,7 @@ static struct list higher_half_mmio_list = LIST_INIT(higher_half_mmio_list);
 
 static struct range
 get_virt_range(const struct range phys_range, const uint64_t flags) {
+#if 0
     const uint64_t guard_pages_size = PAGE_SIZE;
 
 #if !(defined(__riscv) && defined(__LP64__))
@@ -82,6 +83,11 @@ get_virt_range(const struct range phys_range, const uint64_t flags) {
         return range_create_empty();
     }
 #endif /* !(defined(__riscv) && defined(__LP64__)) */
+#endif
+
+    const uint64_t virt_addr = (uint64_t)phys_to_virt(phys_range.front);
+    const uint64_t virt_end =
+        (uint64_t)phys_to_virt(range_get_end_assert(phys_range));
 
     if (flags & __VMAP_MMIO_LOW4G) {
         if (virt_end > gib(4)) {
@@ -143,27 +149,31 @@ vmap_mmio(const struct range phys_range,
         return NULL;
     }
 
-    const bool map_success =
-        arch_make_mapping(&kernel_pagemap,
-                          phys_range.front,
-                          virt_range.front,
-                          phys_range.size,
-                          prot,
-                          (flags & __VMAP_MMIO_WT) ?
-                            VMA_CACHEKIND_WRITETHROUGH : VMA_CACHEKIND_MMIO,
-                          /*is_overwrite=*/true);
+    if (virt_range.front >= gib(4) || flags & __VMAP_MMIO_WT) {
+        const bool map_success =
+            arch_make_mapping(&kernel_pagemap,
+                              phys_range.front,
+                              virt_range.front,
+                              phys_range.size,
+                              prot,
+                              VMA_CACHEKIND_WRITETHROUGH,
+                              /*is_overwrite=*/true);
 
-    if (!map_success) {
-        printk(LOGLEVEL_WARN,
-               "mmio: failed to map phys-range " RANGE_FMT " to virtual range "
-               RANGE_FMT "\n",
-               RANGE_FMT_ARGS(phys_range),
-               RANGE_FMT_ARGS(virt_range));
-        return NULL;
+        if (!map_success) {
+            printk(LOGLEVEL_WARN,
+                "mmio: failed to map phys-range " RANGE_FMT " to virtual range "
+                RANGE_FMT "\n",
+                RANGE_FMT_ARGS(phys_range),
+                RANGE_FMT_ARGS(virt_range));
+            return NULL;
+        }
+
+        mmio->base = (volatile void *)virt_range.front;
+        mmio->size = phys_range.size;
+    } else {
+        mmio->base = (volatile void *)virt_range.front;
+        mmio->size = phys_range.size;
     }
-
-    mmio->base = (volatile void *)virt_range.front;
-    mmio->size = phys_range.size;
 
     if (flags & __VMAP_MMIO_LOW4G) {
         list_add(&lower_half_mmio_list, &mmio->list);

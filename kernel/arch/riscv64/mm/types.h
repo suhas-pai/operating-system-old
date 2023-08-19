@@ -38,6 +38,33 @@
 #define phys_create_pte(phys) ((pte_t)(phys) >> 2)
 
 typedef uint64_t pte_t;
+
+static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
+    { (1ull << 12) - 1, PML1_MASK, PML2_MASK, PML3_MASK, PML4_MASK, PML5_MASK };
+
+static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
+    { PML1_SHIFT, PML2_SHIFT, PML3_SHIFT, PML4_SHIFT, PML5_SHIFT };
+
+static const uint8_t LARGEPAGE_LEVELS[] = { 2, 3, 4 };
+static const uint8_t LARGEPAGE_SHIFTS[] = {
+    PML2_SHIFT, PML3_SHIFT, PML4_SHIFT };
+
+#define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
+#define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
+#define PAGE_SIZE_512GIB (1ull << LARGEPAGE_SHIFTS[2])
+
+#define PAGE_SIZE_AT_LEVEL(level) \
+    ({\
+        const uint64_t __sizes__[] = { \
+            PAGE_SIZE,      \
+            PAGE_SIZE_2MIB, \
+            PAGE_SIZE_1GIB, \
+            PAGE_SIZE_1GIB * PGT_COUNT, \
+            PAGE_SIZE_1GIB * PGT_COUNT * PGT_COUNT \
+        }; \
+       __sizes__[level - 1];\
+    })
+
 enum pte_flags {
     __PTE_VALID    = 1 << 0,
     __PTE_READ     = 1 << 1,
@@ -49,19 +76,8 @@ enum pte_flags {
     __PTE_DIRTY    = 1 << 7,
 };
 
-static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
-    { (1ull << 12) - 1, PML1_MASK, PML2_MASK, PML3_MASK, PML4_MASK, PML5_MASK };
-
-static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
-    { PML1_SHIFT, PML2_SHIFT, PML3_SHIFT, PML4_SHIFT, PML5_SHIFT };
-
-static const uint8_t LARGEPAGE_SHIFTS[] = {
-    PML2_SHIFT, PML3_SHIFT, PML4_SHIFT };
-
 #define PGT_FLAGS (__PTE_VALID)
-
-#define PAGE_SIZE_512GIB (1ull << LARGEPAGE_SHIFTS[2])
-#define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
-#define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
+#define PTE_LARGE_FLAGS(level) ({ (void)level; __PTE_VALID; })
+#define PTE_LEAF_FLAGS __PTE_VALID
 
 struct page;

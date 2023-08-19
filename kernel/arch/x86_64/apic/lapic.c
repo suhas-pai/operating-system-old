@@ -13,6 +13,7 @@
 
 #include "cpu.h"
 #include "lapic.h"
+#include "mmio.h"
 
 struct mmio_region *lapic_mmio_region = NULL;
 volatile struct lapic_registers *lapic_regs = NULL;
@@ -52,15 +53,18 @@ static void calibrate_timer() {
 
     pit_set_reload_value(0xFFFF);
 
-    lapic_regs->timer_current_count = 0;
-    lapic_regs->timer_divide_config = LAPIC_TIMER_DIV_CONFIG_BY_2;
-    lapic_regs->lvt_timer =
+    mmio_write(&lapic_regs->timer_current_count, 0);
+    mmio_write(&lapic_regs->timer_divide_config, LAPIC_TIMER_DIV_CONFIG_BY_2);
+
+    const uint32_t timer_reg =
         setup_timer_register(LAPIC_TIMER_MODE_ONE_SHOT,
                              /*masked=*/true,
                              /*vector=*/0xFF);
 
-    lapic_regs->timer_initial_count = sample_count;
-    while (lapic_regs->timer_current_count != 0) {}
+    mmio_write(&lapic_regs->lvt_timer, timer_reg);
+    mmio_write(&lapic_regs->timer_initial_count, sample_count);
+
+    while (mmio_read(&lapic_regs->timer_current_count) != 0) {}
 
     /* Because the timer ticks down, init_tick_count > end_tick_count */
     const uint16_t pit_end_tick_number = pit_get_current_tick();
@@ -121,8 +125,8 @@ void lapic_enable() {
         lapic_write(X2APIC_LAPIC_REG_LVT_LINT0, lint0_value);
         lapic_write(X2APIC_LAPIC_REG_LVT_LINT1, lint1_value);
     } else {
-        uint64_t lint0_value = lapic_regs->lvt_lint0;
-        uint64_t lint1_value = lapic_regs->lvt_lint1;
+        uint64_t lint0_value = mmio_read(&lapic_regs->lvt_lint0);
+        uint64_t lint1_value = mmio_read(&lapic_regs->lvt_lint1);
 
         if (get_acpi_info()->nmi_lint == 1) {
             adjust_lint_extint_value(&lint0_value);
@@ -132,9 +136,9 @@ void lapic_enable() {
             adjust_lint_nmi_value(&lint0_value);
         }
 
-        lapic_regs->lvt_lint0 = (uint32_t)lint0_value;
-        lapic_regs->lvt_lint1 = (uint32_t)lint1_value;
-        lapic_regs->spur_int_vector |= spur_vector_mask;
+        mmio_write(&lapic_regs->lvt_lint0, (uint32_t)lint0_value);
+        mmio_write(&lapic_regs->lvt_lint1, (uint32_t)lint1_value);
+        mmio_write(&lapic_regs->spur_int_vector, spur_vector_mask);
     }
 
     printk(LOGLEVEL_INFO, "apic: lapic enabled\n");
@@ -144,7 +148,7 @@ void lapic_eoi() {
     if (get_acpi_info()->using_x2apic) {
         lapic_write(X2APIC_LAPIC_REG_EOI, 0);
     } else {
-        lapic_regs->eoi = 0;
+        mmio_write(&lapic_regs->eoi, 0);
     }
 }
 
@@ -152,8 +156,8 @@ void lapic_send_ipi(const uint32_t lapic_id, const uint32_t vector) {
     if (get_acpi_info()->using_x2apic) {
         lapic_write(X2APIC_LAPIC_REG_ICR, (uint64_t)lapic_id << 32 | vector);
     } else {
-        lapic_regs->icr[1].value = lapic_id << 24;
-        lapic_regs->icr[0].value = vector | (1 << 14);
+        mmio_write(&lapic_regs->icr[1].value, lapic_id << 24);
+        mmio_write(&lapic_regs->icr[0].value, vector | (1 << 14));
     }
 }
 
@@ -166,19 +170,19 @@ void lapic_send_self_ipi(const uint32_t vector) {
 }
 
 void lapic_timer_start() {
-    lapic_regs->timer_initial_count = 0xFFFFF;
-    lapic_regs->lvt_timer =
+    mmio_write(&lapic_regs->timer_initial_count, 0xFFFFF);
+    mmio_write(&lapic_regs->lvt_timer,
         setup_timer_register(LAPIC_TIMER_MODE_PERIODIC,
                              /*masked=*/false,
-                             /*vector=*/isr_get_timer_vector());
+                             /*vector=*/isr_get_timer_vector()));
 }
 
 void lapic_timer_stop() {
-    lapic_regs->timer_initial_count = 0;
-    lapic_regs->lvt_timer =
+    mmio_write(&lapic_regs->timer_initial_count, 0);
+    mmio_write(&lapic_regs->lvt_timer,
         setup_timer_register(LAPIC_TIMER_MODE_ONE_SHOT,
                              /*masked=*/true,
-                             /*vector=*/isr_get_timer_vector());
+                             /*vector=*/isr_get_timer_vector()));
 }
 
 void lapic_timer_one_shot(const uint64_t microseconds) {
@@ -190,12 +194,12 @@ void lapic_timer_one_shot(const uint64_t microseconds) {
     const uint64_t lapic_timer_freq_in_microseconds =
         get_cpu_info()->lapic_timer_frequency / 1000000;
 
-    lapic_regs->timer_initial_count =
-        lapic_timer_freq_in_microseconds * microseconds;
-    lapic_regs->lvt_timer =
+    mmio_write(&lapic_regs->timer_initial_count,
+        lapic_timer_freq_in_microseconds * microseconds);
+    mmio_write(&lapic_regs->lvt_timer,
         setup_timer_register(LAPIC_TIMER_MODE_ONE_SHOT,
                              /*masked=*/false,
-                             /*vector=*/isr_get_timer_vector());
+                             /*vector=*/isr_get_timer_vector()));
 }
 
 void lapic_init() {

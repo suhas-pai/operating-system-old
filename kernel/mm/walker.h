@@ -42,7 +42,7 @@ void ptwalker_default(struct pt_walker *walker, uint64_t virt_addr);
 struct pagemap;
 void
 ptwalker_default_for_pagemap(struct pt_walker *walker,
-                             struct pagemap *pagemap,
+                             const struct pagemap *pagemap,
                              uint64_t virt_addr);
 
 void
@@ -52,11 +52,11 @@ ptwalker_create(struct pt_walker *walker,
                 ptwalker_free_pgtable_t free_pgtable);
 
 void
-ptwalker_create_customroot(struct pt_walker *walker,
-                           uint64_t root_phys,
-                           uint64_t virt_addr,
-                           ptwalker_alloc_pgtable_t alloc_pgtable,
-                           ptwalker_free_pgtable_t free_pgtable);
+ptwalker_create_for_pagemap(struct pt_walker *walker,
+                            const struct pagemap *pagemap,
+                            uint64_t virt_addr,
+                            ptwalker_alloc_pgtable_t alloc_pgtable,
+                            ptwalker_free_pgtable_t free_pgtable);
 
 enum pt_walker_result {
     E_PT_WALKER_OK,

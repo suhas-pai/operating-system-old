@@ -33,10 +33,11 @@
 #define virt_to_page(virt) phys_to_page(virt_to_phys(virt))
 #define page_to_virt(page) phys_to_virt(page_to_phys(page))
 
-uint8_t pgt_get_top_level();
+typedef uint8_t pgt_level_t;
+pgt_level_t pgt_get_top_level();
 
 bool pte_is_present(pte_t pte);
-bool pte_level_can_have_large(uint8_t level);
+bool pte_level_can_have_large(pgt_level_t level);
 bool pte_is_large(pte_t pte);
 
 #define pte_to_pfn(pte) phys_to_pfn(pte_to_phys(pte))

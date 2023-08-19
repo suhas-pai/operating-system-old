@@ -57,14 +57,14 @@ ptwalker_default(struct pt_walker *const walker, const uint64_t virt_addr) {
 
 void
 ptwalker_default_for_pagemap(struct pt_walker *const walker,
-                             struct pagemap *const pagemap,
+                             const struct pagemap *const pagemap,
                              const uint64_t virt_addr)
 {
-    return ptwalker_create_customroot(walker,
-                                      get_root_phys(pagemap, virt_addr),
-                                      virt_addr,
-                                      ptwalker_alloc_pgtable_cb,
-                                      ptwalker_free_pgtable_cb);
+    return ptwalker_create_for_pagemap(walker,
+                                       pagemap,
+                                       virt_addr,
+                                       ptwalker_alloc_pgtable_cb,
+                                       ptwalker_free_pgtable_cb);
 }
 
 void
@@ -73,20 +73,22 @@ ptwalker_create(struct pt_walker *const walker,
                 const ptwalker_alloc_pgtable_t alloc_pgtable,
                 const ptwalker_free_pgtable_t free_pgtable)
 {
-    return ptwalker_create_customroot(walker,
-                                      get_root_phys(&kernel_pagemap, virt_addr),
-                                      virt_addr,
-                                      alloc_pgtable,
-                                      free_pgtable);
+    return ptwalker_create_for_pagemap(walker,
+                                       &kernel_pagemap,
+                                       virt_addr,
+                                       alloc_pgtable,
+                                       free_pgtable);
 }
 
 void
-ptwalker_create_customroot(struct pt_walker *const walker,
-                           const uint64_t root_phys,
-                           const uint64_t virt_addr,
-                           const ptwalker_alloc_pgtable_t alloc_pgtable,
-                           const ptwalker_free_pgtable_t free_pgtable)
+ptwalker_create_for_pagemap(struct pt_walker *const walker,
+                            const struct pagemap *const pagemap,
+                            const uint64_t virt_addr,
+                            const ptwalker_alloc_pgtable_t alloc_pgtable,
+                            const ptwalker_free_pgtable_t free_pgtable)
 {
+    const uint64_t root_phys = get_root_phys(pagemap, virt_addr);
+
     assert(has_align(root_phys, PAGE_SIZE));
     assert(has_align(virt_addr, PAGE_SIZE));
 
@@ -190,17 +192,16 @@ setup_levels_lower_than(struct pt_walker *const walker,
         walker->indices[level - 1] = 0;
 
         pte = table;
-        level--;
-
-        if (level < 1) {
-            walker->level = 1;
-            break;
-        }
-
         if (!pte_is_present(*pte) ||
             (pte_level_can_have_large(level) && pte_is_large(*pte)))
         {
             walker->level = level;
+            break;
+        }
+
+        level--;
+        if (level < 1) {
+            walker->level = 1;
             break;
         }
     }
@@ -352,13 +353,13 @@ ptwalker_next_with_options(struct pt_walker *const walker,
             continue;
         }
 
-        if (!pte_level_can_have_large(level)) {
-            reset_levels_lower_than(walker, level);
-            break;
-        }
-
         pte_t *const pte =
             &walker->tables[level - 1][walker->indices[level - 1]];
+
+        if (!pte_level_can_have_large(level)) {
+            setup_levels_lower_than(walker, level, pte);
+            return E_PT_WALKER_OK;
+        }
 
         const pte_t entry = *pte;
         if (!pte_is_present(entry)) {
@@ -459,14 +460,14 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
             continue;
         }
 
-        walker->indices[level - 1]--;
-        if (!pte_level_can_have_large(level)) {
-            reset_levels_lower_than(walker, level);
-            break;
-        }
-
         pte_t *const pte =
             &walker->tables[level - 1][walker->indices[level - 1]];
+
+        walker->indices[level - 1]--;
+        if (!pte_level_can_have_large(level)) {
+            setup_levels_lower_than(walker, level, pte);
+            return E_PT_WALKER_OK;
+        }
 
         const pte_t entry = *pte;
         if (!pte_is_present(entry)) {

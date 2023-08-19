@@ -22,16 +22,16 @@ void mmio_write_64(volatile void *ptr, uint64_t value);
     __auto_type __result__ = (typeof(*(ptr)))0; \
     switch (sizeof(*(ptr))) { \
         case sizeof(uint8_t): \
-            __result__ = mmio_read_8(ptr); \
+            __result__ = (typeof(*(ptr)))mmio_read_8(ptr); \
             break; \
         case sizeof(uint16_t): \
-            __result__ = mmio_read_16(ptr); \
+            __result__ = (typeof(*(ptr)))mmio_read_16(ptr); \
             break; \
         case sizeof(uint32_t): \
-            __result__ = mmio_read_32(ptr); \
+            __result__ = (typeof(*(ptr)))mmio_read_32(ptr); \
             break; \
         case sizeof(uint64_t): \
-            __result__ = mmio_read_64(ptr); \
+            __result__ = (typeof(*(ptr)))mmio_read_64(ptr); \
             break; \
         default: \
             verify_not_reached(); \
@@ -42,16 +42,16 @@ void mmio_write_64(volatile void *ptr, uint64_t value);
 #define mmio_write(ptr, value) ({ \
     switch (sizeof(*(ptr))) { \
         case sizeof(uint8_t): \
-            mmio_write_8((ptr), (value)); \
+            mmio_write_8((ptr), (uint8_t)(value)); \
             break; \
         case sizeof(uint16_t): \
-            mmio_write_16((ptr), (value)); \
+            mmio_write_16((ptr), (uint16_t)(value)); \
             break; \
         case sizeof(uint32_t): \
-            mmio_write_32((ptr), (value)); \
+            mmio_write_32((ptr), (uint32_t)(value)); \
             break; \
         case sizeof(uint64_t): \
-            mmio_write_64((ptr), (value)); \
+            mmio_write_64((ptr), (uint64_t)(value)); \
             break; \
         default: \
             verify_not_reached(); \

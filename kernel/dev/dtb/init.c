@@ -13,14 +13,8 @@
 #include "dev/printk.h"
 #include "fdt/libfdt.h"
 
+#include "boot.h"
 #include "dtb.h"
-#include "limine.h"
-
-static volatile struct limine_dtb_request dtb_request = {
-    .id = LIMINE_DTB_REQUEST,
-    .revision = 0,
-    .response = NULL
-};
 
 #if defined(__riscv) && defined(__LP64__)
     static void init_serial_device(const void *const dtb, const int nodeoff) {
@@ -169,11 +163,7 @@ static void init_pci_drivers(const void *const dtb) {
 
 void dtb_init_early() {
 #if defined(__riscv) && defined(__LP64__)
-    if (dtb_request.response == NULL) {
-        panic("dtb: device tree not found");
-    }
-
-    const void *const dtb = dtb_request.response->dtb_ptr;
+    const void *const dtb = boot_get_dtb();
     init_riscv_serial_devices(dtb);
 
     printk(LOGLEVEL_INFO, "dtb: finished early init\n");
@@ -199,7 +189,8 @@ dtb_init_nodes_for_driver(const void *const dtb,
 }
 
 void dtb_init() {
-    if (dtb_request.response == NULL) {
+    const void *const dtb = boot_get_dtb();
+    if (dtb == NULL) {
     #if defined(__riscv) && defined(__LP64__)
         panic("dtb: device tree not found");
     #else
@@ -208,9 +199,7 @@ void dtb_init() {
     #endif /* defined(__riscv) && defined(__LP64__) */
     }
 
-    const void *const dtb = dtb_request.response->dtb_ptr;
     init_pci_drivers(dtb);
-
     driver_foreach(driver) {
         if (driver->dtb != NULL) {
             dtb_init_nodes_for_driver(dtb, driver->dtb);

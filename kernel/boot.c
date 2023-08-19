@@ -3,10 +3,7 @@
  * © suhas pai
  */
 
-#if defined(__riscv) && defined(__LP64__)
-    #include "dev/printk.h"
-#endif /* defined(__riscv) && defined(__LP64__) */
-
+#include "dev/printk.h"
 #include "lib/assert.h"
 #include "mm/mm_types.h"
 
@@ -42,9 +39,22 @@ static volatile struct limine_rsdp_request rsdp_request = {
     .revision = 0
 };
 
+static volatile struct limine_dtb_request dtb_request = {
+    .id = LIMINE_DTB_REQUEST,
+    .revision = 0,
+    .response = NULL
+};
+
+static volatile struct limine_boot_time_request boot_time_request = {
+    .id = LIMINE_BOOT_TIME_REQUEST,
+    .revision = 0
+};
+
 static struct mm_memmap mm_memmap_list[64] = {0};
 static uint64_t mm_memmap_count = 0;
 static void *rsdp = NULL;
+static const void *dtb = NULL;
+int64_t boot_time = 0;
 
 const struct mm_memmap *mm_get_memmap_list() {
     return mm_memmap_list;
@@ -56,6 +66,28 @@ uint64_t mm_get_memmap_count() {
 
 void *boot_get_rsdp() {
     return rsdp;
+}
+
+const void *boot_get_dtb() {
+    return dtb;
+}
+
+int64_t boot_get_time() {
+    return boot_time;
+}
+
+void boot_early_init() {
+    if (dtb_request.response == NULL ||
+        dtb_request.response->dtb_ptr == NULL)
+    {
+    #if defined(__riscv) && defined(__LP64__)
+        panic("boot: device tree not found");
+    #else
+        printk(LOGLEVEL_WARN, "boot: device tree is missing\n");
+    #endif /* defined(__riscv) && defined(__LP64__) */
+    } else {
+        dtb = dtb_request.response->dtb_ptr;
+    }
 }
 
 void boot_init() {
@@ -97,9 +129,14 @@ void boot_init() {
         panic("boot: acpi not found\n");
     #else
         printk(LOGLEVEL_WARN, "boot: acpi does not exist\n");
-        return;
     #endif /* !(defined(__riscv) && defined(__LP64__)) */
+    } else {
+        rsdp = rsdp_request.response->address;
     }
 
-    rsdp = rsdp_request.response->address;
+    if (boot_time_request.response == NULL) {
+        panic("boot: boot-time not found\n");
+    }
+
+    boot_time = boot_time_request.response->boot_time;
 }

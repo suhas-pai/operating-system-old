@@ -25,6 +25,11 @@ struct mm_memmap {
 
 const struct mm_memmap *mm_get_memmap_list();
 
+void boot_early_init();
 void boot_init();
+
 uint64_t mm_get_memmap_count();
+
 void *boot_get_rsdp();
+const void *boot_get_dtb();
+int64_t boot_get_time();

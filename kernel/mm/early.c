@@ -28,6 +28,7 @@ static void claim_pages(const struct range range) {
 
     // Check if the we can combine this entry and the prior one.
     // Store structure in the first page in list.
+
     struct freepages_info *const info = phys_to_virt(range.front);
     total_free_pages += page_count;
 
@@ -70,7 +71,7 @@ uint64_t early_alloc_page() {
     return free_page;
 }
 
-uint64_t early_alloc_cont_pages(const uint32_t amount) {
+uint64_t early_alloc_large_page(const uint32_t amount) {
     if (list_empty(&freepages_list)) {
         printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
         return INVALID_PHYS;
@@ -148,9 +149,6 @@ void mm_early_init() {
     for (uint64_t index = 0; index != mm_get_memmap_count(); index++) {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
         const char *type_desc = "<unknown>";
-
-        // Don't claim pages in *Reclaimable memmaps yet, although we do map it
-        // in the structpage table.
 
         switch (memmap->kind) {
             case MM_MEMMAP_KIND_NONE:
@@ -266,7 +264,7 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
 
         if (prev_was_at_end || prev_level > walker.level) {
             for (uint8_t level = (uint8_t)walker.level;
-                 level < walker.top_level;
+                 level <= walker.top_level;
                  level++)
             {
                 const uint64_t index = walker.indices[level - 1];
@@ -275,18 +273,14 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
                 }
 
                 pte_t *const table = walker.tables[level - 1];
-                struct page *const page = pte_to_page(*table);
+                struct page *const page = virt_to_page(table);
 
                 init_table_page(page);
             }
         }
 
-        uint64_t page_size = PAGE_SIZE;
-        for (uint8_t j = 1; j != walker.level; j++) {
-            page_size *= PGT_COUNT;
-        }
+        i += PAGE_SIZE_AT_LEVEL(walker.level);
 
-        i += page_size;
         prev_level = walker.level;
         prev_was_at_end = walker.indices[walker.level - 1] == PGT_COUNT - 1;
     }

@@ -56,6 +56,8 @@ void _start(void) {
         fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff;
     }
 
+    boot_early_init();
+
     // We're done, just hang...
     serial_init();
     printk(LOGLEVEL_INFO, "Console is working?\n");

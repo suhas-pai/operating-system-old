@@ -4,6 +4,8 @@
  */
 
 #include "mm/page.h"
+
+#include "cpu.h"
 #include "limine.h"
 
 const uint64_t PAGE_OFFSET = 0xffffc00000000000;
@@ -24,7 +26,8 @@ bool pte_is_present(const pte_t pte) {
 }
 
 bool pte_level_can_have_large(const uint8_t level) {
-    return (level == 2 || level == 3);
+    return (level == 2 ||
+            (level == 3 && get_cpu_capabilities()->supports_1gib_pages));
 }
 
 bool pte_is_large(const pte_t pte) {

@@ -46,10 +46,24 @@ static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
 static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
     { PML1_SHIFT, PML2_SHIFT, PML3_SHIFT, PML4_SHIFT, PML5_SHIFT };
 
+static const uint8_t LARGEPAGE_LEVELS[] = { 2, 3 };
 static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
 
 #define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
 #define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
+
+#define PAGE_SIZE_AT_LEVEL(level) \
+    ({\
+        const uint64_t __sizes__[] = { \
+            PAGE_SIZE,      \
+            PAGE_SIZE_2MIB, \
+            PAGE_SIZE_1GIB, \
+            /* The following aren't valid largepage sizes, but keep them */ \
+            PAGE_SIZE_1GIB * PGT_COUNT, \
+            PAGE_SIZE_1GIB * PGT_COUNT * PGT_COUNT \
+        }; \
+       __sizes__[level - 1];\
+    })
 
 enum pte_flags {
     __PTE_PRESENT  = 1 << 0,
@@ -66,4 +80,7 @@ enum pte_flags {
 };
 
 #define PGT_FLAGS (__PTE_PRESENT | __PTE_WRITE)
+#define PTE_LARGE_FLAGS(level) ({ (void)level; __PTE_PRESENT | __PTE_LARGE; })
+#define PTE_LEAF_FLAGS 0
+
 struct page;

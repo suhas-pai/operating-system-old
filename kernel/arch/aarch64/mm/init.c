@@ -10,7 +10,7 @@
 #include "lib/size.h"
 
 #include "mm/early.h"
-#include "mm/pagemap.h"
+#include "mm/vmap.h"
 
 #include "boot.h"
 
@@ -32,19 +32,15 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
 }
 
 static void
-map_region(const uint64_t root_phys,
-           uint64_t virt_addr,
-           uint64_t map_size,
-           const uint64_t pte_flags)
-{
+map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
     enum pt_walker_result walker_result = E_PT_WALKER_OK;
     struct pt_walker pt_walker = {0};
 
-    ptwalker_create_customroot(&pt_walker,
-                               root_phys,
-                               virt_addr,
-                               /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
-                               /*free_pgtable=*/NULL);
+    ptwalker_create_for_pagemap(&pt_walker,
+                                &kernel_pagemap,
+                                virt_addr,
+                                /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
+                                /*free_pgtable=*/NULL);
 
     if (map_size >= PAGE_SIZE_1GIB && has_align(virt_addr, PAGE_SIZE_1GIB)) {
         walker_result =
@@ -61,7 +57,7 @@ map_region(const uint64_t root_phys,
 
         do {
             const uint64_t page =
-                early_alloc_cont_pages(/*order=*/PGT_COUNT * PGT_COUNT);
+                early_alloc_large_page(/*order=*/PGT_COUNT * PGT_COUNT);
 
             if (page == INVALID_PHYS) {
                 // We failed to alloc a 1gib page, so try 2mib pages next.
@@ -107,7 +103,7 @@ map_region(const uint64_t root_phys,
         }
 
         do {
-            const uint64_t page = early_alloc_cont_pages(/*order=*/PGT_COUNT);
+            const uint64_t page = early_alloc_large_page(/*order=*/PGT_COUNT);
             if (page == INVALID_PHYS) {
                 // We failed to alloc a 2mib page, so fill with 4kib pages
                 // instead.
@@ -185,10 +181,7 @@ map_region(const uint64_t root_phys,
     }
 }
 
-static void
-setup_pagestructs_table(const uint64_t higher_root_phys,
-                        const uint64_t byte_count)
-{
+static void setup_pagestructs_table(const uint64_t byte_count) {
     const uint64_t structpage_count = PAGE_COUNT(byte_count);
     uint64_t map_size = structpage_count * SIZEOF_STRUCTPAGE;
 
@@ -203,23 +196,23 @@ setup_pagestructs_table(const uint64_t higher_root_phys,
 
     // Map struct page table
     const uint64_t pte_flags = __PTE_PXN | __PTE_UXN;
-    map_region(higher_root_phys, PAGE_OFFSET, map_size, pte_flags);
+    map_region(PAGE_OFFSET, map_size, pte_flags);
 }
 
 static void
-map_into_kernel_pagemap(const uint64_t root_phys,
-                        const uint64_t phys_addr,
+map_into_kernel_pagemap(const uint64_t phys_addr,
                         const uint64_t virt_addr,
                         const uint64_t size,
                         const uint64_t pte_flags)
 {
     struct pt_walker walker = {0};
-    ptwalker_create_customroot(&walker,
-                               root_phys,
-                               virt_addr,
-                               ptwalker_alloc_pgtable_cb,
-                               /*free_pgtable=*/NULL);
+    ptwalker_create_for_pagemap(&walker,
+                                &kernel_pagemap,
+                                virt_addr,
+                                ptwalker_alloc_pgtable_cb,
+                                /*free_pgtable=*/NULL);
 
+#if 0
     uint64_t index = 0;
     if (has_align(phys_addr, PAGE_SIZE_1GIB) &&
         has_align(virt_addr, PAGE_SIZE_1GIB))
@@ -317,6 +310,20 @@ map_into_kernel_pagemap(const uint64_t root_phys,
                                        /*alloc_pgtable_cb_info=*/NULL,
                                        /*free_pgtable_cb_info=*/NULL);
     }
+#endif
+
+    const uint64_t full_flags =
+        __PTE_VALID | __PTE_INNER_SH | __PTE_ACCESS | pte_flags;
+
+    vmap_at_with_ptwalker(&walker,
+                          range_create(phys_addr,
+                                       align_up_assert(size, PAGE_SIZE)),
+                          full_flags,
+                          /*should_ref=*/false,
+                          /*is_overwrite=*/false,
+                          1 << 3 | 1 << 2,
+                          /*alloc_pgtable_cb_info=*/NULL,
+                          /*free_pgtable_cb_info=*/NULL);
 }
 
 static void
@@ -339,6 +346,10 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     kernel_pagemap.root[1] = phys_to_page(higher_root);
 
     uint64_t kernel_memmap_size = 0;
+    map_into_kernel_pagemap(/*phys_addr=*/MMIO_BASE - HHDM_OFFSET,
+                            /*virt_addr=*/MMIO_BASE,
+                            (MMIO_END - MMIO_BASE),
+                            __PTE_MMIO);
 
     // Map all 'good' regions into the hhdm
     for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
@@ -351,8 +362,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
 
         if (memmap->kind == MM_MEMMAP_KIND_KERNEL_AND_MODULES) {
             kernel_memmap_size = memmap->range.size;
-            map_into_kernel_pagemap(higher_root,
-                                    /*phys_addr=*/memmap->range.front,
+            map_into_kernel_pagemap(/*phys_addr=*/memmap->range.front,
                                     /*virt_addr=*/KERNEL_BASE,
                                     kernel_memmap_size,
                                     /*pte_flags=*/0);
@@ -362,8 +372,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
                 flags |= __PTE_WC;
             }
 
-            map_into_kernel_pagemap(higher_root,
-                                    /*phys_addr=*/memmap->range.front,
+            map_into_kernel_pagemap(/*phys_addr=*/memmap->range.front,
                                     (uint64_t)phys_to_virt(memmap->range.front),
                                     memmap->range.size,
                                     flags);
@@ -372,9 +381,8 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
 
     *kernel_memmap_size_out = kernel_memmap_size;
 
-    setup_pagestructs_table(higher_root, total_bytes_repr_by_structpage_table);
-    map_into_kernel_pagemap(lower_root,
-                            /*phys_addr=*/MMIO_BASE - HHDM_OFFSET,
+    setup_pagestructs_table(total_bytes_repr_by_structpage_table);
+    map_into_kernel_pagemap(/*phys_addr=*/MMIO_BASE - HHDM_OFFSET,
                             /*virt_addr=*/MMIO_BASE - HHDM_OFFSET,
                             (MMIO_END - MMIO_BASE),
                             __PTE_MMIO);
@@ -386,6 +394,10 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // to go through each table used, and setup all pgtable metadata inside a
     // struct page
 
+    mm_early_refcount_alloced_map(MMIO_BASE - HHDM_OFFSET,
+                                  (MMIO_END - MMIO_BASE));
+
+    mm_early_refcount_alloced_map(MMIO_BASE, (MMIO_END - MMIO_BASE));
     for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
         if (memmap->kind == MM_MEMMAP_KIND_BAD_MEMORY ||
