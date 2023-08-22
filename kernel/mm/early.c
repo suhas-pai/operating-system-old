@@ -221,7 +221,7 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
                     /*alloc_pgtable=*/NULL,
                     /*free_pgtable=*/NULL);
 
-    for (uint8_t level = (uint8_t)walker.level;
+    for (pgt_level_t level = (uint8_t)walker.level;
          level <= walker.top_level;
          level++)
     {
@@ -243,7 +243,7 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
     for (uint64_t i = 0; i < length;) {
         const enum pt_walker_result advance_result =
             ptwalker_next_with_options(&walker,
-                                       /*level=*/walker.level,
+                                       walker.level,
                                        /*alloc_parents=*/false,
                                        /*alloc_level=*/false,
                                        /*should_ref=*/false,
@@ -263,7 +263,7 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
         // can then exit.
 
         if (prev_was_at_end || prev_level > walker.level) {
-            for (uint8_t level = (uint8_t)walker.level;
+            for (pgt_level_t level = (pgt_level_t)walker.level;
                  level <= walker.top_level;
                  level++)
             {

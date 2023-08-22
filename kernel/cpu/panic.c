@@ -3,7 +3,7 @@
  * © suhas pai
  */
 
-#if defined(__x86_64__)
+#if __has_include("asm/stack_trace.h")
     #include "asm/stack_trace.h"
 #endif /* defined(__x86_64__) */
 
@@ -12,16 +12,16 @@
 
 #include "lib/parse_printf.h"
 
-void panic(const char *fmt, ...) {
+void panic(const char *const fmt, ...) {
     va_list list;
     va_start(list, fmt);
 
     vprintk(LOGLEVEL_CRITICAL, fmt, list);
     va_end(list);
 
-#if defined(__x86_64__)
+#if __has_include("asm/stack_trace.h")
     print_stack_trace(/*max_lines=*/10);
-#endif /* defined(__x86_64__) */
+#endif /* __has_include("asm/stack_trace.h") */
 
     cpu_halt();
 }

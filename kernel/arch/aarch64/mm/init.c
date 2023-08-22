@@ -64,9 +64,9 @@ map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                 break;
             }
 
-            *ptwalker_pte_in_level(&pt_walker, /*level=*/3) =
-                phys_create_pte(page) | pte_flags | __PTE_VALID | __PTE_ACCESS |
-                __PTE_INNER_SH;
+            pt_walker.tables[2][pt_walker.indices[2]] =
+                phys_create_pte(page) | PTE_LARGE_FLAGS(3) | __PTE_INNER_SH |
+                pte_flags;
 
             walker_result =
                 ptwalker_next_with_options(&pt_walker,
@@ -110,9 +110,9 @@ map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                 break;
             }
 
-            *ptwalker_pte_in_level(&pt_walker, /*level=*/2) =
-                phys_create_pte(page) | pte_flags | __PTE_VALID | __PTE_ACCESS |
-                __PTE_INNER_SH;
+            pt_walker.tables[1][pt_walker.indices[1]] =
+                phys_create_pte(page) | PTE_LARGE_FLAGS(2) | __PTE_INNER_SH |
+                pte_flags;
 
             walker_result =
                 ptwalker_next_with_options(&pt_walker,
@@ -154,9 +154,9 @@ map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                 goto panic;
             }
 
-            *ptwalker_pte_in_level(&pt_walker, /*level=*/1) =
-                phys_create_pte(page) | pte_flags | __PTE_VALID | __PTE_4KPAGE |
-                __PTE_ACCESS | __PTE_INNER_SH;
+            pt_walker.tables[0][pt_walker.indices[0]] =
+                phys_create_pte(page) | PTE_LEAF_FLAGS | __PTE_INNER_SH |
+                pte_flags;
 
             walker_result =
                 ptwalker_next_with_options(&pt_walker,
@@ -312,18 +312,19 @@ map_into_kernel_pagemap(const uint64_t phys_addr,
     }
 #endif
 
-    const uint64_t full_flags =
-        __PTE_VALID | __PTE_INNER_SH | __PTE_ACCESS | pte_flags;
+    const uint64_t full_flags = __PTE_INNER_SH | __PTE_ACCESS | pte_flags;
+    const bool vmap_result =
+        vmap_at_with_ptwalker(&walker,
+                              range_create(phys_addr,
+                                           align_up_assert(size, PAGE_SIZE)),
+                              full_flags,
+                              /*should_ref=*/false,
+                              /*is_overwrite=*/false,
+                              1 << 3 | 1 << 2,
+                              /*alloc_pgtable_cb_info=*/NULL,
+                              /*free_pgtable_cb_info=*/NULL);
 
-    vmap_at_with_ptwalker(&walker,
-                          range_create(phys_addr,
-                                       align_up_assert(size, PAGE_SIZE)),
-                          full_flags,
-                          /*should_ref=*/false,
-                          /*is_overwrite=*/false,
-                          1 << 3 | 1 << 2,
-                          /*alloc_pgtable_cb_info=*/NULL,
-                          /*free_pgtable_cb_info=*/NULL);
+    assert_msg(vmap_result, "mm: failed to setup kernel-pagemap");
 }
 
 static void
@@ -342,8 +343,8 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
               "kernel-pagemap");
     }
 
-    kernel_pagemap.root[0] = phys_to_page(lower_root);
-    kernel_pagemap.root[1] = phys_to_page(higher_root);
+    kernel_pagemap.lower_root = phys_to_page(lower_root);
+    kernel_pagemap.higher_root = phys_to_page(higher_root);
 
     uint64_t kernel_memmap_size = 0;
     map_into_kernel_pagemap(/*phys_addr=*/MMIO_BASE - HHDM_OFFSET,

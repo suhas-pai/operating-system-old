@@ -458,7 +458,7 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 break;
             }
-        #if defined(__riscv) && defined(__LP64__)
+        #if defined(__riscv64)
             case ACPI_MADT_ENTRY_KIND_RISCV_HART_IRQ_CNTRLR: {
                 if (iter->length !=
                         sizeof(struct acpi_madt_riscv_hart_irq_cntrlr))
@@ -494,7 +494,7 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 break;
             }
-        #endif /* defined(__riscv) && defined(__LP64__) */
+        #endif /* defined(__riscv64) */
             default:
                 printk(LOGLEVEL_INFO,
                        "madt: found invalid entry: %" PRIu32 "\n",

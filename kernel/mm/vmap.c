@@ -25,9 +25,6 @@ map_normal(struct pt_walker *const walker,
            void *const free_pgtable_cb_info)
 {
     uint64_t phys_addr = *phys_addr_in;
-    assert_msg(has_align(phys_addr, PAGE_SIZE),
-               "vmap(): phys-addr isn't aligned to PAGE_SIZE");
-
     if (phys_addr + PAGE_SIZE > phys_end) {
         return MAP_DONE;
     }
@@ -65,7 +62,7 @@ map_normal(struct pt_walker *const walker,
                                            free_pgtable_cb_info);
 
             phys_addr += PAGE_SIZE;
-            if (phys_addr >= phys_end) {
+            if (phys_addr == phys_end) {
                 *phys_addr_in = phys_addr;
                 return MAP_DONE;
             }
@@ -95,7 +92,7 @@ map_normal(struct pt_walker *const walker,
                                            free_pgtable_cb_info);
 
             phys_addr += PAGE_SIZE;
-            if (phys_addr >= phys_end) {
+            if (phys_addr == phys_end) {
                 *phys_addr_in = phys_addr;
                 return MAP_DONE;
             }
@@ -115,7 +112,7 @@ enum map_result
 map_large_at_level(struct pt_walker *const walker,
                    uint64_t *const phys_addr_in,
                    const uint64_t phys_end,
-                   const uint8_t level,
+                   const pgt_level_t level,
                    const uint64_t flags,
                    const bool should_ref,
                    const bool is_overwrite,
@@ -167,7 +164,7 @@ map_large_at_level(struct pt_walker *const walker,
                                                free_pgtable_cb_info);
 
                 phys_addr += largepage_size;
-                if (phys_addr >= phys_end) {
+                if (phys_addr == phys_end) {
                     *phys_addr_in = phys_addr;
                     return MAP_DONE;
                 }
@@ -192,7 +189,7 @@ map_large_at_level(struct pt_walker *const walker,
                                                free_pgtable_cb_info);
 
                 phys_addr += largepage_size;
-                if (phys_addr >= phys_end) {
+                if (phys_addr == phys_end) {
                     *phys_addr_in = phys_addr;
                     return MAP_CONTINUE;
                 }
@@ -225,7 +222,7 @@ map_large_at_level(struct pt_walker *const walker,
                                                free_pgtable_cb_info);
 
                 phys_addr += largepage_size;
-                if (phys_addr >= phys_end) {
+                if (phys_addr == phys_end) {
                     *phys_addr_in = phys_addr;
                     return MAP_DONE;
                 }
@@ -255,7 +252,7 @@ map_large_at_level(struct pt_walker *const walker,
                                                free_pgtable_cb_info);
 
                 phys_addr += largepage_size;
-                if (phys_addr >= phys_end) {
+                if (phys_addr == phys_end) {
                     *phys_addr_in = phys_addr;
                     return MAP_DONE;
                 }
@@ -272,7 +269,7 @@ map_large_at_level(struct pt_walker *const walker,
     return MAP_CONTINUE;
 }
 
-void
+bool
 vmap_at(const struct pagemap *const pagemap,
         const struct range phys_range,
         const uint64_t virt_addr,
@@ -282,19 +279,20 @@ vmap_at(const struct pagemap *const pagemap,
         const uint8_t supports_largepage_at_level_mask)
 {
     struct pt_walker walker = {0};
-
     ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
-    vmap_at_with_ptwalker(&walker,
-                          phys_range,
-                          pte_flags,
-                          should_ref,
-                          is_overwrite,
-                          supports_largepage_at_level_mask,
-                          /*alloc_pgtable_cb_info=*/NULL,
-                          /*free_pgtable_cb_info=*/NULL);
+
+    return
+        vmap_at_with_ptwalker(&walker,
+                              phys_range,
+                              pte_flags,
+                              should_ref,
+                              is_overwrite,
+                              supports_largepage_at_level_mask,
+                              /*alloc_pgtable_cb_info=*/NULL,
+                              /*free_pgtable_cb_info=*/NULL);
 }
 
-void
+bool
 vmap_at_with_ptwalker(struct pt_walker *const walker,
                       const struct range phys_range,
                       const uint64_t pte_flags,
@@ -306,17 +304,23 @@ vmap_at_with_ptwalker(struct pt_walker *const walker,
 {
     if (range_empty(phys_range)) {
         printk(LOGLEVEL_WARN, "vmap_at(): phys-range is empty\n");
-        return;
+        return false;
     }
 
     uint64_t phys_end = 0;
     if (!range_get_end(phys_range, &phys_end)) {
         printk(LOGLEVEL_WARN,
                "vmap_at(): phys-range goes beyond end of address-space\n");
-        return;
+        return false;
     }
 
     uint64_t phys_addr = phys_range.front;
+    if (!range_has_align(phys_range, PAGE_SIZE)) {
+        printk(LOGLEVEL_WARN,
+               "vmap_at(): phys-range isn't aligned to PAGE_SIZE\n");
+        return false;
+    }
+
     do {
     start:
         for (int8_t index = countof(LARGEPAGE_LEVELS) - 1;
@@ -341,7 +345,7 @@ vmap_at_with_ptwalker(struct pt_walker *const walker,
 
             switch (result) {
                 case MAP_DONE:
-                    return;
+                    return true;
                 case MAP_CONTINUE:
                     break;
                 case MAP_RESTART:
@@ -361,10 +365,12 @@ vmap_at_with_ptwalker(struct pt_walker *const walker,
 
         switch (result) {
             case MAP_DONE:
-                return;
+                return true;
             case MAP_CONTINUE:
             case MAP_RESTART:
                 break;
         }
     } while (phys_addr < phys_end);
+
+    return true;
 }

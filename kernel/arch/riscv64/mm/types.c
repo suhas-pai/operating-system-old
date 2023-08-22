@@ -3,8 +3,8 @@
  * © suhas pai
  */
 
-#include <stdbool.h>
 #include "lib/assert.h"
+#include "mm/mm_types.h"
 
 #include "limine.h"
 #include "types.h"
@@ -17,7 +17,7 @@ uint64_t MMIO_BASE = 0;
 uint64_t MMIO_END = 0;
 uint64_t PAGING_MODE = 0;
 
-uint8_t pgt_get_top_level() {
+pgt_level_t pgt_get_top_level() {
     switch (PAGING_MODE) {
         case LIMINE_PAGING_MODE_RISCV_SV39:
             return 3;
@@ -34,7 +34,7 @@ bool pte_is_present(const pte_t pte) {
     return (pte & __PTE_VALID) != 0;
 }
 
-bool pte_level_can_have_large(const uint8_t level) {
+bool pte_level_can_have_large(const pgt_level_t level) {
     return level > 1;
 }
 

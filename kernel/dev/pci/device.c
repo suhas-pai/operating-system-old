@@ -44,32 +44,48 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
             return;
         }
 
-        pci_write(device,
-                  struct pci_spec_cap_msi,
-                  msg_address,
-                  (uint32_t)address);
+        pci_write_with_offset(device,
+                              device->pcie_msi_offset,
+                              struct pci_spec_cap_msi,
+                              msg_address,
+                              (uint32_t)address);
 
         if (is_64_bit) {
-            pci_write(device, struct pci_spec_cap_msi, bits64.msg_data, vector);
+            pci_write_with_offset(device,
+                                  device->pcie_msi_offset,
+                                  struct pci_spec_cap_msi,
+                                  bits64.msg_data,
+                                  vector);
         } else {
-            pci_write(device, struct pci_spec_cap_msi, bits32.msg_data, vector);
+            pci_write_with_offset(device,
+                                  device->pcie_msi_offset,
+                                  struct pci_spec_cap_msi,
+                                  bits32.msg_data,
+                                  vector);
         }
 
         msg_control |= __PCI_CAPMSI_CTRL_ENABLE;
         msg_control &= (uint16_t)~__PCI_CAPMSI_CTRL_MULTIMSG_ENABLE;
 
-        pci_write(device, struct pci_spec_cap_msi, msg_control, msg_control);
+        pci_write_with_offset(device,
+                              device->pcie_msi_offset,
+                              struct pci_spec_cap_msi,
+                              msg_control,
+                              msg_control);
+
         if (masked) {
             if (is_64_bit) {
-                pci_write(device,
-                          struct pci_spec_cap_msi,
-                          bits64.mask_bits,
-                          1ull << vector);
+                pci_write_with_offset(device,
+                                      device->pcie_msi_offset,
+                                      struct pci_spec_cap_msi,
+                                      bits64.mask_bits,
+                                      1ull << vector);
             } else {
-                pci_write(device,
-                          struct pci_spec_cap_msi,
-                          bits32.mask_bits,
-                          1ull << vector);
+                pci_write_with_offset(device,
+                                      device->pcie_msi_offset,
+                                      struct pci_spec_cap_msi,
+                                      bits32.mask_bits,
+                                      1ull << vector);
             }
         }
     }
@@ -125,7 +141,10 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
         }
 
         const uint32_t table_offset =
-            pci_read(device, struct pci_spec_cap_msix, table_offset);
+            pci_read_with_offset(device,
+                                 device->pcie_msix_offset,
+                                 struct pci_spec_cap_msix,
+                                 table_offset);
 
         const uint8_t bar_index = table_offset & __PCI_BARSPEC_TABLE_OFFSET_BIR;
         if (!index_in_bounds(bar_index, device->max_bar_count)) {
@@ -168,7 +187,11 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
 
         /* Enable MSI-X after we setup the table-entry */
         msg_control |= __PCI_MSIX_CAP_CTRL_ENABLE;
-        pci_write(device, struct pci_spec_cap_msix, msg_control, msg_control);
+        pci_write_with_offset(device,
+                              device->pcie_msix_offset,
+                              struct pci_spec_cap_msix,
+                              msg_control,
+                              msg_control);
     }
 
     bool

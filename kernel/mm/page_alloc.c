@@ -81,14 +81,14 @@ alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
 
 struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
     if (order >= MAX_ORDER) {
-        printk(LOGLEVEL_WARN, "alloc_pages(): got order >= MAX_ORDER");
+        printk(LOGLEVEL_WARN, "alloc_pages(): got order >= MAX_ORDER\n");
         return NULL;
     }
 
     struct page_zone *zone = page_alloc_flags_to_zone(alloc_flags);
     if (zone == NULL) {
         printk(LOGLEVEL_WARN,
-               "alloc_pages(): page_alloc_flags_to_zone() returned null");
+               "alloc_pages(): page_alloc_flags_to_zone() returned null\n");
         return NULL;
     }
 

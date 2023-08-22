@@ -58,6 +58,9 @@ void *kmalloc(const uint64_t size) {
 
 void *krealloc(void *const buffer, const uint64_t size) {
     // Allow buffer=NULL to call kmalloc().
+    if (buffer == NULL) {
+        return kmalloc(size);
+    }
 
     if (size == 0) {
         printk(LOGLEVEL_WARN, "krealloc(): got size=0, use kfree() instead\n");

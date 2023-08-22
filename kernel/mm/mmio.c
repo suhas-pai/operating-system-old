@@ -19,7 +19,7 @@ get_virt_range(const struct range phys_range, const uint64_t flags) {
 #if 0
     const uint64_t guard_pages_size = PAGE_SIZE;
 
-#if !(defined(__riscv) && defined(__LP64__))
+#if !defined(__riscv64)
     uint64_t virt_addr = MMIO_BASE;
     if (flags & __VMAP_MMIO_LOW4G) {
         if (!list_empty(&lower_half_mmio_list)) {
@@ -82,7 +82,7 @@ get_virt_range(const struct range phys_range, const uint64_t flags) {
         printk(LOGLEVEL_WARN, "mmio: map goes beyong end of address-space\n");
         return range_create_empty();
     }
-#endif /* !(defined(__riscv) && defined(__LP64__)) */
+#endif /* !defined(__riscv64) */
 #endif
 
     const uint64_t virt_addr = (uint64_t)phys_to_virt(phys_range.front);

@@ -290,6 +290,7 @@ __optimize(3) void *memmove(void *dst, const void *src, unsigned long n) {
 }
 
 __optimize(3) void *memset(void *dst, const int val, unsigned long n) {
+    void *ret = dst;
 #if defined(__x86_64__)
     asm volatile ("rep stosb" :: "D"(dst), "al"(val), "c"(n) : "memory");
 #else
@@ -334,7 +335,7 @@ __optimize(3) void *memset(void *dst, const int val, unsigned long n) {
     }
 #endif /* defined(__x86_64__) */
 
-    return dst;
+    return ret;
 }
 
 __optimize(3)

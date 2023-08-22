@@ -80,7 +80,7 @@ enum pte_flags {
 };
 
 #define PGT_FLAGS (__PTE_PRESENT | __PTE_WRITE)
-#define PTE_LARGE_FLAGS(level) ({ (void)level; __PTE_PRESENT | __PTE_LARGE; })
-#define PTE_LEAF_FLAGS 0
+#define PTE_LARGE_FLAGS(level) ({ (void)(level); __PTE_PRESENT | __PTE_LARGE; })
+#define PTE_LEAF_FLAGS __PTE_PRESENT
 
 struct page;

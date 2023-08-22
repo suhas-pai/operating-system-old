@@ -75,8 +75,8 @@ map_region(uint64_t virt_addr,
                 break;
             }
 
-            *ptwalker_pte_in_level(&pt_walker, /*level=*/3) =
-                page | pte_flags | __PTE_PRESENT | __PTE_LARGE;
+            pt_walker.tables[2][pt_walker.indices[2]] =
+                page | PTE_LARGE_FLAGS(3) | pte_flags;
 
             walker_result =
                 ptwalker_next_with_options(&pt_walker,
@@ -120,8 +120,8 @@ map_region(uint64_t virt_addr,
                 break;
             }
 
-            *ptwalker_pte_in_level(&pt_walker, /*level=*/2) =
-                page | pte_flags | __PTE_PRESENT | __PTE_LARGE;
+            pt_walker.tables[1][pt_walker.indices[1]] =
+                page | PTE_LARGE_FLAGS(2) | pte_flags;
 
             walker_result =
                 ptwalker_next_with_options(&pt_walker,
@@ -163,8 +163,8 @@ map_region(uint64_t virt_addr,
                 goto panic;
             }
 
-            *ptwalker_pte_in_level(&pt_walker, /*level=*/1) =
-                page | pte_flags | __PTE_PRESENT;
+            pt_walker.tables[0][pt_walker.indices[0]] =
+                page | PTE_LEAF_FLAGS | pte_flags;
 
             walker_result =
                 ptwalker_next_with_options(&pt_walker,
@@ -344,13 +344,17 @@ map_into_kernel_pagemap(uint64_t phys_addr,
     } while (true);
 #endif
 
-    vmap_at_with_ptwalker(&walker,
-                          range_create_end(phys_addr, phys_end),
-                          __PTE_PRESENT | __PTE_GLOBAL | pte_flags,
-                          /*should_ref=*/false, /*is_overwrite=*/false,
-                          supports_1gib << 3 | supports_2mib << 2,
-                          /*alloc_pgtable_cb_info=*/NULL,
-                          /*free_pgtable_cb_info=*/NULL);
+    const bool vmap_result =
+        vmap_at_with_ptwalker(&walker,
+                              range_create_end(phys_addr, phys_end),
+                              __PTE_GLOBAL | pte_flags,
+                              /*should_ref=*/false,
+                              /*is_overwrite=*/false,
+                              supports_1gib << 3 | supports_2mib << 2,
+                              /*alloc_pgtable_cb_info=*/NULL,
+                              /*free_pgtable_cb_info=*/NULL);
+
+    assert_msg(vmap_result, "mm: failed to setup kernel-pagemap");
 }
 
 static void

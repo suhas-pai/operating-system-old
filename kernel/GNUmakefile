@@ -50,6 +50,10 @@ COMMON_FLAGS = -g3 -pipe -Wno-attributes -Wcast-align -Wcast-qual \
 			   -Iarch/$(ARCH) -DBUILD_KERNEL -Wno-address-of-packed-member \
 			   -fno-omit-frame-pointer -fsanitize=undefined
 
+ifeq ($(ARCH), riscv64)
+	override COMMON_FLAGS += -D__riscv64
+endif
+
 # User controllable C flags.
 override DEFAULT_CFLAGS := $(COMMON_FLAGS)
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))

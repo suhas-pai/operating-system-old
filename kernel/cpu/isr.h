@@ -10,6 +10,7 @@
 
 #if defined(__x86_64__)
     #include "sys/idt.h"
+
     typedef idt_vector_t isr_vector_t;
     #define ISR_VECTOR_FMT "%" PRIu8
 #else

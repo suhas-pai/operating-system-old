@@ -17,11 +17,6 @@
 
 #define PGT_LEVEL_COUNT 5
 
-#define L3_SIZE (1ull << L3_SHIFT)
-#define L2_SIZE (1ull << L2_SHIFT)
-#define L1_SIZE (1ull << L1_SHIFT)
-#define L0_SIZE (1ull << L0_SHIFT)
-
 #define PML1_MASK 0x1ff
 #define PML2_MASK PML1_MASK
 #define PML3_MASK PML1_MASK
@@ -87,7 +82,8 @@ enum pte_flags {
 };
 
 #define PGT_FLAGS (__PTE_VALID | __PTE_TABLE)
-#define PTE_LARGE_FLAGS(level) ({ (void)level; __PTE_VALID; })
-#define PTE_LEAF_FLAGS __PTE_4KPAGE
+#define PTE_LARGE_FLAGS(level) \
+    ({ (void)(level); (__PTE_VALID | __PTE_ACCESS); })
+#define PTE_LEAF_FLAGS (__PTE_VALID | __PTE_4KPAGE | __PTE_ACCESS)
 
 struct page;

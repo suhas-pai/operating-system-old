@@ -27,7 +27,7 @@ struct vm_area {
 
     // Helper variable used internally to quickly find a free area range.
     // Defined as the maximum of the left subtree, right subtree, and the
-    // distance between `range.front` and the previos vm_area's end
+    // distance between `range.front` and the previous vm_area's end
     uint64_t largest_free_to_prev;
 };
 

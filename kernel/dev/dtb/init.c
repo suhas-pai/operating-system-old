@@ -5,9 +5,9 @@
 
 #include "dev/pci/pci.h"
 
-#if defined(__riscv) && defined(__LP64__)
+#if defined(__riscv64)
     #include "dev/uart/8250.h"
-#endif /* defined(__riscv) && defined(__LP64__) */
+#endif /* defined(__riscv64) */
 
 #include "dev/driver.h"
 #include "dev/printk.h"
@@ -16,7 +16,7 @@
 #include "boot.h"
 #include "dtb.h"
 
-#if defined(__riscv) && defined(__LP64__)
+#if defined(__riscv64)
     static void init_serial_device(const void *const dtb, const int nodeoff) {
         struct dtb_addr_size_pair base_addr_reg = {0};
         uint32_t pair_count = 1;
@@ -51,7 +51,7 @@
                       /*reg_width=*/sizeof(uint8_t),
                       /*reg_shift=*/0);
     }
-#endif /* defined(__riscv) && defined(__LP64__) */
+#endif /* defined(__riscv64) */
 
 static void init_pci_node(const void *const dtb, const int pci_offset) {
     struct string_view device_type = sv_create_empty();
@@ -153,21 +153,21 @@ static void init_pci_drivers(const void *const dtb) {
     }
 }
 
-#if defined(__riscv) && defined(__LP64__)
+#if defined(__riscv64)
     static void init_riscv_serial_devices(const void *const dtb) {
         for_each_dtb_compat(dtb, offset, "ns16550a") {
             init_serial_device(dtb, offset);
         }
     }
-#endif /* defined(__riscv) && defined(__LP64__) */
+#endif /* defined(__riscv64) */
 
 void dtb_init_early() {
-#if defined(__riscv) && defined(__LP64__)
+#if defined(__riscv64)
     const void *const dtb = boot_get_dtb();
     init_riscv_serial_devices(dtb);
 
     printk(LOGLEVEL_INFO, "dtb: finished early init\n");
-#endif /* defined(__riscv) && defined(__LP64__) */
+#endif /* defined(__riscv64) */
 }
 
 void
@@ -176,11 +176,11 @@ dtb_init_nodes_for_driver(const void *const dtb,
 {
     for (uint32_t i = 0; i != driver->compat_count; i++) {
         const char *const compat = driver->compat_list[i];
-    #if defined(__riscv) && defined(__LP64__)
+    #if defined(__riscv64)
         if (strcmp(compat, "ns16550a") == 0) {
             continue;
         }
-    #endif /* defined(__riscv) && defined(__LP64__) */
+    #endif /* defined(__riscv64) */
 
         for_each_dtb_compat(dtb, offset, compat) {
             driver->init(dtb, offset);
@@ -191,12 +191,12 @@ dtb_init_nodes_for_driver(const void *const dtb,
 void dtb_init() {
     const void *const dtb = boot_get_dtb();
     if (dtb == NULL) {
-    #if defined(__riscv) && defined(__LP64__)
+    #if defined(__riscv64)
         panic("dtb: device tree not found");
     #else
         printk(LOGLEVEL_WARN, "dev: dtb not found\n");
         return;
-    #endif /* defined(__riscv) && defined(__LP64__) */
+    #endif /* defined(__riscv64) */
     }
 
     init_pci_drivers(dtb);

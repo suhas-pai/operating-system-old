@@ -80,11 +80,11 @@ void boot_early_init() {
     if (dtb_request.response == NULL ||
         dtb_request.response->dtb_ptr == NULL)
     {
-    #if defined(__riscv) && defined(__LP64__)
+    #if defined(__riscv64)
         panic("boot: device tree not found");
     #else
         printk(LOGLEVEL_WARN, "boot: device tree is missing\n");
-    #endif /* defined(__riscv) && defined(__LP64__) */
+    #endif /* defined(__riscv64) */
     } else {
         dtb = dtb_request.response->dtb_ptr;
     }
@@ -125,11 +125,11 @@ void boot_init() {
     if (rsdp_request.response == NULL ||
         rsdp_request.response->address == NULL)
     {
-    #if !(defined(__riscv) && defined(__LP64__))
+    #if !defined(__riscv64)
         panic("boot: acpi not found\n");
     #else
         printk(LOGLEVEL_WARN, "boot: acpi does not exist\n");
-    #endif /* !(defined(__riscv) && defined(__LP64__)) */
+    #endif /* !defined(__riscv64) */
     } else {
         rsdp = rsdp_request.response->address;
     }
@@ -139,4 +139,5 @@ void boot_init() {
     }
 
     boot_time = boot_time_request.response->boot_time;
+    printk(LOGLEVEL_INFO, "boot: time is %" PRIu64 "\n", boot_time);
 }

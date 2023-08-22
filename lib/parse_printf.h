@@ -15,11 +15,11 @@ struct printf_spec_info {
     bool add_base_prefix : 1;
     bool leftpad_zeros : 1;
 
+    char spec;
     uint32_t width;
     int precision;
 
     struct string_view length_sv;
-    char spec;
 };
 
 typedef uint64_t

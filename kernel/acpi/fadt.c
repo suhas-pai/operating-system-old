@@ -3,10 +3,6 @@
  * © suhas pai
  */
 
-#if defined(__x86_64__)
-    #include "dev/ps2/driver.h"
-#endif /* defined(__x86_64__) */
-
 #include "dev/printk.h"
 #include "fadt.h"
 

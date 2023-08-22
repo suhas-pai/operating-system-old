@@ -16,7 +16,8 @@
 
 struct pagemap kernel_pagemap = {
 #if defined(__aarch64__)
-    .root = { NULL, NULL }, // setup later
+    .lower_root = NULL, // setup later
+    .higher_root = NULL, // setup later
 #else
     .root = NULL, // setup later
 #endif /* defined(__aarch64__)*/
@@ -29,12 +30,12 @@ struct pagemap kernel_pagemap = {
 
 #if defined(__aarch64__)
     struct pagemap
-    pagemap_create(struct page *const higher_root,
-                   struct page *const lower_root)
+    pagemap_create(struct page *const lower_root,
+                   struct page *const higher_root)
     {
         struct pagemap result = {
-            .root[0] = higher_root,
-            .root[1] = lower_root
+            .lower_root = lower_root,
+            .higher_root = higher_root
         };
 
         list_init(&result.vma_list);
@@ -329,8 +330,8 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
 
 void switch_to_pagemap(const struct pagemap *const pagemap) {
 #if defined(__aarch64__)
-    assert(pagemap->root[0] != NULL);
-    assert(pagemap->root[1] != NULL);
+    assert(pagemap->lower_root != NULL);
+    assert(pagemap->higher_root != NULL);
 #else
     assert(pagemap->root != NULL);
 #endif /* defined(__aarch64__) */
@@ -338,8 +339,8 @@ void switch_to_pagemap(const struct pagemap *const pagemap) {
 #if defined(__x86_64__)
     write_cr3(page_to_phys(pagemap->root));
 #elif defined(__aarch64__)
-    write_ttbr0_el1(page_to_phys(pagemap->root[0]));
-    write_ttbr1_el1(page_to_phys(pagemap->root[1]));
+    write_ttbr0_el1(page_to_phys(pagemap->lower_root));
+    write_ttbr1_el1(page_to_phys(pagemap->higher_root));
 
     asm volatile ("dsb sy; isb" ::: "memory");
 #else

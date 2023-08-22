@@ -590,10 +590,7 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
 
         if (unformat_buffer_sv.length != 0) {
             written_out +=
-                sv_cb(&spec_info,
-                      sv_cb_info,
-                      unformat_buffer_sv,
-                      &should_continue);
+                sv_cb(NULL, sv_cb_info, unformat_buffer_sv, &should_continue);
 
             if (!should_continue) {
                 break;
@@ -642,10 +639,7 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
 
         spec_info = (struct strftime_spec_info){0};
         written_out +=
-            sv_cb(&spec_info,
-                  sv_cb_info,
-                  unformat_buffer_sv,
-                  &should_continue);
+            sv_cb(NULL, sv_cb_info, unformat_buffer_sv, &should_continue);
     }
 
     return 0;

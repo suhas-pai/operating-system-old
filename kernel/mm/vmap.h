@@ -8,7 +8,7 @@
 #include "lib/adt/range.h"
 #include "pagemap.h"
 
-void
+bool
 vmap_at(const struct pagemap *pagemap,
         struct range phys_range,
         const uint64_t pte_flags,
@@ -17,7 +17,7 @@ vmap_at(const struct pagemap *pagemap,
         bool is_overwrite,
         uint8_t supports_largepage_at_level_mask);
 
-void
+bool
 vmap_at_with_ptwalker(struct pt_walker *const walker,
                       struct range phys_range,
                       const uint64_t pte_flags,

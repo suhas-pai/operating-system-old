@@ -10,7 +10,8 @@
 
 struct pagemap {
 #if defined(__aarch64__)
-    struct page *root[2];
+    struct page *lower_root;
+    struct page *higher_root;
 #else
     struct page *root;
 #endif /* defined(__aarch64__) */
@@ -24,7 +25,7 @@ struct pagemap {
 
 #if defined(__aarch64__)
     struct pagemap
-    pagemap_create(struct page *higher_root, struct page *lower_root);
+    pagemap_create(struct page *lower_root, struct page *higher_root);
 #else
     struct pagemap pagemap_create(struct page *root);
 #endif

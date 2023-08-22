@@ -53,7 +53,7 @@ extern uint64_t HHDM_OFFSET;
 void pagezones_init();
 
 static inline
-uint16_t virt_to_pt_index(const void *const virt, const uint8_t level) {
+uint16_t virt_to_pt_index(const void *const virt, const pgt_level_t level) {
     return ((uint64_t)virt >> PAGE_SHIFTS[level - 1]) & PT_LEVEL_MASKS[level];
 }
 
