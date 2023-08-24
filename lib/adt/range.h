@@ -28,6 +28,7 @@ struct range {
 #define range_create_max() ((struct range){ .front = 0, .size = UINT64_MAX })
 
 struct range range_create(uint64_t front, uint64_t size);
+struct range range_create_upto(uint64_t size);
 struct range range_create_end(uint64_t front, uint64_t size);
 struct range range_align_in(struct range range, uint64_t boundary);
 

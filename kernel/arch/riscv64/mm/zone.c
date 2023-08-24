@@ -5,12 +5,12 @@
 
 #include "mm/zone.h"
 
-static struct page_zone zone_lowmem = {
+static struct page_zone zone_low4G = {
     .fallback_zone = NULL
 };
 
 static struct page_zone zone_default = {
-    .fallback_zone = &zone_lowmem
+    .fallback_zone = &zone_low4G
 };
 
 static struct page_zone zone_highmem = {
@@ -35,8 +35,8 @@ struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
         return &zone_highmem;
     }
 
-    if (flags & __ALLOC_LOWMEM) {
-        return &zone_lowmem;
+    if (flags & __ALLOC_LOW4G) {
+        return &zone_low4G;
     }
 
     return &zone_default;

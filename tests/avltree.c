@@ -3,36 +3,18 @@
  * © suhas pai
  */
 
+#include <assert.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "lib/adt/avltree.h"
+#include "lib/list.h"
 
 struct node {
     struct avlnode info;
     uint32_t number;
 };
-
-static void print_node(struct node *const node, const uint64_t spaces) {
-    for (uint64_t i = 0; i != spaces; i++) {
-        printf(" ");
-    }
-
-    if (!node) {
-        printf("(null)\n");
-        return;
-    }
-
-    printf("%" PRIu32 "\n", node->number);
-
-    print_node((struct node *)node->info.left, spaces + 4);
-    print_node((struct node *)node->info.right, spaces + 4);
-}
-
-static void print_tree(struct avltree *const tree) {
-    print_node((struct node *)tree->root, 0);
-}
 
 static int compare(struct node *const ours, struct node *const theirs) {
     return (int64_t)ours->number - theirs->number;
@@ -46,14 +28,41 @@ static void insert_node(struct avltree *const tree, const uint32_t number) {
     struct node *const avl_node = malloc(sizeof(struct node));
     avl_node->number = number;
 
-    avltree_insert(tree,
-                   (struct avlnode *)avl_node,
-                   (avlnode_compare_t)compare,
-                   NULL);
+    const bool result =
+        avltree_insert(tree,
+                       (struct avlnode *)avl_node,
+                       (avlnode_compare_t)compare,
+                       NULL);
+
+    assert(result);
+}
+
+void avlnode_print_node_cb(struct avlnode *const avlnode, void *const cb_info) {
+    (void)cb_info;
+    if (avlnode == NULL) {
+        printf("(null)");
+        return;
+    }
+
+    struct node *const node = container_of(avlnode, struct node, info);
+
+    printf("%" PRIu32, node->number);
+    fflush(stdout);
+}
+
+void avlnode_print_sv_cb(const struct string_view sv, void *const cb_info) {
+    (void)cb_info;
+
+    printf(SV_FMT, SV_FMT_ARGS(sv));
+    fflush(stdout);
+}
+
+static void print_tree(struct avltree *const tree) {
+    avltree_print(tree, avlnode_print_node_cb, avlnode_print_sv_cb, NULL);
 }
 
 void test_avltree() {
-    struct avltree tree = {0};
+    struct avltree tree = AVLTREE_INIT();
 
     insert_node(&tree, 8);
     insert_node(&tree, 9);
@@ -62,6 +71,8 @@ void test_avltree() {
     insert_node(&tree, 33);
     insert_node(&tree, 53);
     insert_node(&tree, 61);
+    insert_node(&tree, 73);
+    insert_node(&tree, 71);
 
     print_tree(&tree);
 
@@ -72,6 +83,8 @@ void test_avltree() {
     avltree_delete(&tree, (void *)8, (avlnode_compare_key_t)identify, NULL);
     avltree_delete(&tree, (void *)61, (avlnode_compare_key_t)identify, NULL);
     avltree_delete(&tree, (void *)33, (avlnode_compare_key_t)identify, NULL);
+    avltree_delete(&tree, (void *)73, (avlnode_compare_key_t)identify, NULL);
+    avltree_delete(&tree, (void *)71, (avlnode_compare_key_t)identify, NULL);
 
     printf("After deleting:\n");
     print_tree(&tree);

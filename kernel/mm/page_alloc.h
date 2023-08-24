@@ -17,7 +17,7 @@ enum page_alloc_flags {
     __ALLOC_ZERO = 1 << 0,
     __ALLOC_TABLE = 1 << 1,
     __ALLOC_SLAB_HEAD = 1 << 2,
-    __ALLOC_LOWMEM = 1 << 3,
+    __ALLOC_LOW4G = 1 << 3,
     __ALLOC_HIGHMEM = 1 << 4,
 };
 

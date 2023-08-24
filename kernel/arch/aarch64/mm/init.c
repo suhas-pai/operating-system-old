@@ -34,7 +34,7 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
 static void
 map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
     enum pt_walker_result walker_result = E_PT_WALKER_OK;
-    struct pt_walker pt_walker = {0};
+    struct pt_walker pt_walker;
 
     ptwalker_create_for_pagemap(&pt_walker,
                                 &kernel_pagemap,
@@ -205,7 +205,7 @@ map_into_kernel_pagemap(const uint64_t phys_addr,
                         const uint64_t size,
                         const uint64_t pte_flags)
 {
-    struct pt_walker walker = {0};
+    struct pt_walker walker;
     ptwalker_create_for_pagemap(&walker,
                                 &kernel_pagemap,
                                 virt_addr,
@@ -346,10 +346,12 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     kernel_pagemap.lower_root = phys_to_page(lower_root);
     kernel_pagemap.higher_root = phys_to_page(higher_root);
 
+    const struct range ident_map_range = range_create_end(kib(16), gib(4));
+
     uint64_t kernel_memmap_size = 0;
-    map_into_kernel_pagemap(/*phys_addr=*/MMIO_BASE - HHDM_OFFSET,
-                            /*virt_addr=*/MMIO_BASE,
-                            (MMIO_END - MMIO_BASE),
+    map_into_kernel_pagemap(ident_map_range.front,
+                            ident_map_range.front,
+                            ident_map_range.size,
                             __PTE_MMIO);
 
     // Map all 'good' regions into the hhdm
@@ -383,11 +385,6 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     *kernel_memmap_size_out = kernel_memmap_size;
 
     setup_pagestructs_table(total_bytes_repr_by_structpage_table);
-    map_into_kernel_pagemap(/*phys_addr=*/MMIO_BASE - HHDM_OFFSET,
-                            /*virt_addr=*/MMIO_BASE - HHDM_OFFSET,
-                            (MMIO_END - MMIO_BASE),
-                            __PTE_MMIO);
-
     switch_to_pagemap(&kernel_pagemap);
 
     // All 'good' memmaps use pages with associated struct pages to them,
@@ -395,10 +392,9 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // to go through each table used, and setup all pgtable metadata inside a
     // struct page
 
-    mm_early_refcount_alloced_map(MMIO_BASE - HHDM_OFFSET,
-                                  (MMIO_END - MMIO_BASE));
-
+    mm_early_refcount_alloced_map(ident_map_range.front, ident_map_range.size);
     mm_early_refcount_alloced_map(MMIO_BASE, (MMIO_END - MMIO_BASE));
+
     for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
         if (memmap->kind == MM_MEMMAP_KIND_BAD_MEMORY ||
@@ -448,29 +444,12 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_DEFAULT);
 
-    list_radd(&kernel_pagemap.vma_list, &null_area->vma_list);
-    avltree_insert(&kernel_pagemap.vma_tree,
-                   &null_area->vma_node,
-                   vma_avltree_compare,
-                   vma_avltree_update);
-
-    list_radd(&kernel_pagemap.vma_list, &mmio->vma_list);
-    avltree_insert(&kernel_pagemap.vma_tree,
-                   &mmio->vma_node,
-                   vma_avltree_compare,
-                   vma_avltree_update);
-
-    list_radd(&kernel_pagemap.vma_list, &kernel->vma_list);
-    avltree_insert(&kernel_pagemap.vma_tree,
-                   &kernel->vma_node,
-                   vma_avltree_compare,
-                   vma_avltree_update);
-
-    list_radd(&kernel_pagemap.vma_list, &hhdm->vma_list);
-    avltree_insert(&kernel_pagemap.vma_tree,
-                   &hhdm->vma_node,
-                   vma_avltree_compare,
-                   vma_avltree_update);
+    assert_msg(
+        addrspace_add_node(&kernel_pagemap.addrspace, &null_area->node) &&
+        addrspace_add_node(&kernel_pagemap.addrspace, &mmio->node) &&
+        addrspace_add_node(&kernel_pagemap.addrspace, &kernel->node) &&
+        addrspace_add_node(&kernel_pagemap.addrspace, &hhdm->node),
+        "mm: failed to setup kernel-pagemap");
 }
 
 static void setup_mair() {
@@ -501,9 +480,7 @@ static void setup_mair() {
 
 extern uint64_t memmap_last_repr_index;
 void mm_init() {
-    MMIO_BASE = HHDM_OFFSET + mib(2);
     MMIO_END = MMIO_BASE + gib(4);
-
     setup_mair();
 
     const struct mm_memmap *const last_repr_memmap =

@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "lib/align.h"
 #include "mm/pagemap.h"
 
 static inline uint64_t
@@ -45,6 +46,8 @@ arch_make_mapping(struct pagemap *const pagemap,
                   const enum vma_cachekind cachekind,
                   const bool is_overwrite)
 {
+    assert(has_align(size, PAGE_SIZE));
+
     // TODO: Add Huge page support
     struct pageop pageop;
     pageop_init(&pageop);
@@ -77,7 +80,8 @@ arch_make_mapping(struct pagemap *const pagemap,
             walker.tables[0][walker.indices[0]] = new_entry;
             if (pte_is_present(old_entry)) {
                 const uint64_t flags_mask =
-                    __PTE_READ | __PTE_WRITE | __PTE_EXEC | __PTE_USER;
+                    __PTE_READ | __PTE_WRITE | __PTE_EXEC | __PTE_USER |
+                    __PTE_GLOBAL;
 
                 if ((old_entry & flags_mask) != (new_entry & flags_mask) ||
                     pte_to_phys(old_entry) != pte_to_phys(new_entry))

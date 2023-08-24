@@ -10,7 +10,7 @@ struct va_list_struct {
     va_list list;
 };
 
-static bool
+__optimize(3) static bool
 parse_flags(struct printf_spec_info *const curr_spec,
             const char *iter,
             const char **const iter_out)
@@ -47,7 +47,7 @@ done:
     return true;
 }
 
-static inline int
+__optimize(3) static inline int
 read_int_from_fmt_string(const char *const c_str, const char **const iter_out) {
     int result = 0;
     c_string_foreach (c_str, iter) {
@@ -68,7 +68,7 @@ read_int_from_fmt_string(const char *const c_str, const char **const iter_out) {
     return result;
 }
 
-static bool
+__optimize(3) static bool
 parse_width(struct printf_spec_info *const curr_spec,
             struct va_list_struct *const list_struct,
             const char *iter,
@@ -99,7 +99,7 @@ parse_width(struct printf_spec_info *const curr_spec,
     return true;
 }
 
-static bool
+__optimize(3) static bool
 parse_precision(struct printf_spec_info *const curr_spec,
                 const char *iter,
                 struct va_list_struct *const list_struct,
@@ -142,7 +142,7 @@ parse_precision(struct printf_spec_info *const curr_spec,
     return true;
 }
 
-static bool
+__optimize(3) static bool
 parse_length(struct printf_spec_info *const curr_spec,
              const char *iter,
              const char **const iter_out,
@@ -267,7 +267,7 @@ enum handle_spec_result {
     E_HANDLE_SPEC_CONTINUE
 };
 
-static enum handle_spec_result
+__optimize(3) static enum handle_spec_result
 handle_spec(struct printf_spec_info *const curr_spec,
             char *const buffer,
             uint64_t number,
@@ -455,7 +455,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
     return E_HANDLE_SPEC_OK;
 }
 
-static inline bool is_int_specifier(const char spec) {
+__optimize(3) static inline bool is_int_specifier(const char spec) {
     switch (spec) {
         case 'd':
         case 'i':
@@ -469,7 +469,7 @@ static inline bool is_int_specifier(const char spec) {
     return false;
 }
 
-static inline uint64_t
+__optimize(3) static inline uint64_t
 write_prefix_for_spec(struct printf_spec_info *const info,
                       const printf_write_char_callback_t write_ch_cb,
                       void *const ch_cb_info,
@@ -497,7 +497,7 @@ write_prefix_for_spec(struct printf_spec_info *const info,
     return out;
 }
 
-static uint64_t
+__optimize(3) static uint64_t
 pad_with_lead_zeros(struct printf_spec_info *const info,
                     struct string_view *const parsed,
                     const uint64_t zero_count,
@@ -549,7 +549,7 @@ pad_with_lead_zeros(struct printf_spec_info *const info,
     return out;
 }
 
-static inline uint64_t
+__optimize(3) static inline uint64_t
 call_cb(struct printf_spec_info *const info,
         const struct string_view sv,
         const printf_write_char_callback_t write_char_cb,
@@ -571,7 +571,21 @@ call_cb(struct printf_spec_info *const info,
     return write_sv_cb(info, sv_cb_info, sv, cont_out);
 }
 
-uint64_t
+__optimize(3) static void reset_spec_info(struct printf_spec_info *const spec) {
+    spec->add_base_prefix = false;
+    spec->left_justify = false;
+    spec->add_pos_sign = false;
+    spec->add_base_prefix = false;
+    spec->leftpad_zeros = false;
+
+    spec->spec = '\0';
+    spec->width = 0;
+    spec->precision = 0;
+
+    spec->length_sv = sv_create_empty();
+}
+
+__optimize(3) uint64_t
 parse_printf(const char *const fmt,
              const printf_write_char_callback_t write_char_cb,
              void *const write_char_cb_info,
@@ -616,7 +630,7 @@ parse_printf(const char *const fmt,
         }
 
         // Format is %[flags][width][.precision][length]specifier
-        curr_spec = (struct printf_spec_info){0};
+        reset_spec_info(&curr_spec);
         if (!parse_flags(&curr_spec, iter, &iter)) {
             // If we have an incomplete spec, then we exit without writing
             // anything.

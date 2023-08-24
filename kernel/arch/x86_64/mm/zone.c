@@ -9,12 +9,12 @@
 #include "mm/page.h"
 #include "mm/zone.h"
 
-static struct page_zone zone_low_16mib = {
+static struct page_zone zone_low4g = {
     .fallback_zone = NULL
 };
 
 static struct page_zone zone_default = {
-    .fallback_zone = &zone_low_16mib
+    .fallback_zone = &zone_low4g
 };
 
 static struct page_zone zone_high_896gib = {
@@ -23,8 +23,8 @@ static struct page_zone zone_high_896gib = {
 
 struct page_zone *page_to_zone(struct page *const page) {
     const uint64_t phys = page_to_phys(page);
-    if (phys <= mib(16)) {
-        return &zone_low_16mib;
+    if (phys < gib(4)) {
+        return &zone_low4g;
     }
 
     if (phys >= gib(896)) {
@@ -47,8 +47,8 @@ struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
         return &zone_high_896gib;
     }
 
-    if (flags & __ALLOC_LOWMEM) {
-        return &zone_low_16mib;
+    if (flags & __ALLOC_LOW4G) {
+        return &zone_low4g;
     }
 
     return &zone_default;

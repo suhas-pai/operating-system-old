@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include <stdint.h>
+#include "lib/adt/string_view.h"
 
 struct avlnode {
     struct avlnode *parent;
@@ -14,18 +14,39 @@ struct avlnode {
     uint32_t height;
 };
 
+typedef void (*avlnode_print_node_cb_t)(struct avlnode *node, void *cb_info);
+typedef void (*avlnode_print_sv_cb_t)(struct string_view sv, void *cb_info);
+
+void
+avlnode_print(struct avlnode *node,
+              avlnode_print_node_cb_t print_node_cb,
+              avlnode_print_sv_cb_t print_sv_cb,
+              void *cb_info);
+
 struct avltree {
     struct avlnode *root;
 };
+
+#define AVLTREE_INIT() ((struct avltree){ .root = NULL })
+#define AVLNODE_INIT() \
+    ((struct avlnode){ \
+        .parent = NULL, \
+        .left = NULL,   \
+        .right = NULL,  \
+        .height = 0     \
+    })
 
 typedef int (*avlnode_compare_t)(struct avlnode *ours, struct avlnode *theirs);
 typedef int (*avlnode_compare_key_t)(struct avlnode *theirs, void *key);
 
 typedef void (*avlnode_update_t)(struct avlnode *node);
 
+void avltree_init(struct avltree *tree);
+void avlnode_init(struct avlnode *node);
+
 void avlnode_merge(struct avlnode *left, struct avlnode *right);
 
-void
+bool
 avltree_insert(struct avltree *tree,
                struct avlnode *node,
                avlnode_compare_t comparator,
@@ -49,19 +70,22 @@ avltree_delete_node(struct avltree *tree,
                     struct avlnode *node,
                     avlnode_update_t update);
 
-enum avltree_traverse_next_kind {
-    AVLTREE_TRAVERSE_NEXT_LEFT,
-    AVLTREE_TRAVERSE_NEXT_RIGHT,
-    AVLTREE_TRAVERSE_NEXT_DONE,
-};
+struct avlnode *avltree_leftmost(const struct avltree *tree);
+struct avlnode *avltree_rightmost(const struct avltree *tree);
 
-typedef enum avltree_traverse_next_kind
-(*avltree_traverse_t)(struct avltree *tree,
-                      struct avlnode *node,
-                      struct avlnode **link,
-                      void *cb_info);
+typedef struct range
+(*avlnode_get_range_t)(struct avltree *tree,
+                       struct avlnode *node,
+                       void *cb_info);
 
-struct avlnode *
-avltree_traverse(struct avltree *tree,
-                 avltree_traverse_t traverse_cb,
-                 void *cb_info);
+struct range
+avltree_find_free_space(struct avltree *tree,
+                        struct avlnode *leftmost,
+                        avlnode_get_range_t get_range_cb,
+                        void *cb_info);
+
+void
+avltree_print(struct avltree *tree,
+              avlnode_print_node_cb_t print_node_cb,
+              avlnode_print_sv_cb_t print_sv_cb,
+              void *cb_info);

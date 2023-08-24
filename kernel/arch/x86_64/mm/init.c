@@ -45,7 +45,7 @@ map_region(uint64_t virt_addr,
            const uint64_t pte_flags)
 {
     enum pt_walker_result walker_result = E_PT_WALKER_OK;
-    struct pt_walker pt_walker = {0};
+    struct pt_walker pt_walker;
 
     ptwalker_create_for_pagemap(&pt_walker,
                                 &kernel_pagemap,
@@ -212,7 +212,7 @@ map_into_kernel_pagemap(uint64_t phys_addr,
                         const uint64_t size,
                         const uint64_t pte_flags)
 {
-    struct pt_walker walker = {0};
+    struct pt_walker walker;
     ptwalker_create_for_pagemap(&walker,
                                 &kernel_pagemap,
                                 virt_addr,
@@ -224,126 +224,6 @@ map_into_kernel_pagemap(uint64_t phys_addr,
         supports_2mib && get_cpu_capabilities()->supports_1gib_pages;
 
     const uint64_t phys_end = phys_addr + align_up_assert(size, PAGE_SIZE);
-
-#if 0
-    do {
-    start:
-        if (has_align(phys_addr, PAGE_SIZE_1GIB) &&
-            walker.indices[1] == 0 &&
-            supports_1gib &&
-            phys_addr + PAGE_SIZE_1GIB <= phys_end)
-        {
-            enum pt_walker_result ptwalker_result =
-                ptwalker_fill_in_to(&walker,
-                                    /*level=*/3,
-                                    /*should_ref=*/false,
-                                    /*alloc_pgtable_cb_info=*/NULL,
-                                    /*free_pgtable_cb_info=*/NULL);
-
-            do {
-                if (ptwalker_result != E_PT_WALKER_OK) {
-                panic:
-                    panic("mm: failed to setup kernel pagemap, result=%d\n",
-                          ptwalker_result);
-                }
-
-                walker.tables[2][walker.indices[2]] =
-                    phys_create_pte(phys_addr) | __PTE_PRESENT | __PTE_GLOBAL |
-                    __PTE_LARGE | pte_flags;
-
-                ptwalker_result =
-                    ptwalker_next_with_options(&walker,
-                                               /*level=*/3,
-                                               /*alloc_parents=*/true,
-                                               /*alloc_level=*/true,
-                                               /*should_ref=*/false,
-                                               /*alloc_pgtable_cb_info=*/NULL,
-                                               /*free_pgtable_cb_info=*/NULL);
-
-                phys_addr += PAGE_SIZE_1GIB;
-                if (phys_addr >= phys_end) {
-                    return;
-                }
-            } while (phys_addr + PAGE_SIZE_1GIB <= phys_end);
-        }
-
-        if (has_align(phys_addr, PAGE_SIZE_2MIB) &&
-            walker.indices[0] == 0 &&
-            phys_addr + PAGE_SIZE_2MIB <= phys_end)
-        {
-            enum pt_walker_result ptwalker_result =
-                ptwalker_fill_in_to(&walker,
-                                    /*level=*/2,
-                                    /*should_ref=*/false,
-                                    /*alloc_pgtable_cb_info=*/NULL,
-                                    /*free_pgtable_cb_info=*/NULL);
-
-            if (ptwalker_result != E_PT_WALKER_OK) {
-                goto panic;
-            }
-
-            do {
-                walker.tables[1][walker.indices[1]] =
-                    phys_create_pte(phys_addr) | __PTE_PRESENT | __PTE_GLOBAL |
-                    __PTE_LARGE | pte_flags;
-
-                ptwalker_result =
-                    ptwalker_next_with_options(&walker,
-                                               /*level=*/2,
-                                               /*alloc_parents=*/false,
-                                               /*alloc_level=*/false,
-                                               /*should_ref=*/false,
-                                               /*alloc_pgtable_cb_info=*/NULL,
-                                               /*free_pgtable_cb_info=*/NULL);
-
-                phys_addr += PAGE_SIZE_2MIB;
-                if (phys_addr >= phys_end) {
-                    return;
-                }
-
-                if (walker.indices[1] == 0) {
-                    goto start;
-                }
-            } while (phys_addr + PAGE_SIZE_2MIB <= phys_end);
-        }
-
-        while (true) {
-            enum pt_walker_result ptwalker_result =
-                ptwalker_fill_in_to(&walker,
-                                    /*level=*/1,
-                                    /*should_ref=*/false,
-                                    /*alloc_pgtable_cb_info=*/NULL,
-                                    /*free_pgtable_cb_info=*/NULL);
-
-            if (ptwalker_result != E_PT_WALKER_OK) {
-                goto panic;
-            }
-
-            walker.tables[0][walker.indices[0]] =
-                phys_create_pte(phys_addr) | __PTE_PRESENT | __PTE_GLOBAL |
-                pte_flags;
-
-            ptwalker_result =
-                ptwalker_next_with_options(&walker,
-                                           /*level=*/1,
-                                           /*alloc_parents=*/false,
-                                           /*alloc_level=*/false,
-                                           /*should_ref=*/false,
-                                           /*alloc_pgtable_cb_info=*/NULL,
-                                           /*free_pgtable_cb_info=*/NULL);
-
-            phys_addr += PAGE_SIZE;
-            if (phys_addr >= phys_end) {
-                return;
-            }
-
-            if (walker.indices[0] == 0) {
-                goto start;
-            }
-        }
-    } while (true);
-#endif
-
     const bool vmap_result =
         vmap_at_with_ptwalker(&walker,
                               range_create_end(phys_addr, phys_end),
@@ -355,6 +235,10 @@ map_into_kernel_pagemap(uint64_t phys_addr,
                               /*free_pgtable_cb_info=*/NULL);
 
     assert_msg(vmap_result, "mm: failed to setup kernel-pagemap");
+    printk(LOGLEVEL_INFO,
+           "mm: mapped " RANGE_FMT " to " RANGE_FMT "\n",
+           RANGE_FMT_ARGS(range_create_end(phys_addr, phys_end)),
+           RANGE_FMT_ARGS(range_create(virt_addr, (phys_end - phys_addr))));
 }
 
 static void
@@ -368,11 +252,6 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
 
     kernel_pagemap.root = phys_to_page(root);
     uint64_t kernel_memmap_size = 0;
-
-    map_into_kernel_pagemap(/*phys_addr=*/kib(16),
-                            MMIO_BASE,
-                            (MMIO_END - MMIO_BASE),
-                            __PTE_WRITE | __PTE_NOEXEC);
 
     // Map all 'good' regions into the hhdm, except the kernel, which goes in
     // its own range
@@ -459,34 +338,16 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_DEFAULT);
 
-    list_radd(&kernel_pagemap.vma_list, &null_area->vma_list);
-    avltree_insert(&kernel_pagemap.vma_tree,
-                   &null_area->vma_node,
-                   vma_avltree_compare,
-                   vma_avltree_update);
-
-    list_radd(&kernel_pagemap.vma_list, &mmio->vma_list);
-    avltree_insert(&kernel_pagemap.vma_tree,
-                   &mmio->vma_node,
-                   vma_avltree_compare,
-                   vma_avltree_update);
-
-    list_radd(&kernel_pagemap.vma_list, &kernel->vma_list);
-    avltree_insert(&kernel_pagemap.vma_tree,
-                   &kernel->vma_node,
-                   vma_avltree_compare,
-                   vma_avltree_update);
-
-    list_radd(&kernel_pagemap.vma_list, &hhdm->vma_list);
-    avltree_insert(&kernel_pagemap.vma_tree,
-                   &hhdm->vma_node,
-                   vma_avltree_compare,
-                   vma_avltree_update);
+    assert_msg(
+        addrspace_add_node(&kernel_pagemap.addrspace, &null_area->node) &&
+        addrspace_add_node(&kernel_pagemap.addrspace, &mmio->node) &&
+        addrspace_add_node(&kernel_pagemap.addrspace, &kernel->node) &&
+        addrspace_add_node(&kernel_pagemap.addrspace, &hhdm->node),
+        "mm: failed to setup kernel-pagemap");
 }
 
 extern uint64_t memmap_last_repr_index;
 void mm_init() {
-    MMIO_BASE = HHDM_OFFSET + kib(16);
     MMIO_END = MMIO_BASE + gib(4);
 
     // Enable write-combining

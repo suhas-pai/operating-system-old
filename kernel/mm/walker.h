@@ -34,6 +34,16 @@ struct pt_walker {
     ptwalker_free_pgtable_t free_pgtable;
 };
 
+#define PT_WALKER_INIT() \
+    ((struct pt_walker){ \
+        .tables = {0},   \
+        .indices = {0},  \
+        .level = 0,      \
+        .top_level = 0,  \
+        .alloc_pgtable = NULL, \
+        .free_pgtable = NULL   \
+    })
+
 // ptwalker with default settings expects a `struct pageop *` to be provided as
 // the cb_info for free_pgtable.
 

@@ -278,7 +278,7 @@ vmap_at(const struct pagemap *const pagemap,
         const bool is_overwrite,
         const uint8_t supports_largepage_at_level_mask)
 {
-    struct pt_walker walker = {0};
+    struct pt_walker walker;
     ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
 
     return

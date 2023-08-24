@@ -4,6 +4,7 @@
  */
 
 #pragma once
+#include "lib/adt/addrspace.h"
 
 #include "page.h"
 #include "vma.h"
@@ -19,8 +20,7 @@ struct pagemap {
     struct spinlock lock;
     struct refcount refcount;
 
-    struct avltree vma_tree;
-    struct list vma_list;
+    struct address_space addrspace;
 };
 
 #if defined(__aarch64__)

@@ -5,13 +5,11 @@
 
 #pragma once
 
-#include "lib/adt/range.h"
-#include "lib/list.h"
-
+#include "lib/adt/addrspace.h"
 #include "mm/mm_types.h"
 
 struct mmio_region {
-    struct list list;
+    struct addrspace_node node;
 
     volatile void *base;
     uint32_t size;
@@ -20,7 +18,6 @@ struct mmio_region {
 struct range mmio_region_get_range(const struct mmio_region *region);
 
 enum vmap_mmio_flags {
-    __VMAP_MMIO_LOW4G = 1 << 0,
     __VMAP_MMIO_WT = 1 << 1
 };
 

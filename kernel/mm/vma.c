@@ -8,22 +8,12 @@
 
 #include "pagemap.h"
 
-struct vm_area *
-vma_prev(struct pagemap *const pagemap, struct vm_area *const vma) {
-    if (vma->vma_list.prev == &pagemap->vma_list) {
-        return NULL;
-    }
-
-    return container_of(vma->vma_list.prev, struct vm_area, vma_list);
+struct vm_area *vma_prev(struct vm_area *const vma) {
+    return container_of(addrspace_node_prev(&vma->node), struct vm_area, node);
 }
 
-struct vm_area *
-vma_next(struct pagemap *const pagemap, struct vm_area *const vma) {
-    if (vma->vma_list.prev == &pagemap->vma_list) {
-        return NULL;
-    }
-
-    return container_of(vma->vma_list.next, struct vm_area, vma_list);
+struct vm_area *vma_next(struct vm_area *const vma) {
+    return container_of(addrspace_node_next(&vma->node), struct vm_area, node);
 }
 
 struct vm_area *
@@ -37,8 +27,9 @@ vma_alloc(struct pagemap *const pagemap,
         panic("vma_create(): failed to allocate memory\n");
     }
 
-    vma->range = range;
-    vma->pagemap = pagemap;
+    addrspace_node_init(&pagemap->addrspace, &vma->node);
+
+    vma->node.range = range;
     vma->cachekind = cachekind;
     vma->prot = prot;
 
@@ -87,4 +78,8 @@ vma_create_at(struct pagemap *const pagemap,
     }
 
     return vma;
+}
+
+struct pagemap *vma_pagemap(struct vm_area *const vma) {
+    return container_of(vma->node.addrspace, struct pagemap, addrspace);
 }

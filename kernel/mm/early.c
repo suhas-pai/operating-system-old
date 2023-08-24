@@ -215,7 +215,7 @@ static void init_table_page(struct page *const page) {
 
 void
 mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
-    struct pt_walker walker = {0};
+    struct pt_walker walker;
     ptwalker_create(&walker,
                     virt_addr,
                     /*alloc_pgtable=*/NULL,

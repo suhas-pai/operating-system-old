@@ -177,7 +177,7 @@ LIBFILES += \
 	../lib/parse_strftime.c ../lib/adt/mutable_buffer.c \
 	../lib/adt/growable_buffer.c ../lib/string.c ../lib/adt/avltree.c \
 	../lib/adt/array.c ../lib/math.c ../lib/adt/bitmap.c ../lib/bits.c \
-	../lib/memory.c
+	../lib/memory.c ../lib/adt/addrspace.c
 
 override OBJ := $(foreach obj, $(CFILES:./%=%), obj/$(basename $(obj)).o) \
 				$(foreach obj, $(ASFILES:./%=%), obj/$(basename $(obj)).S.o) \

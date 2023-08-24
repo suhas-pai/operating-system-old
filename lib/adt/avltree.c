@@ -35,7 +35,144 @@ __unused static inline void avltree_verify(struct avltree *const tree) {
 #endif /* defined(BUILD_TEST ) */
 }
 
+void avltree_init(struct avltree *const tree) {
+    tree->root = NULL;
+}
+
+void avlnode_init(struct avlnode *const node) {
+    node->height = 0;
+    node->left = NULL;
+    node->right = NULL;
+    node->parent = NULL;
+}
+
+static struct avlnode *
+go_up_parents(struct avlnode *node, uint32_t *const depth_level_in) {
+    struct avlnode *parent = node->parent;
+    uint32_t depth_level = *depth_level_in;
+
+    while (parent != NULL) {
+        if (parent->left == node) {
+            *depth_level_in = depth_level;
+            return parent->right;
+        }
+
+        depth_level--;
+
+        node = parent;
+        parent = parent->parent;
+    }
+
+    *depth_level_in = depth_level;
+    return NULL;
+}
+
+static bool
+parent_has_next(struct avlnode *node,
+                const uint32_t node_depth_level,
+                const uint32_t depth_index)
+{
+    struct avlnode *parent = node->parent;
+    if (parent == NULL) {
+        return false;
+    }
+
+    const uint32_t count = node_depth_level - depth_index - 1;
+    for (uint32_t i = 0; i != count; i++) {
+        node = parent;
+        parent = parent->parent;
+
+        if (parent == NULL) {
+            return false;
+        }
+    }
+
+    return parent->left == node;
+}
+
+static void
+print_prefix_lines(struct avlnode *const current,
+                   const avlnode_print_sv_cb_t print_sv_cb,
+                   void *const cb_info,
+                   const uint32_t depth_level)
+{
+    struct string_view spaces = SV_STATIC("    ");
+    for (uint32_t i = 1; i < depth_level - 1; i++) {
+        if (parent_has_next(current, depth_level, i)) {
+            print_sv_cb(SV_STATIC("│"), cb_info);
+            print_sv_cb(sv_drop_front(spaces), cb_info);
+        } else {
+            print_sv_cb(spaces, cb_info);
+        }
+    }
+}
+
 void
+avlnode_print(struct avlnode *const node,
+              const avlnode_print_node_cb_t print_node_cb,
+              const avlnode_print_sv_cb_t print_sv_cb,
+              void *const cb_info)
+{
+    if (node == NULL) {
+        return;
+    }
+
+    print_node_cb(node, cb_info);
+
+    struct avlnode *current = node;
+    struct avlnode *parent = current->parent;
+
+    uint32_t depth_level = 1;
+    do {
+        print_sv_cb(SV_STATIC("\n"), cb_info);
+        if (current->left == NULL) {
+            if (current->right == NULL) {
+                current = go_up_parents(current, &depth_level);
+                if (current == NULL) {
+                    return;
+                }
+
+                parent = current->parent;
+            } else {
+                parent = current;
+                current = parent->right;
+
+                depth_level++;
+            }
+        } else {
+            parent = current;
+            current = parent->left;
+
+            depth_level++;
+        }
+
+        if (parent->left == NULL) {
+            print_prefix_lines(current, print_sv_cb, cb_info, depth_level);
+            print_sv_cb(SV_STATIC("├── "), cb_info);
+            print_node_cb(NULL, cb_info);
+            print_sv_cb(SV_STATIC("\n"), cb_info);
+        }
+
+        print_prefix_lines(current, print_sv_cb, cb_info, depth_level);
+        if (parent->left == current) {
+            print_sv_cb(SV_STATIC("├"), cb_info);
+        } else {
+            print_sv_cb(SV_STATIC("└"), cb_info);
+        }
+
+        print_sv_cb(SV_STATIC("── "), cb_info);
+        print_node_cb(current, cb_info);
+
+        if (parent->right == NULL) {
+            print_sv_cb(SV_STATIC("\n"), cb_info);
+            print_prefix_lines(current, print_sv_cb, cb_info, depth_level);
+            print_sv_cb(SV_STATIC("└── "), cb_info);
+            print_node_cb(NULL, cb_info);
+        }
+    } while (true);
+}
+
+bool
 avltree_insert(struct avltree *const tree,
                struct avlnode *const node,
                const avlnode_compare_t comparator,
@@ -47,6 +184,10 @@ avltree_insert(struct avltree *const tree,
 
     while (curr_node != NULL) {
         const int compare = comparator(node, curr_node);
+        if (compare == 0) {
+            return false;
+        }
+
         parent = curr_node;
 
         // FIXME: Handle duplicates? (compare == 0)
@@ -55,25 +196,28 @@ avltree_insert(struct avltree *const tree,
     }
 
     avltree_insert_at_loc(tree, node, parent, link, update);
+    return true;
 }
 
 static struct avlnode *rotate_left(struct avlnode *const node) {
     avlnode_verify(node, node->parent);
 
     struct avlnode *const new_top = node->right;
-    struct avlnode *const tmp = new_top->left;
+    struct avlnode *const new_top_left = node;
+    struct avlnode *const new_top_parent = node->parent;
+    struct avlnode *const new_top_left_right = node->right->left;
 
     avlnode_verify(new_top, new_top->parent);
 
-    node->right = tmp;
-    if (tmp != NULL) {
-        tmp->parent = node;
+    new_top_left->right = new_top_left_right;
+    new_top_left->parent = new_top;
+
+    if (new_top_left_right != NULL) {
+        new_top_left_right->parent = new_top_left;
     }
 
-    new_top->left = node;
-    new_top->parent = node->parent;
-
-    node->parent = new_top;
+    new_top->parent = new_top_parent;
+    new_top->left = new_top_left;
 
     avlnode_verify(node, node->parent);
     avlnode_verify(new_top, new_top->parent);
@@ -85,19 +229,21 @@ static struct avlnode *rotate_right(struct avlnode *const node) {
     avlnode_verify(node, node->parent);
 
     struct avlnode *const new_top = node->left;
-    struct avlnode *const tmp = new_top->right;
+    struct avlnode *const new_top_right = node;
+    struct avlnode *const new_top_parent = node->parent;
+    struct avlnode *const new_top_right_left = node->left->right;
 
     avlnode_verify(new_top, new_top->parent);
 
-    node->left = tmp;
-    node->parent = new_top;
+    new_top_right->left = new_top_right_left;
+    new_top_right->parent = new_top;
 
-    if (tmp != NULL) {
-        tmp->parent = node;
+    if (new_top_right_left != NULL) {
+        new_top_right_left->parent = new_top_right;
     }
 
-    new_top->parent = node->parent;
-    new_top->right = node;
+    new_top->parent = new_top_parent;
+    new_top->right = new_top_right;
 
     avlnode_verify(node, node->parent);
     avlnode_verify(new_top, new_top->parent);
@@ -339,4 +485,43 @@ avltree_delete_node(struct avltree *const tree,
     }
 
     avltree_fixup(tree, parent, update);
+}
+
+struct avlnode *avltree_leftmost(const struct avltree *const tree) {
+    struct avlnode *node = tree->root;
+    if (node == NULL) {
+        return NULL;
+    }
+
+    while (true) {
+        if (node->left == NULL) {
+            return node;
+        }
+
+        node = node->left;
+    }
+}
+
+struct avlnode *avltree_rightmost(const struct avltree *tree) {
+    struct avlnode *node = tree->root;
+    if (node == NULL) {
+        return NULL;
+    }
+
+    while (true) {
+        if (node->right == NULL) {
+            return node;
+        }
+
+        node = node->right;
+    }
+}
+
+void
+avltree_print(struct avltree *const tree,
+              const avlnode_print_node_cb_t print_node_cb,
+              const avlnode_print_sv_cb_t print_sv_cb,
+              void *const cb_info)
+{
+    avlnode_print(tree->root, print_node_cb, print_sv_cb, cb_info);
 }

@@ -22,7 +22,7 @@ void serial_init() {
 #if defined(__x86_64__)
     com1_init();
 #elif defined(__aarch64__)
-    pl011_init((port_t)phys_to_virt(0x9000000),
+    pl011_init((port_t)0x9000000,
                /*baudrate=*/115200,
                /*data_bits=*/8,
                /*stop_bits=*/1);

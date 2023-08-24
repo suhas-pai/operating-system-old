@@ -15,6 +15,10 @@ struct range range_create(const uint64_t front, const uint64_t size) {
     };
 }
 
+struct range range_create_upto(const uint64_t size) {
+    return range_create(0, size);
+}
+
 struct range range_create_end(const uint64_t front, const uint64_t end) {
     assert(front <= end);
     return range_create(front, (end - front));

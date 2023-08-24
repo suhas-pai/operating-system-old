@@ -15,7 +15,8 @@ struct mutable_buffer {
 };
 
 #define MBUFFER_STATIC_STACK(name, size) \
-    char RAND_VAR_NAME()[size] = {0};    \
+    char RAND_VAR_NAME()[size];          \
+    bzero(RAND_VAR_NAME(), size);        \
     struct mutable_buffer name =         \
         mbuffer_open_static(RAND_VAR_NAME(), /*used=*/0, size)
 

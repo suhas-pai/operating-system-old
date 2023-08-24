@@ -115,7 +115,9 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
     (spec_info->mods.capitalize_letters ?                                      \
         VAR_CONCAT(func, _upper)(__VA_ARGS__) : func(__VA_ARGS__))             \
 
-    char conv_buffer[MAX_CONVERT_CAP] = {0};
+    char conv_buffer[MAX_CONVERT_CAP];
+    bzero(conv_buffer, sizeof(conv_buffer));
+
     switch (spec_info->spec) {
         case 'a': {
             const enum weekday weekday = (enum weekday)tm->tm_wday;

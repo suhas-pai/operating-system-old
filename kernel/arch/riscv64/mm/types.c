@@ -13,9 +13,9 @@ const uint64_t PAGE_OFFSET = 0xffffffd000000000;
 const uint64_t VMAP_BASE = 0xffffffe000000000;
 const uint64_t VMAP_END = 0xfffffff000000000;
 
-uint64_t MMIO_BASE = 0;
-uint64_t MMIO_END = 0;
 uint64_t PAGING_MODE = 0;
+uint64_t MMIO_BASE = 0xffffffe000000000;
+uint64_t MMIO_END = 0;
 
 pgt_level_t pgt_get_top_level() {
     switch (PAGING_MODE) {

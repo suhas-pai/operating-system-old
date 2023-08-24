@@ -176,7 +176,7 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
 
     uint64_t flags = 0;
     if (!bar->is_64_bit) {
-        flags |= __VMAP_MMIO_LOW4G;
+        //flags |= __VMAP_MMIO_LOW4G;
     }
 
     if (bar->is_prefetchable) {
@@ -185,7 +185,7 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
 
     // We use port_range to internally store the phys range.
     const struct range phys_range = bar->port_range;
-    struct range aligned_range = {0};
+    struct range aligned_range = range_create_empty();
 
     if (!range_align_out(phys_range, PAGE_SIZE, &aligned_range)) {
         printk(LOGLEVEL_WARN,

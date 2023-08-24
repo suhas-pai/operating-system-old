@@ -13,7 +13,8 @@ const uint64_t VMAP_BASE = 0xffffd00000000000;
 const uint64_t VMAP_END = 0xffffe00000000000;
 
 uint64_t PAGING_MODE = 0;
-uint64_t MMIO_BASE = 0;
+
+uint64_t MMIO_BASE = 0xffffe00000000000;
 uint64_t MMIO_END = 0;
 
 pgt_level_t pgt_get_top_level() {
