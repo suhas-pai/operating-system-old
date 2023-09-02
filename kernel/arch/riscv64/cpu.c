@@ -5,7 +5,11 @@
 
 #include "cpu.h"
 
-static struct cpu_info g_base_cpu_info = {0};
+static struct cpu_info g_base_cpu_info = {
+    .pagemap = &kernel_pagemap,
+    .pagemap_node = LIST_INIT(g_base_cpu_info.pagemap_node),
+    .spur_int_count = 0
+};
 
 const struct cpu_info *get_base_cpu_info() {
     return &g_base_cpu_info;

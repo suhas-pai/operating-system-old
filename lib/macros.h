@@ -24,7 +24,11 @@
 #endif /* !defined(__printf_format) */
 
 #if !defined(__optimize)
-    #define __optimize(n) __attribute__((optimize(n)))
+    #if __has_attribute(optimize)
+        #define __optimize(n) __attribute__((optimize(n)))
+    #else
+        #define __optimize(n)
+    #endif /* __has_attribute(optimize) */
 #endif /* !defined(__optimize) */
 
 #define sizeof_field(type, field) sizeof(((type *)0)->field)

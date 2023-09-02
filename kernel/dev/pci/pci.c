@@ -13,7 +13,6 @@
 
 #include "mmio.h"
 #include "port.h"
-#include "structs.h"
 
 static struct list domain_list = LIST_INIT(domain_list);
 static struct list device_list = LIST_INIT(device_list);
@@ -287,6 +286,20 @@ validate_cap_offset(struct array *const prev_cap_offsets,
                "\t\tinvalid device. pci capability offset points to "
                "within structure: 0x%" PRIx8 "\n",
                cap_offset);
+        return false;
+    }
+
+    const struct range data_range =
+        range_create(struct_size,
+                     sizeof_field(struct pci_spec_device_info, data));
+    const struct range cap_range =
+        range_create(cap_offset, sizeof(struct pci_spec_capability));
+
+    if (!range_has_index_range(data_range, cap_range)) {
+        printk(LOGLEVEL_INFO,
+               "\t\tinvalid device. pci capability struct is outside device's "
+               "data range: " RANGE_FMT "\n",
+               RANGE_FMT_ARGS(cap_range));
         return false;
     }
 

@@ -13,13 +13,20 @@ struct mmio_region {
 
     volatile void *base;
     uint32_t size;
+
+    // Internal flags
+    uint32_t flags;
 };
 
 struct range mmio_region_get_range(const struct mmio_region *region);
 
 enum vmap_mmio_flags {
+    __VMAP_LOW4G = 1 << 0,
     __VMAP_MMIO_WT = 1 << 1
 };
+
+struct mmio_region *
+vmap_mmio_low4g(uint8_t prot, uint64_t order, uint64_t flags);
 
 struct mmio_region *
 vmap_mmio(struct range phys_range, uint8_t prot, uint64_t flags);

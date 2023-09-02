@@ -9,9 +9,7 @@
     #include "asm/ttbr.h"
 #endif /* defined(__x86_64__) */
 
-#include "lib/align.h"
-#include "lib/overflow.h"
-
+#include "cpu.h"
 #include "pagemap.h"
 
 struct pagemap kernel_pagemap = {
@@ -22,7 +20,9 @@ struct pagemap kernel_pagemap = {
     .root = NULL, // setup later
 #endif /* defined(__aarch64__)*/
 
-    .lock = SPINLOCK_INIT(),
+    .cpu_list = LIST_INIT(kernel_pagemap.cpu_list),
+    .cpu_lock = SPINLOCK_INIT(),
+    .addrspace_lock = SPINLOCK_INIT(),
     .refcount = refcount_create_max(),
     .addrspace = ADDRSPACE_INIT(kernel_pagemap.addrspace),
 };
@@ -62,7 +62,7 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
                                const uint64_t phys_addr,
                                const uint64_t align)
 {
-    const int flag = spin_acquire_with_irq(&pagemap->lock);
+    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
     const uint64_t addr =
         addrspace_find_space_for_node(&pagemap->addrspace,
                                       in_range,
@@ -70,7 +70,7 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
                                       align);
 
     if (addr == ADDRSPACE_INVALID_ADDR) {
-        spin_release_with_irq(&pagemap->lock, flag);
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
         return false;
     }
 
@@ -84,12 +84,12 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
                               vma->cachekind,
                               /*is_overwrite=*/false);
 
-        spin_release_with_irq(&pagemap->lock, flag);
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
         if (!map_result) {
             return false;
         }
     } else {
-        spin_release_with_irq(&pagemap->lock, flag);
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
     }
 
     return true;
@@ -102,10 +102,10 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
                    const uint64_t phys_addr,
                    const uint64_t align)
 {
-    const int flag = spin_acquire_with_irq(&pagemap->lock);
-
-    // FIXME: check for overlaps
-    addrspace_add_node(&pagemap->addrspace, &vma->node);
+    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
+    if (!addrspace_add_node(&pagemap->addrspace, &vma->node)) {
+        return false;
+    }
 
     if (vma->prot != PROT_NONE) {
         const bool map_result =
@@ -117,12 +117,12 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
                               vma->cachekind,
                               /*is_overwrite=*/false);
 
-        spin_release_with_irq(&pagemap->lock, flag);
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
         if (!map_result) {
             return false;
         }
     } else {
-        spin_release_with_irq(&pagemap->lock, flag);
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
     }
 
     (void)in_range;
@@ -131,13 +131,20 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
     return true;
 }
 
-void switch_to_pagemap(const struct pagemap *const pagemap) {
+void switch_to_pagemap(struct pagemap *const pagemap) {
 #if defined(__aarch64__)
     assert(pagemap->lower_root != NULL);
     assert(pagemap->higher_root != NULL);
 #else
     assert(pagemap->root != NULL);
 #endif /* defined(__aarch64__) */
+
+    const int flag = spin_acquire_with_irq(&pagemap->cpu_lock);
+
+    list_delete(&get_cpu_info_mut()->pagemap_node);
+    list_add(&pagemap->cpu_list, &get_cpu_info_mut()->pagemap_node);
+
+    get_cpu_info_mut()->pagemap = pagemap;
 
 #if defined(__x86_64__)
     write_cr3(page_to_phys(pagemap->root));
@@ -152,4 +159,6 @@ void switch_to_pagemap(const struct pagemap *const pagemap) {
 
     asm volatile ("csrw satp, %0; sfence.vma" :: "r"(satp) : "memory");
 #endif /* defined(__x86_64__) */
+
+    spin_release_with_irq(&pagemap->cpu_lock, flag);
 }

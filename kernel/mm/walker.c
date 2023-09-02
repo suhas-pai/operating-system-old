@@ -10,6 +10,7 @@
 #endif /* defined(__x86_64__) */
 
 #include "lib/align.h"
+#include "mm/page_alloc.h"
 
 #include "mm_types.h"
 #include "pagemap.h"
@@ -30,7 +31,9 @@ ptwalker_free_pgtable_cb(struct pt_walker *const walker,
                          void *const cb_info)
 {
     (void)walker;
-    pageop_free_table((struct pageop *)cb_info, page);
+    (void)cb_info;
+
+    free_page(page);
 }
 
 static inline uint64_t
@@ -109,7 +112,7 @@ ptwalker_create_for_pagemap(struct pt_walker *const walker,
             const uint8_t parent_level = level + 1;
             const uint16_t index = walker->indices[parent_level - 1];
 
-            const pte_t entry = prev_table[index];
+            const pte_t entry = pte_read(prev_table + index);
             if (pte_is_present(entry)) {
                 if (!pte_level_can_have_large(parent_level) ||
                     !pte_is_large(entry))
@@ -130,7 +133,35 @@ ptwalker_create_for_pagemap(struct pt_walker *const walker,
 
     for (uint8_t index = walker->top_level; index != PGT_LEVEL_COUNT; index++) {
         walker->tables[index] = NULL;
-        walker->indices[index] = UINT16_MAX;
+        walker->indices[index] = 0;
+    }
+}
+
+void
+ptwalker_create_from_toplevel(struct pt_walker *const walker,
+                              const uint64_t root_phys,
+                              const pgt_level_t top_level,
+                              const pgt_index_t root_index,
+                              const ptwalker_alloc_pgtable_t alloc_pgtable,
+                              const ptwalker_free_pgtable_t free_pgtable)
+{
+    walker->level = top_level;
+    walker->top_level = walker->level;
+
+    walker->alloc_pgtable = alloc_pgtable;
+    walker->free_pgtable = free_pgtable;
+
+    walker->tables[walker->top_level - 1] = phys_to_virt(root_phys);
+    walker->indices[walker->top_level - 1] = root_index;
+
+    for (pgt_level_t level = 1; level != walker->top_level; level++) {
+        walker->tables[level - 1] = NULL;
+        walker->indices[level - 1] = 0;
+    }
+
+    for (uint8_t index = walker->top_level; index != PGT_LEVEL_COUNT; index++) {
+        walker->tables[index] = NULL;
+        walker->indices[index] = 0;
     }
 }
 
@@ -169,14 +200,14 @@ setup_levels_lower_than(struct pt_walker *const walker,
     pgt_level_t level = lower_than_level - 1;
 
     while (true) {
-        pte_t *const table = pte_to_virt(*pte);
+        pte_t *const table = pte_to_virt(pte_read(pte));
 
         walker->tables[level - 1] = table;
         walker->indices[level - 1] = 0;
 
         pte = table;
 
-        const pte_t entry = *pte;
+        const pte_t entry = pte_read(pte);
         if (!pte_is_present(entry) ||
             (pte_level_can_have_large(level) && pte_is_large(entry)))
         {
@@ -220,7 +251,7 @@ alloc_single_pte(struct pt_walker *const walker,
     }
 
     walker->tables[level - 1] = page_to_virt(pt);
-    *pte = phys_create_pte(page_to_phys(pt)) | PGT_FLAGS;
+    pte_write(pte, phys_create_pte(page_to_phys(pt)) | PGT_FLAGS);
 
     return true;
 }
@@ -317,7 +348,7 @@ ptwalker_next_with_options(struct pt_walker *const walker,
             return E_PT_WALKER_OK;
         }
 
-        const pte_t entry = *pte;
+        const pte_t entry = pte_read(pte);
         if (!pte_is_present(entry)) {
             reset_levels_lower_than(walker, level);
             return E_PT_WALKER_OK;
@@ -359,7 +390,7 @@ ptwalker_next_with_options(struct pt_walker *const walker,
             return E_PT_WALKER_OK;
         }
 
-        const pte_t entry = *pte;
+        const pte_t entry = pte_read(pte);
         if (!pte_is_present(entry)) {
             reset_levels_lower_than(walker, level);
             break;
@@ -435,7 +466,7 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
             return E_PT_WALKER_OK;
         }
 
-        const pte_t entry = *pte;
+        const pte_t entry = pte_read(pte);
         if (!pte_is_present(entry) || pte_is_large(entry)) {
             return E_PT_WALKER_OK;
         }
@@ -472,7 +503,7 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
             return E_PT_WALKER_OK;
         }
 
-        const pte_t entry = *pte;
+        const pte_t entry = pte_read(pte);
         if (!pte_is_present(entry)) {
             reset_levels_lower_than(walker, level);
             break;
@@ -516,7 +547,7 @@ ptwalker_fill_in_lowest(struct pt_walker *const walker, struct page *const page)
     pte_t *const table = walker->tables[level];
     pte_t *const pte = &table[walker->indices[level]];
 
-    *pte = page_to_phys(page) | PGT_FLAGS;
+    pte_write(pte, page_to_phys(page) | PGT_FLAGS);
 
     ref_up(&virt_to_page(table)->table.refcount);
     ref_up(&page->table.refcount);
@@ -547,6 +578,10 @@ ptwalker_deref_from_level(struct pt_walker *const walker,
                           pgt_level_t level,
                           void *const free_pgtable_cb_info)
 {
+    if (level < walker->level) {
+        return;
+    }
+
     const ptwalker_free_pgtable_t free_pgtable = walker->free_pgtable;
     assert(free_pgtable != NULL);
 
@@ -562,4 +597,44 @@ ptwalker_deref_from_level(struct pt_walker *const walker,
     }
 
     walker->level = level;
+}
+
+uint64_t ptwalker_get_virt_addr(const struct pt_walker *const walker) {
+    uint64_t result = 0;
+    for (uint8_t level = walker->level; level <= walker->top_level; level++) {
+        const uint64_t index = (uint64_t)walker->indices[level - 1];
+        result |= (index & PT_LEVEL_MASKS[level]) << PAGE_SHIFTS[level - 1];
+    }
+
+    return result;
+}
+
+uint64_t
+ptwalker_virt_get_phys(struct pagemap *const pagemap, const uint64_t virt) {
+    struct pt_walker walker;
+    ptwalker_default_for_pagemap(&walker, pagemap, virt);
+
+    if (walker.tables[walker.level - 1] == NULL) {
+        return INVALID_PHYS;
+    }
+
+    const pte_t pte =
+        walker.tables[walker.level - 1][walker.indices[walker.level - 1]];
+
+    if (!pte_is_present(pte)) {
+        return INVALID_PHYS;
+    }
+
+    return pte_to_phys(pte);
+}
+
+bool ptwalker_points_to_largepage(const struct pt_walker *const walker) {
+    if (!pte_level_can_have_large(walker->level)) {
+        return false;
+    }
+
+    const pte_t pte =
+        walker->tables[walker->level - 1][walker->indices[walker->level - 1]];
+
+    return pte_is_large(pte);
 }

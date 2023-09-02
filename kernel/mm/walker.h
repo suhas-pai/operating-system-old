@@ -1,10 +1,10 @@
 /*
- * kernel/arch/x86_64/mm/walker.h
+ * kernel/mm/walker.h
  * © suhas pai
  */
 
 #pragma once
-#include "pageop.h"
+#include "mm/mm_types.h"
 
 #define PTWALKER_CLEAR 0
 #define PTWALKER_DONE -1
@@ -20,11 +20,11 @@ typedef void
                            void *cb_info);
 
 struct pt_walker {
-    // tables and indices are stored in reverse-order.
+    // tables and indices are stored from top to bottom.
     // i.e. tables[0] is the top level
 
     pte_t *tables[PGT_LEVEL_COUNT];
-    uint16_t indices[PGT_LEVEL_COUNT];
+    pgt_index_t indices[PGT_LEVEL_COUNT];
 
     // level should always start from 1..=PGT_LEVEL_COUNT.
     int16_t level;
@@ -68,12 +68,22 @@ ptwalker_create_for_pagemap(struct pt_walker *walker,
                             ptwalker_alloc_pgtable_t alloc_pgtable,
                             ptwalker_free_pgtable_t free_pgtable);
 
+void
+ptwalker_create_from_toplevel(struct pt_walker *walker,
+                              uint64_t root_phys,
+                              pgt_level_t top_level,
+                              pgt_index_t root_index,
+                              ptwalker_alloc_pgtable_t alloc_pgtable,
+                              ptwalker_free_pgtable_t free_pgtable);
+
 enum pt_walker_result {
     E_PT_WALKER_OK,
     E_PT_WALKER_REACHED_END,
     E_PT_WALKER_ALLOC_FAIL,
     E_PT_WALKER_BAD_INCR
 };
+
+struct pageop;
 
 enum pt_walker_result
 ptwalker_prev(struct pt_walker *walker, struct pageop *op);
@@ -112,3 +122,8 @@ ptwalker_fill_in_to(struct pt_walker *walker,
                     bool should_ref,
                     void *alloc_pgtable_cb_info,
                     void *free_pgtable_cb_info);
+
+uint64_t ptwalker_get_virt_addr(const struct pt_walker *walker);
+uint64_t ptwalker_virt_get_phys(struct pagemap *kernel_pagemap, uint64_t virt);
+
+bool ptwalker_points_to_largepage(const struct pt_walker *walker);

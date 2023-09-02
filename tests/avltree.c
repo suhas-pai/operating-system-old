@@ -3,10 +3,7 @@
  * © suhas pai
  */
 
-#include <assert.h>
-#include <inttypes.h>
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "lib/adt/avltree.h"
 #include "lib/list.h"
@@ -32,7 +29,8 @@ static void insert_node(struct avltree *const tree, const uint32_t number) {
         avltree_insert(tree,
                        (struct avlnode *)avl_node,
                        (avlnode_compare_t)compare,
-                       NULL);
+                       /*update=*/NULL,
+                       /*added_node=*/NULL);
 
     assert(result);
 }

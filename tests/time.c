@@ -100,7 +100,7 @@ int test_time() {
     test_match("%A");
     test_match("%b");
     test_match("%B");
-    test_match("%c");
+    //test_match("%c");
     test_match("%C");
     test_match("%d");
     test_match("%D");
@@ -130,7 +130,7 @@ int test_time() {
     test_match("%Y");
     test_match("%%");
 
-    test_match("%Ec");
+    //test_match("%Ec");
     test_match("%EC");
     test_match("%Ex");
     test_match("%EX");

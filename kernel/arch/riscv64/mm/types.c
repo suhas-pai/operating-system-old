@@ -14,8 +14,6 @@ const uint64_t VMAP_BASE = 0xffffffe000000000;
 const uint64_t VMAP_END = 0xfffffff000000000;
 
 uint64_t PAGING_MODE = 0;
-uint64_t MMIO_BASE = 0xffffffe000000000;
-uint64_t MMIO_END = 0;
 
 pgt_level_t pgt_get_top_level() {
     switch (PAGING_MODE) {
@@ -43,7 +41,21 @@ bool pte_is_large(const pte_t pte) {
                 > __PTE_VALID);
 }
 
-uint64_t pte_get_phys_addr(const pte_t pte) {
-    return (pte & PTE_PHYS_MASK) << 2;
+pte_t pte_read(const pte_t *const pte) {
+    return *pte;
 }
 
+void pte_write(pte_t *const pte, const pte_t value) {
+    *pte = value;
+}
+
+bool
+pte_flags_equal(const pte_t pte, const pgt_level_t level, const uint64_t flags)
+{
+    (void)level;
+    const uint64_t mask =
+        __PTE_VALID | __PTE_READ | __PTE_WRITE | __PTE_EXEC | __PTE_USER |
+        __PTE_GLOBAL;
+
+    return (pte & mask) == flags;
+}

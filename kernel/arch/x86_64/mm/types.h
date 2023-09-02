@@ -1,5 +1,5 @@
 /*
- * kernel/arch/x86_64/mm/page.h
+ * kernel/arch/x86_64/mm/types.h
  * © suhas pai
  */
 
@@ -39,7 +39,7 @@
 #define pte_to_phys(pte) ((pte) & PTE_PHYS_MASK)
 #define phys_create_pte(phys) (phys)
 
-typedef uint64_t pte_t;
+typedef volatile uint64_t pte_t;
 static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
     { (1ull << 12) - 1, PML1_MASK, PML2_MASK, PML3_MASK, PML4_MASK, PML5_MASK };
 
@@ -66,15 +66,15 @@ static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
     })
 
 enum pte_flags {
-    __PTE_PRESENT  = 1 << 0,
-    __PTE_WRITE    = 1 << 1,
-    __PTE_USER     = 1 << 2,
-    __PTE_PWT      = 1 << 3,
-    __PTE_PCD      = 1 << 4,
-    __PTE_ACCESSED = 1 << 5,
-    __PTE_LARGE    = 1 << 7,
-    __PTE_PAT      = 1 << 7, // Only on PML1 pages
-    __PTE_GLOBAL   = 1 << 8,
+    __PTE_PRESENT  = 1ull << 0,
+    __PTE_WRITE    = 1ull << 1,
+    __PTE_USER     = 1ull << 2,
+    __PTE_PWT      = 1ull << 3,
+    __PTE_PCD      = 1ull << 4,
+    __PTE_ACCESSED = 1ull << 5,
+    __PTE_LARGE    = 1ull << 7,
+    __PTE_PAT      = 1ull << 7, // Only on PML1 pages
+    __PTE_GLOBAL   = 1ull << 8,
 
     __PTE_NOEXEC = 1ull << 63
 };

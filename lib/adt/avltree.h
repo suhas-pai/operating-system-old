@@ -40,6 +40,7 @@ typedef int (*avlnode_compare_t)(struct avlnode *ours, struct avlnode *theirs);
 typedef int (*avlnode_compare_key_t)(struct avlnode *theirs, void *key);
 
 typedef void (*avlnode_update_t)(struct avlnode *node);
+typedef void (*avlnode_added_node_t)(struct avlnode *node);
 
 void avltree_init(struct avltree *tree);
 void avlnode_init(struct avlnode *node);
@@ -50,7 +51,8 @@ bool
 avltree_insert(struct avltree *tree,
                struct avlnode *node,
                avlnode_compare_t comparator,
-               avlnode_update_t update);
+               avlnode_update_t update,
+               avlnode_added_node_t added_node);
 
 void
 avltree_insert_at_loc(struct avltree *tree,

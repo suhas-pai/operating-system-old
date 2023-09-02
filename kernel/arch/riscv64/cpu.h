@@ -4,9 +4,15 @@
  */
 
 #pragma once
-#include <stdint.h>
 
+#include "lib/list.h"
+#include "mm/pagemap.h"
+
+struct pagemap;
 struct cpu_info {
+    struct pagemap *pagemap;
+    struct list pagemap_node;
+
     uint64_t spur_int_count;
 };
 

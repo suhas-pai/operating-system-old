@@ -4,7 +4,9 @@
  */
 
 #include "lib/align.h"
+
 #include "mm/pagemap.h"
+#include "mm/pageop.h"
 
 static inline uint64_t
 flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
@@ -75,7 +77,7 @@ arch_make_mapping(struct pagemap *const pagemap,
     struct pageop pageop;
     pageop_init(&pageop);
 
-    const int flag = spin_acquire_with_irq(&pagemap->lock);
+    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
 
     struct pt_walker walker;
     ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
@@ -89,7 +91,7 @@ arch_make_mapping(struct pagemap *const pagemap,
 
     if (ptwalker_result != E_PT_WALKER_OK) {
         pageop_finish(&pageop);
-        spin_release_with_irq(&pagemap->lock, flag);
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
 
         return false;
     }
@@ -109,14 +111,14 @@ arch_make_mapping(struct pagemap *const pagemap,
                 if ((entry & flags_mask) != (new_entry & flags_mask) ||
                     pte_to_phys(entry) != pte_to_phys(new_entry))
                 {
-                    pageop_flush(&pageop, virt_addr + i);
+                    //pageop_flush(&pageop, virt_addr + i);
                 }
             }
 
             ptwalker_result = ptwalker_next(&walker, &pageop);
             if (ptwalker_result != E_PT_WALKER_OK) {
                 pageop_finish(&pageop);
-                spin_release_with_irq(&pagemap->lock, flag);
+                spin_release_with_irq(&pagemap->addrspace_lock, flag);
 
                 return false;
             }
@@ -130,7 +132,7 @@ arch_make_mapping(struct pagemap *const pagemap,
             if (ptwalker_result != E_PT_WALKER_OK) {
                 undo_changes(&walker, &pageop, i);
                 pageop_finish(&pageop);
-                spin_release_with_irq(&pagemap->lock, flag);
+                spin_release_with_irq(&pagemap->addrspace_lock, flag);
 
                 return false;
             }
@@ -138,7 +140,7 @@ arch_make_mapping(struct pagemap *const pagemap,
     }
 
     pageop_finish(&pageop);
-    spin_release_with_irq(&pagemap->lock, flag);
+    spin_release_with_irq(&pagemap->addrspace_lock, flag);
 
     return true;
 }
@@ -151,7 +153,7 @@ arch_unmap_mapping(struct pagemap *pagemap,
     struct pageop pageop;
     pageop_init(&pageop);
 
-    const int flag = spin_acquire_with_irq(&pagemap->lock);
+    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
 
     struct pt_walker walker;
     ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
@@ -161,20 +163,20 @@ arch_unmap_mapping(struct pagemap *pagemap,
         walker.tables[0][walker.indices[0]] = 0;
 
         if (pte_is_present(entry)) {
-            pageop_flush(&pageop, virt_addr + i);
+            //pageop_flush(&pageop, virt_addr + i);
         }
 
         const enum pt_walker_result result = ptwalker_next(&walker, &pageop);
         if (result != E_PT_WALKER_OK) {
             pageop_finish(&pageop);
-            spin_release_with_irq(&pagemap->lock, flag);
+            spin_release_with_irq(&pagemap->addrspace_lock, flag);
 
             return false;
         }
     }
 
     pageop_finish(&pageop);
-    spin_release_with_irq(&pagemap->lock, flag);
+    spin_release_with_irq(&pagemap->addrspace_lock, flag);
 
     return true;
 }

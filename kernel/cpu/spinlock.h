@@ -9,10 +9,11 @@
 #include <stdbool.h>
 
 struct spinlock {
-    _Atomic int flag;
+    _Atomic uint64_t front;
+    _Atomic uint64_t back;
 };
 
-#define SPINLOCK_INIT() ((struct spinlock){ .flag = 0 })
+#define SPINLOCK_INIT() ((struct spinlock){ .front = 0, .back = 0 })
 
 void spinlock_init(struct spinlock *lock);
 

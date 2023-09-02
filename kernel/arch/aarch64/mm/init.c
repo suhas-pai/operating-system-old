@@ -10,7 +10,7 @@
 #include "lib/size.h"
 
 #include "mm/early.h"
-#include "mm/vmap.h"
+#include "mm/pgmap.h"
 
 #include "boot.h"
 
@@ -205,126 +205,25 @@ map_into_kernel_pagemap(const uint64_t phys_addr,
                         const uint64_t size,
                         const uint64_t pte_flags)
 {
-    struct pt_walker walker;
-    ptwalker_create_for_pagemap(&walker,
-                                &kernel_pagemap,
-                                virt_addr,
-                                ptwalker_alloc_pgtable_cb,
-                                /*free_pgtable=*/NULL);
+    const struct pgmap_options options = {
+        .pte_flags = __PTE_INNER_SH | __PTE_ACCESS | pte_flags,
+        .is_in_early = true,
+        .is_overwrite = false,
+        .supports_largepage_at_level_mask = 1 << 3 | 1 << 2,
+        .alloc_pgtable_cb_info = NULL,
+        .free_pgtable_cb_info = NULL
+    };
 
-#if 0
-    uint64_t index = 0;
-    if (has_align(phys_addr, PAGE_SIZE_1GIB) &&
-        has_align(virt_addr, PAGE_SIZE_1GIB))
-    {
-        enum pt_walker_result ptwalker_result =
-            ptwalker_fill_in_to(&walker,
-                                /*level=*/3,
-                                /*should_ref=*/false,
-                                /*alloc_pgtable_cb_info=*/NULL,
-                                /*free_pgtable_cb_info=*/NULL);
+    const struct range phys_range =
+        range_create(phys_addr, align_up_assert(size, PAGE_SIZE));
+    const bool pgmap_result =
+        pgmap_at(&kernel_pagemap, phys_range, virt_addr, &options);
 
-        for (; index + PAGE_SIZE_1GIB <= size; index += PAGE_SIZE_1GIB) {
-            if (ptwalker_result != E_PT_WALKER_OK) {
-                panic("mm: failed to setup kernel pagemap, result=%d\n",
-                      ptwalker_result);
-            }
-
-            walker.tables[2][walker.indices[2]] =
-                phys_create_pte(phys_addr + index) | __PTE_VALID |
-                __PTE_INNER_SH | __PTE_ACCESS | pte_flags;
-
-            ptwalker_result =
-                ptwalker_next_with_options(&walker,
-                                           /*level=*/3,
-                                           /*alloc_parents=*/true,
-                                           /*alloc_level=*/true,
-                                           /*should_ref=*/false,
-                                           /*alloc_pgtable_cb_info=*/NULL,
-                                           /*free_pgtable_cb_info=*/NULL);
-        }
-    }
-
-    if (has_align(phys_addr, PAGE_SIZE_2MIB) &&
-        has_align(virt_addr, PAGE_SIZE_2MIB) &&
-        (size - index >= PAGE_SIZE_2MIB))
-    {
-        enum pt_walker_result ptwalker_result =
-            ptwalker_fill_in_to(&walker,
-                                /*level=*/2,
-                                /*should_ref=*/false,
-                                /*alloc_pgtable_cb_info=*/NULL,
-                                /*free_pgtable_cb_info=*/NULL);
-
-        for (; index + PAGE_SIZE_2MIB <= size; index += PAGE_SIZE_2MIB) {
-            if (ptwalker_result != E_PT_WALKER_OK) {
-                panic("mm: failed to setup kernel pagemap, result=%d\n",
-                      ptwalker_result);
-            }
-
-            walker.tables[1][walker.indices[1]] =
-                phys_create_pte(phys_addr + index) | __PTE_VALID |
-                __PTE_INNER_SH | __PTE_ACCESS | pte_flags;
-
-            ptwalker_result =
-                ptwalker_next_with_options(&walker,
-                                           /*level=*/2,
-                                           /*alloc_parents=*/true,
-                                           /*alloc_level=*/true,
-                                           /*should_ref=*/false,
-                                           /*alloc_pgtable_cb_info=*/NULL,
-                                           /*free_pgtable_cb_info=*/NULL);
-        }
-    }
-
-    if (index >= size) {
-        return;
-    }
-
-    enum pt_walker_result ptwalker_result =
-        ptwalker_fill_in_to(&walker,
-                            /*level=*/1,
-                            /*should_ref=*/false,
-                            /*alloc_pgtable_cb_info=*/NULL,
-                            /*free_pgtable_cb_info=*/NULL);
-
-    // Size isn't necessarily aligned to PAGE_SIZE, so we may potentially map
-    // a virtual range beyond size, which we're ok with.
-
-    for (; index < size; index += PAGE_SIZE) {
-        if (ptwalker_result != E_PT_WALKER_OK) {
-            panic("mm: failed to setup kernel pagemap, result=%d\n",
-                  ptwalker_result);
-        }
-
-        walker.tables[0][walker.indices[0]] =
-            phys_create_pte(phys_addr + index) | __PTE_VALID | __PTE_4KPAGE |
-            __PTE_INNER_SH | __PTE_ACCESS | pte_flags;
-
-        ptwalker_result =
-            ptwalker_next_with_options(&walker,
-                                       /*level=*/1,
-                                       /*alloc_parents=*/true,
-                                       /*alloc_level=*/true,
-                                       /*should_ref=*/false,
-                                       /*alloc_pgtable_cb_info=*/NULL,
-                                       /*free_pgtable_cb_info=*/NULL);
-    }
-#endif
-
-    const uint64_t full_flags = __PTE_INNER_SH | __PTE_ACCESS | pte_flags;
-    const bool vmap_result =
-        vmap_at_with_ptwalker(&walker,
-                              range_create(phys_addr,
-                                           align_up_assert(size, PAGE_SIZE)),
-                              full_flags,
-                              /*should_ref=*/false,
-                              /*is_overwrite=*/false,
-                              1 << 3 | 1 << 2,
-                              /*alloc_pgtable_cb_info=*/NULL,
-                              /*free_pgtable_cb_info=*/NULL);
-
-    assert_msg(vmap_result, "mm: failed to setup kernel-pagemap");
+    assert_msg(pgmap_result, "mm: failed to setup kernel-pagemap");
+    printk(LOGLEVEL_INFO,
+           "mm: mapped " RANGE_FMT " to " RANGE_FMT "\n",
+           RANGE_FMT_ARGS(phys_range),
+           RANGE_FMT_ARGS(range_create(virt_addr, phys_range.size)));
 }
 
 static void
@@ -393,7 +292,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     // struct page
 
     mm_early_refcount_alloced_map(ident_map_range.front, ident_map_range.size);
-    mm_early_refcount_alloced_map(MMIO_BASE, (MMIO_END - MMIO_BASE));
+    mm_early_refcount_alloced_map(VMAP_BASE, (VMAP_END - VMAP_BASE));
 
     for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
@@ -426,9 +325,9 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
                   VMA_CACHEKIND_NO_CACHE);
 
     // This range was never mapped, but is still reserved.
-    struct vm_area *const mmio =
+    struct vm_area *const vmap =
         vma_alloc(&kernel_pagemap,
-                  range_create(MMIO_BASE, (MMIO_END - MMIO_BASE)),
+                  range_create(VMAP_BASE, (VMAP_END - VMAP_BASE)),
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_MMIO);
 
@@ -446,7 +345,7 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
 
     assert_msg(
         addrspace_add_node(&kernel_pagemap.addrspace, &null_area->node) &&
-        addrspace_add_node(&kernel_pagemap.addrspace, &mmio->node) &&
+        addrspace_add_node(&kernel_pagemap.addrspace, &vmap->node) &&
         addrspace_add_node(&kernel_pagemap.addrspace, &kernel->node) &&
         addrspace_add_node(&kernel_pagemap.addrspace, &hhdm->node),
         "mm: failed to setup kernel-pagemap");
@@ -480,7 +379,6 @@ static void setup_mair() {
 
 extern uint64_t memmap_last_repr_index;
 void mm_init() {
-    MMIO_END = MMIO_BASE + gib(4);
     setup_mair();
 
     const struct mm_memmap *const last_repr_memmap =

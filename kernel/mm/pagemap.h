@@ -17,10 +17,13 @@ struct pagemap {
     struct page *root;
 #endif /* defined(__aarch64__) */
 
-    struct spinlock lock;
+    struct spinlock cpu_lock;
+    struct list cpu_list;
+
     struct refcount refcount;
 
     struct address_space addrspace;
+    struct spinlock addrspace_lock;
 };
 
 #if defined(__aarch64__)
@@ -46,4 +49,4 @@ pagemap_add_vma_at(struct pagemap *pagemap,
                    uint64_t phys_addr,
                    uint64_t align);
 
-void switch_to_pagemap(const struct pagemap *pagemap);
+void switch_to_pagemap(struct pagemap *pagemap);

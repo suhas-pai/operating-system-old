@@ -10,17 +10,10 @@
 #include "lib/size.h"
 
 #include "mm/early.h"
-#include "mm/vmap.h"
+#include "mm/pgmap.h"
 
 #include "boot.h"
 #include "cpu.h"
-
-struct freepages_info {
-    struct list list_entry;
-
-    /* Count of contiguous pages, starting from this one, that are free */
-    uint64_t count;
-};
 
 static struct page *
 ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
@@ -40,10 +33,7 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
 }
 
 static void
-map_region(uint64_t virt_addr,
-           uint64_t map_size,
-           const uint64_t pte_flags)
-{
+map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
     enum pt_walker_result walker_result = E_PT_WALKER_OK;
     struct pt_walker pt_walker;
 
@@ -212,29 +202,30 @@ map_into_kernel_pagemap(uint64_t phys_addr,
                         const uint64_t size,
                         const uint64_t pte_flags)
 {
-    struct pt_walker walker;
-    ptwalker_create_for_pagemap(&walker,
-                                &kernel_pagemap,
-                                virt_addr,
-                                ptwalker_alloc_pgtable_cb,
-                                /*free_pgtable=*/NULL);
-
     const bool supports_2mib = (pte_flags & __PTE_PAT) == 0;
     const bool supports_1gib =
         supports_2mib && get_cpu_capabilities()->supports_1gib_pages;
 
-    const uint64_t phys_end = phys_addr + align_up_assert(size, PAGE_SIZE);
-    const bool vmap_result =
-        vmap_at_with_ptwalker(&walker,
-                              range_create_end(phys_addr, phys_end),
-                              __PTE_GLOBAL | pte_flags,
-                              /*should_ref=*/false,
-                              /*is_overwrite=*/false,
-                              supports_1gib << 3 | supports_2mib << 2,
-                              /*alloc_pgtable_cb_info=*/NULL,
-                              /*free_pgtable_cb_info=*/NULL);
+    const struct pgmap_options options = {
+        .pte_flags = __PTE_GLOBAL | pte_flags,
+        .supports_largepage_at_level_mask =
+            supports_1gib << 3 | supports_2mib << 2,
 
-    assert_msg(vmap_result, "mm: failed to setup kernel-pagemap");
+        .alloc_pgtable_cb_info = NULL,
+        .free_pgtable_cb_info = NULL,
+
+        .is_in_early = true,
+        .is_overwrite = false
+    };
+
+    const uint64_t phys_end = phys_addr + align_up_assert(size, PAGE_SIZE);
+    const bool pgmap_result =
+        pgmap_at(&kernel_pagemap,
+                 range_create_end(phys_addr, phys_end),
+                 virt_addr,
+                 &options);
+
+    assert_msg(pgmap_result, "mm: failed to setup kernel-pagemap");
     printk(LOGLEVEL_INFO,
            "mm: mapped " RANGE_FMT " to " RANGE_FMT "\n",
            RANGE_FMT_ARGS(range_create_end(phys_addr, phys_end)),
@@ -322,7 +313,7 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
     // This range was never mapped, but is still reserved.
     struct vm_area *const mmio =
         vma_alloc(&kernel_pagemap,
-                  range_create(MMIO_BASE, (MMIO_END - MMIO_BASE)),
+                  range_create(VMAP_BASE, (VMAP_END - VMAP_BASE)),
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_MMIO);
 
@@ -348,9 +339,6 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
 
 extern uint64_t memmap_last_repr_index;
 void mm_init() {
-    MMIO_END = MMIO_BASE + gib(4);
-
-    // Enable write-combining
     const uint64_t pat_msr =
         read_msr(IA32_MSR_PAT) & ~(0b111ull << MSR_PAT_INDEX_PAT4);
     const uint64_t write_combining_mask =

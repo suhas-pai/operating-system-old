@@ -59,23 +59,23 @@ static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
     })
 
 enum pte_flags {
-    __PTE_VALID  = 1 << 0,
-    __PTE_4KPAGE = 1 << 1, // Valid only on ptes of a pml1 table
-    __PTE_TABLE  = 1 << 1,
+    __PTE_VALID  = 1ull << 0,
+    __PTE_4KPAGE = 1ull << 1, // Valid only on ptes of a pml1 table
+    __PTE_TABLE  = 1ull << 1,
 
-    __PTE_WC = 1 << 2,
-    __PTE_WT = 2 << 2,
+    __PTE_WC = 1ull << 2,
+    __PTE_WT = 2ull << 2,
 
-    __PTE_MMIO = 3 << 2, // Device uncacheable memory
-    __PTE_USER = 1 << 6,
-    __PTE_RO = 1 << 7,
+    __PTE_MMIO = 3ull << 2, // Device uncacheable memory
+    __PTE_USER = 1ull << 6,
+    __PTE_RO = 1ull << 7,
 
-    __PTE_UNPREDICT = 0b01 << 8,
-    __PTE_OUTER_SH = 0b10 << 8,
-    __PTE_INNER_SH = 0b11 << 8,
+    __PTE_UNPREDICT = 0b01ull << 8,
+    __PTE_OUTER_SH = 0b10ull << 8,
+    __PTE_INNER_SH = 0b11ull << 8,
 
     __PTE_ACCESS = 1ull << 10,
-    __PTE_NONGLOBAL = 1 << 11,
+    __PTE_NONGLOBAL = 1ull << 11,
 
     __PTE_PXN = 1ull << 53,
     __PTE_UXN = 1ull << 54,
@@ -84,6 +84,7 @@ enum pte_flags {
 #define PGT_FLAGS (__PTE_VALID | __PTE_TABLE)
 #define PTE_LARGE_FLAGS(level) \
     ({ (void)(level); (__PTE_VALID | __PTE_ACCESS); })
+
 #define PTE_LEAF_FLAGS (__PTE_VALID | __PTE_4KPAGE | __PTE_ACCESS)
 
 struct page;

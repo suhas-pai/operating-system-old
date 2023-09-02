@@ -14,7 +14,17 @@
 #include "cpu.h"
 
 static struct cpu_capabilities g_cpu_capabilities = {0};
-static struct cpu_info g_base_cpu_info = {0};
+static struct cpu_info g_base_cpu_info = {
+    .processor_id = 0,
+    .lapic_id = 0,
+    .lapic_timer_frequency = 0,
+    .timer_ticks = 0,
+
+    .pagemap = NULL,
+    .pagemap_node = LIST_INIT(g_base_cpu_info.pagemap_node),
+
+    .spur_int_count = 0
+};
 
 static bool g_base_cpu_init = false;
 static void init_cpuid_features() {

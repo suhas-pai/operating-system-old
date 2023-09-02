@@ -9,7 +9,7 @@
 #include "dev/printk.h"
 
 #include "mm/early.h"
-#include "mm/vmap.h"
+#include "mm/pgmap.h"
 
 #include "boot.h"
 
@@ -202,28 +202,21 @@ map_into_kernel_pagemap(const uint64_t phys_addr,
                         const uint64_t size,
                         const uint64_t pte_flags)
 {
-    struct pt_walker walker;
-    ptwalker_create_for_pagemap(&walker,
-                                &kernel_pagemap,
-                                virt_addr,
-                                ptwalker_alloc_pgtable_cb,
-                                /*free_pgtable=*/NULL);
-
-    const uint64_t full_flags = __PTE_READ | __PTE_GLOBAL | pte_flags;
+    const struct pgmap_options options = {
+        .pte_flags = __PTE_READ | __PTE_GLOBAL | pte_flags,
+        .is_in_early = true,
+        .is_overwrite = false,
+        .supports_largepage_at_level_mask = 1 << 4 | 1 << 3 | 1 << 2,
+        .alloc_pgtable_cb_info = NULL,
+        .free_pgtable_cb_info = NULL
+    };
 
     const struct range phys_range =
         range_create(phys_addr, align_up_assert(size, PAGE_SIZE));
-    const bool vmap_result =
-        vmap_at_with_ptwalker(&walker,
-                              phys_range,
-                              full_flags,
-                              /*should_ref=*/false,
-                              /*is_overwrite=*/false,
-                              1 << 4 | 1 << 3 | 1 << 2,
-                              /*alloc_pgtable_cb_info=*/NULL,
-                              /*free_pgtable_cb_info=*/NULL);
+    const bool pgmap_result =
+        pgmap_at(&kernel_pagemap, phys_range, virt_addr, &options);
 
-    assert_msg(vmap_result, "mm: failed to setup kernel-pagemap");
+    assert_msg(pgmap_result, "mm: failed to setup kernel-pagemap");
     printk(LOGLEVEL_INFO,
            "mm: mapped " RANGE_FMT " to " RANGE_FMT "\n",
            RANGE_FMT_ARGS(phys_range),
@@ -315,7 +308,7 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
     // This range was never mapped, but is still reserved.
     struct vm_area *const mmio =
         vma_alloc(&kernel_pagemap,
-                  range_create(MMIO_BASE, (MMIO_END - MMIO_BASE)),
+                  range_create(VMAP_BASE, (VMAP_END - VMAP_BASE)),
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_MMIO);
 
@@ -341,8 +334,6 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
 
 extern uint64_t memmap_last_repr_index;
 void mm_init() {
-    MMIO_END = MMIO_BASE + gib(4);
-
     const struct mm_memmap *const last_repr_memmap =
         mm_get_memmap_list() + memmap_last_repr_index;
     const uint64_t total_bytes_repr_by_structpage_table =

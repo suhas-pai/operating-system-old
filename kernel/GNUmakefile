@@ -23,12 +23,7 @@ $(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 # We are only using "cc" as a placeholder here. It may work by using
 # the host system's toolchain, but this is not guaranteed.
 
-ifeq ($(ARCH), x86_64)
-	override DEFAULT_CC := $(ARCH)-elf-gcc
-else
-	override DEFAULT_CC := clang
-endif
-
+override DEFAULT_CC := clang
 $(eval $(call DEFAULT_VAR,CC,$(DEFAULT_CC)))
 
 override CC_IS_CLANG := no
@@ -43,12 +38,12 @@ $(eval $(call DEFAULT_VAR,CXX,$(DEFAULT_CXX)))
 override DEFAULT_LD := ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 
-COMMON_FLAGS = -g3 -pipe -Wno-attributes -Wcast-align -Wcast-qual \
-			   -Wsign-conversion -Werror -Wfloat-equal -Wredundant-decls \
-			   -Wshadow -Wstrict-overflow=2 -Wundef -Wnull-dereference \
-			   -funsigned-char -Werror=format-security -I. -I../ \
-			   -Iarch/$(ARCH) -DBUILD_KERNEL -Wno-address-of-packed-member \
-			   -fno-omit-frame-pointer -fsanitize=undefined
+COMMON_FLAGS = -g3 -pipe -Wcast-align -Wcast-qual -Wsign-conversion -Werror \
+			   -Wfloat-equal -Wredundant-decls -Wshadow -Wstrict-overflow=5 \
+			   -Wundef -Wnull-dereference -funsigned-char \
+			   -Werror=format-security -I. -I../ -Iarch/$(ARCH) -DBUILD_KERNEL \
+			   -Wno-address-of-packed-member -fno-omit-frame-pointer \
+			   -fsanitize=undefined
 
 ifeq ($(ARCH), riscv64)
 	override COMMON_FLAGS += -D__riscv64
@@ -111,7 +106,6 @@ ifeq ($(ARCH),x86_64)
 	override CFLAGS += \
 		-m64 \
 		-march=x86-64 \
-		-mabi=sysv \
 		-mno-80387 \
 		-mno-mmx \
 		-mno-sse \

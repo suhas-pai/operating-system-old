@@ -223,7 +223,7 @@ static void avltree_update(struct avlnode *const avlnode) {
             addrspace_node_of(node->avlnode.left);
 
         largest_free_to_prev =
-            min(largest_free_to_prev, left->largest_free_to_prev);
+            max(largest_free_to_prev, left->largest_free_to_prev);
     }
 
     if (node->avlnode.right != NULL) {
@@ -231,7 +231,7 @@ static void avltree_update(struct avlnode *const avlnode) {
             addrspace_node_of(node->avlnode.right);
 
         largest_free_to_prev =
-            min(largest_free_to_prev, right->largest_free_to_prev);
+            max(largest_free_to_prev, right->largest_free_to_prev);
     }
 
     node->largest_free_to_prev = largest_free_to_prev;
@@ -279,57 +279,46 @@ addrspace_find_space_for_node(struct address_space *const addrspace,
             avltree_insert(&addrspace->avltree,
                            &node->avlnode,
                            avltree_compare,
-                           avltree_update);
+                           avltree_update,
+                           /*added_node=*/NULL);
 
         assert(result);
         list_add(&addrspace->list, &node->list);
     }
 
-    addrspace->count++;
     return addr;
+}
+
+static void add_node_cb(struct avlnode *const avlnode) {
+    struct addrspace_node *const node = addrspace_node_of(avlnode);
+    if (avlnode->parent == NULL) {
+        list_add(&node->addrspace->list, &node->list);
+        return;
+    }
+
+    if (avlnode == avlnode->parent->right) {
+        list_add(&addrspace_node_of(avlnode->parent)->list, &node->list);
+    } else {
+        struct addrspace_node *const prev =
+            addrspace_node_prev(addrspace_node_of(avlnode->parent));
+
+        list_add(&prev->list, &node->list);
+    }
 }
 
 bool
 addrspace_add_node(struct address_space *const addrspace,
                    struct addrspace_node *const node)
 {
-    const bool result =
+    return
         avltree_insert(&addrspace->avltree,
                        &node->avlnode,
                        avltree_compare,
-                       avltree_update);
-
-    if (!result) {
-        return false;
-    }
-
-    if (node->avlnode.parent == NULL) {
-        list_add(&addrspace->list, &node->list);
-        return true;
-    }
-
-    struct avlnode *parent = node->avlnode.parent;
-    struct avlnode *child = &node->avlnode;
-
-    do {
-        if (child == parent->right) {
-            struct addrspace_node *const child_node = addrspace_node_of(child);
-            struct addrspace_node *const parent_node =
-                addrspace_node_of(parent);
-
-            list_add(&parent_node->list, &child_node->list);
-            break;
-        }
-
-        child = parent;
-        parent = parent->parent;
-    } while (true);
-
-    return true;
+                       avltree_update,
+                       /*added_node=*/add_node_cb);
 }
 
-void
-addrspace_remove_node(struct addrspace_node *const node) {
+void addrspace_remove_node(struct addrspace_node *const node) {
     avltree_delete_node(&node->addrspace->avltree,
                         &node->avlnode,
                         avltree_update);
@@ -337,7 +326,6 @@ addrspace_remove_node(struct addrspace_node *const node) {
 
 void avlnode_print_node_cb(struct avlnode *const avlnode, void *const cb_info) {
     (void)cb_info;
-
     if (avlnode == NULL) {
         printk(LOGLEVEL_INFO, "(null)");
         return;
@@ -345,7 +333,7 @@ void avlnode_print_node_cb(struct avlnode *const avlnode, void *const cb_info) {
 
     struct addrspace_node *const node = addrspace_node_of(avlnode);
     printk(LOGLEVEL_INFO,
-           RANGE_FMT " (gap: 0x%" PRIx64 ")",
+           RANGE_FMT " (largest-gap: 0x%" PRIx64 ")",
            RANGE_FMT_ARGS(node->range),
            node->largest_free_to_prev);
 }
@@ -354,7 +342,6 @@ void avlnode_print_sv_cb(const struct string_view sv, void *const cb_info) {
     (void)cb_info;
     printk(LOGLEVEL_INFO, SV_FMT, SV_FMT_ARGS(sv));
 }
-
 
 void addrspace_print(struct address_space *const addrspace) {
     avltree_print(&addrspace->avltree,

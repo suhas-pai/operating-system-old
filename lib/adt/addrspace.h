@@ -13,7 +13,6 @@
 struct address_space {
     struct avltree avltree;
     struct list list;
-    uint64_t count;
 };
 
 struct addrspace_node {
@@ -35,8 +34,9 @@ struct addrspace_node {
         .list = LIST_INIT(name.list) \
     })
 
-#define ADDRSPACE_NODE_INIT(name) \
+#define ADDRSPACE_NODE_INIT(name, addrspace) \
     ((struct addrspace_node){ \
+        .addrspace = addrspace,        \
         .avlnode = AVLNODE_INIT(),     \
         .list = LIST_INIT(name.list),  \
         .range = range_create_empty(), \
@@ -46,7 +46,7 @@ struct addrspace_node {
 void addrspace_init(struct address_space *addrspace);
 
 void
-addrspace_node_init(struct address_space *const addrspace,
+addrspace_node_init(struct address_space *addrspace,
                     struct addrspace_node *node);
 
 #define addrspace_node_of(obj) \

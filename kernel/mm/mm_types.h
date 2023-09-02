@@ -34,6 +34,8 @@
 #define page_to_virt(page) phys_to_virt(page_to_phys(page))
 
 typedef uint8_t pgt_level_t;
+typedef uint16_t pgt_index_t;
+
 pgt_level_t pgt_get_top_level();
 
 bool pte_is_present(pte_t pte);
@@ -45,7 +47,7 @@ bool pte_is_large(pte_t pte);
 #define pte_to_page(pte) pfn_to_page(pte_to_pfn(pte))
 
 void *phys_to_virt(uint64_t phys);
-uint64_t virt_to_phys(const void *phys);
+uint64_t virt_to_phys(volatile const void *phys);
 
 extern uint64_t KERNEL_BASE;
 extern uint64_t HHDM_OFFSET;
@@ -62,8 +64,6 @@ extern const uint64_t VMAP_BASE;
 extern const uint64_t VMAP_END;
 
 // The mmio range is reserved but not actually mapped
-extern uint64_t MMIO_BASE;
-extern uint64_t MMIO_END;
 extern uint64_t PAGING_MODE;
 
 enum prot_flags {
@@ -97,3 +97,8 @@ enum vma_cachekind {
     VMA_CACHEKIND_MMIO = VMA_CACHEKIND_NO_CACHE,
 #endif /* defined(__x86_64__) */
 };
+
+pte_t pte_read(const pte_t *pte);
+void pte_write(pte_t *pte, pte_t value);
+
+bool pte_flags_equal(pte_t pte, pgt_level_t level, uint64_t flags);

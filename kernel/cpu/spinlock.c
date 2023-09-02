@@ -11,18 +11,22 @@
 #include "spinlock.h"
 
 void spinlock_init(struct spinlock *const lock) {
-    lock->flag = 0;
+    lock->front = 0;
+    lock->back = 0;
 }
 
 void spin_acquire(struct spinlock *const lock) {
-    int expected = 0;
-    while (!atomic_compare_exchange_weak(&lock->flag, &expected, 1)) {
-        cpu_pause();
+    const uint64_t ticket = atomic_fetch_add(&lock->back, 1);
+    while (true) {
+        const uint64_t front = atomic_load(&lock->front);
+        if (front == ticket) {
+            return;
+        }
     }
 }
 
 void spin_release(struct spinlock *const lock) {
-    lock->flag = 0;
+    atomic_fetch_add(&lock->front, 1);
 }
 
 int spin_acquire_with_irq(struct spinlock *const lock) {

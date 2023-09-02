@@ -8,6 +8,8 @@
 #include "cpu/spinlock.h"
 #include "lib/list.h"
 
+#include "page.h"
+
 #define MAX_ORDER 11
 
 #define alloc_page(flags) alloc_pages((flags), /*order=*/0)
