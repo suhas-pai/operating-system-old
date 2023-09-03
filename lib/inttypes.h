@@ -20,7 +20,9 @@
 #define PRIx32 "x"
 #define PRIX32 "X"
 
-#define PRId64 "ld"
-#define PRIu64 "lu"
-#define PRIx64 "lx"
-#define PRIX64 "lX"
+#define __PRI64_LEN_MODIFIER__ "l"
+
+#define PRId64 __PRI64_LEN_MODIFIER__ "d"
+#define PRIu64 __PRI64_LEN_MODIFIER__ "u"
+#define PRIx64 __PRI64_LEN_MODIFIER__ "x"
+#define PRIX64 __PRI64_LEN_MODIFIER__ "X"

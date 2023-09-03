@@ -544,7 +544,7 @@ const char *fdt_get_alias(const void *fdt, const char *name)
 
 int fdt_get_path(const void *fdt, int nodeoffset, char *buf, int buflen)
 {
-    int pdepth = 0, p = 0;
+    int pdepth = 0, p = 0, tmp = 0;
     int offset, depth, namelen;
     const char *name;
 
@@ -567,7 +567,10 @@ int fdt_get_path(const void *fdt, int nodeoffset, char *buf, int buflen)
             name = fdt_get_name(fdt, offset, &namelen);
             if (!name)
                 return namelen;
-            if ((p + namelen + 1) <= buflen) {
+            if (!__builtin_add_overflow(p, namelen, &tmp) &&
+                !__builtin_add_overflow(tmp, 1, &tmp) &&
+                tmp <= buflen)
+            {
                 memcpy(buf + p, name, (unsigned long)namelen);
                 p += namelen;
                 buf[p++] = '/';
@@ -576,7 +579,8 @@ int fdt_get_path(const void *fdt, int nodeoffset, char *buf, int buflen)
         }
 
         if (offset == nodeoffset) {
-            if (pdepth < (depth + 1))
+            if (!__builtin_add_overflow(depth, 1, &tmp) &&
+                pdepth < tmp)
                 return -FDT_ERR_NOSPACE;
 
             if (p > 1) /* special case so that root path is "/", not "" */

@@ -118,6 +118,8 @@ ifeq ($(ARCH),x86_64)
 else ifeq ($(ARCH),aarch64)
 	ifeq ($(CC_IS_CLANG),yes)
 		override CFLAGS += -target aarch64-elf
+	else
+		override CFLAGS += -mno-outline-atomics
 	endif
 
 	override CFLAGS += \

@@ -77,7 +77,7 @@ enum pte_flags {
 };
 
 #define PGT_FLAGS __PTE_VALID
-#define PTE_LARGE_FLAGS(level) ({ (void)(level); __PTE_VALID; })
+#define PTE_LARGE_FLAGS(level) ({ (void)(level); (uint64_t)__PTE_VALID; })
 #define PTE_LEAF_FLAGS (__PTE_VALID | __PTE_ACCESSED | __PTE_DIRTY)
 
 struct page;

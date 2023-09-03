@@ -333,8 +333,6 @@ void mark_used_pages(const struct mm_memmap *const memmap) {
         {
             page->flags |= PAGE_NOT_USABLE;
         }
-
-        return;
     }
 
     // If we couldn't find a corresponding freepages_info struct, then this

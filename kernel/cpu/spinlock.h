@@ -7,6 +7,7 @@
 
 #include <stdatomic.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 struct spinlock {
     _Atomic uint64_t front;

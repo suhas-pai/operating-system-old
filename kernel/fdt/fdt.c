@@ -269,7 +269,9 @@ int fdt_next_node(const void *fdt, int offset, int *depth)
             break;
 
         case FDT_END_NODE:
-            if (depth && ((--(*depth)) < 0))
+            if (depth &&
+                !__builtin_sub_overflow(*depth, 1, depth) &&
+                *depth < 0)
                 return nextoffset;
             break;
 

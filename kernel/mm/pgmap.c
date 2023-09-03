@@ -889,19 +889,23 @@ pgmap_at(const struct pagemap *const pagemap,
                                  walker.level,
                                  options);
 
-                const struct range large_phys_range =
-                    range_create(walker_virt_addr, offset);
+                const struct range largepage_phys_range =
+                    range_create(curr_split.phys_range.front, offset);
                 const bool result =
                     pgmap_with_ptwalker(&walker,
                                         /*curr_split=*/NULL,
                                         &pageop,
-                                        large_phys_range,
-                                        virt_addr,
+                                        largepage_phys_range,
+                                        walker_virt_addr,
                                         options);
 
                 if (!result) {
                     return result;
                 }
+
+                curr_split.virt_addr += offset;
+                curr_split.phys_range =
+                    range_from_index(curr_split.phys_range, offset);
             }
         }
     }

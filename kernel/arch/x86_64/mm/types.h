@@ -39,7 +39,7 @@
 #define pte_to_phys(pte) ((pte) & PTE_PHYS_MASK)
 #define phys_create_pte(phys) (phys)
 
-typedef volatile uint64_t pte_t;
+typedef uint64_t pte_t;
 static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
     { (1ull << 12) - 1, PML1_MASK, PML2_MASK, PML3_MASK, PML4_MASK, PML5_MASK };
 
