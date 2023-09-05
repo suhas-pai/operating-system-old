@@ -76,20 +76,24 @@ redirect_irq(const uint8_t lapic_id,
      * the upper-32 bits.
      */
 
-    ioapic_write(ioapic->regs_mmio->base, reg, req_value);
-    ioapic_write(ioapic->regs_mmio->base, reg + 1, req_value >> 32);
+    ioapic_write(ioapic, reg, req_value);
+    ioapic_write(ioapic, reg + 1, req_value >> 32);
 }
 
 void
 ioapic_add(const uint8_t apic_id, const uint32_t base, const uint32_t gsib) {
     if (!has_align(base, PAGE_SIZE)) {
         printk(LOGLEVEL_WARN,
-               "ioapic: io-apic base is not aligned on a page boundary\n");
+               "ioapic: io-apic with apic-id %" PRIu8 ", gsib %" PRIu32 ", "
+               "base %p is not aligned on a page boundary. ignoring\n",
+               apic_id,
+               gsib,
+               (void *)(uint64_t)base);
         return;
     }
 
     struct ioapic_info info = {
-        .id = apic_id,
+        .arbid = apic_id,
         .gsi_base = gsib,
         .regs_mmio =
             vmap_mmio(range_create(base, PAGE_SIZE),
@@ -99,12 +103,11 @@ ioapic_add(const uint8_t apic_id, const uint32_t base, const uint32_t gsib) {
 
     assert_msg(info.regs_mmio != NULL, "ioapic: failed to map ioapic regs");
 
-    const uint32_t id_reg = ioapic_read(info.regs_mmio->base, IOAPIC_REG_ID);
-    assert_msg(info.id == ioapic_id_reg_get_id(id_reg),
+    const uint32_t id_reg = ioapic_read(&info, IOAPIC_REG_ID);
+    assert_msg(info.arbid == ioapic_id_reg_get_arbid(id_reg),
                "io-apic ID in MADT doesn't match ID in MMIO");
 
-    const uint32_t ioapic_version_reg =
-        ioapic_read(info.regs_mmio->base, IOAPIC_REG_VERSION);
+    const uint32_t ioapic_version_reg = ioapic_read(&info, IOAPIC_REG_VERSION);
 
     info.version = ioapic_version_reg_get_version(ioapic_version_reg);
     info.max_redirect_count =
@@ -112,29 +115,32 @@ ioapic_add(const uint8_t apic_id, const uint32_t base, const uint32_t gsib) {
 
     printk(LOGLEVEL_INFO,
            "ioapic: added ioapic with version: %" PRIu8 " and max "
-           "redirect-count: %" PRIu8 "\n",
+           "redirect-count: %" PRIu8 ", mmio: " RANGE_FMT "\n",
            info.version,
-           info.max_redirect_count);
+           info.max_redirect_count,
+           RANGE_FMT_ARGS(mmio_region_get_range(info.regs_mmio)));
 
     assert_msg(array_append(&ioapic_list, &info),
                "ioapic: failed to add io-apic base to array");
 }
 
 uint32_t
-ioapic_read(volatile struct ioapic_registers *const ioapic_regs,
-            const enum ioapic_reg reg)
-{
-    ioapic_regs->selector = (uint32_t)reg;
-    return ioapic_regs->data;
+ioapic_read(const struct ioapic_info *const ioapic, const enum ioapic_reg reg) {
+    volatile struct ioapic_registers *const regs = ioapic->regs_mmio->base;
+
+    regs->selector = (uint32_t)reg;
+    return regs->data;
 }
 
 void
-ioapic_write(volatile struct ioapic_registers *const ioapic_regs,
+ioapic_write(const struct ioapic_info *const ioapic,
              const enum ioapic_reg reg,
              const uint32_t value)
 {
-    ioapic_regs->selector = (uint32_t)reg;
-    ioapic_regs->data = value;
+    volatile struct ioapic_registers *const regs = ioapic->regs_mmio->base;
+
+    regs->selector = (uint32_t)reg;
+    regs->data = value;
 }
 
 void
@@ -148,7 +154,7 @@ ioapic_redirect_irq(const uint8_t lapic_id,
      * vector. If so, we don't need to do anything.
      */
 
-    array_foreach (&get_acpi_info()->iso_list, struct apic_iso_info, item) {
+    array_foreach(&get_acpi_info()->iso_list, struct apic_iso_info, item) {
         if (item->irq_src != irq) {
             continue;
         }

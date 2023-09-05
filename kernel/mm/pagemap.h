@@ -17,8 +17,8 @@ struct pagemap {
     struct page *root;
 #endif /* defined(__aarch64__) */
 
-    struct spinlock cpu_lock;
     struct list cpu_list;
+    struct spinlock cpu_lock;
 
     struct refcount refcount;
 

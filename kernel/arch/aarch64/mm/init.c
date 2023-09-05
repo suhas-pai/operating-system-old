@@ -200,22 +200,19 @@ static void setup_pagestructs_table(const uint64_t byte_count) {
 }
 
 static void
-map_into_kernel_pagemap(const uint64_t phys_addr,
+map_into_kernel_pagemap(const struct range phys_range,
                         const uint64_t virt_addr,
-                        const uint64_t size,
                         const uint64_t pte_flags)
 {
     const struct pgmap_options options = {
         .pte_flags = __PTE_INNER_SH | __PTE_ACCESS | pte_flags,
         .is_in_early = true,
         .is_overwrite = false,
-        .supports_largepage_at_level_mask = 1 << 3 | 1 << 2,
+        .supports_largepage_at_level_mask = 1 << 2 | 1 << 3,
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL
     };
 
-    const struct range phys_range =
-        range_create(phys_addr, align_up_assert(size, PAGE_SIZE));
     const bool pgmap_result =
         pgmap_at(&kernel_pagemap, phys_range, virt_addr, &options);
 
@@ -246,14 +243,10 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     kernel_pagemap.higher_root = phys_to_page(higher_root);
 
     const struct range ident_map_range = range_create_end(kib(16), gib(4));
-
-    uint64_t kernel_memmap_size = 0;
-    map_into_kernel_pagemap(ident_map_range.front,
-                            ident_map_range.front,
-                            ident_map_range.size,
-                            __PTE_MMIO);
+    map_into_kernel_pagemap(ident_map_range, ident_map_range.front, __PTE_MMIO);
 
     // Map all 'good' regions into the hhdm
+    uint64_t kernel_memmap_size = 0;
     for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
         if (memmap->kind == MM_MEMMAP_KIND_BAD_MEMORY ||
@@ -262,11 +255,21 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
             continue;
         }
 
+        // Only usable memmaps are guaranteed to be page-aligned.
+        // Align out a memmap's range so we don't lose access to valuable
+        // physical memory, for e.g. a portion of the framebuffer.
+
+        struct range range = RANGE_EMPTY();
+        if (!range_align_out(memmap->range, PAGE_SIZE, &range) ||
+            range_empty(range))
+        {
+            continue;
+        }
+
         if (memmap->kind == MM_MEMMAP_KIND_KERNEL_AND_MODULES) {
-            kernel_memmap_size = memmap->range.size;
-            map_into_kernel_pagemap(/*phys_addr=*/memmap->range.front,
+            kernel_memmap_size = range.size;
+            map_into_kernel_pagemap(/*phys_range=*/range,
                                     /*virt_addr=*/KERNEL_BASE,
-                                    kernel_memmap_size,
                                     /*pte_flags=*/0);
         } else {
             uint64_t flags = __PTE_PXN | __PTE_UXN;
@@ -274,9 +277,8 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
                 flags |= __PTE_WC;
             }
 
-            map_into_kernel_pagemap(/*phys_addr=*/memmap->range.front,
-                                    (uint64_t)phys_to_virt(memmap->range.front),
-                                    memmap->range.size,
+            map_into_kernel_pagemap(/*phys_range=*/range,
+                                    (uint64_t)phys_to_virt(range.front),
                                     flags);
         }
     }
@@ -377,14 +379,19 @@ static void setup_mair() {
     write_mair_el1(mair_value);
 }
 
+extern uint64_t memmap_first_repr_index;
 extern uint64_t memmap_last_repr_index;
+
 void mm_init() {
     setup_mair();
 
+    const struct mm_memmap *const first_repr_memmap =
+        mm_get_memmap_list() + memmap_first_repr_index;
     const struct mm_memmap *const last_repr_memmap =
         mm_get_memmap_list() + memmap_last_repr_index;
     const uint64_t total_bytes_repr_by_structpage_table =
-        range_get_end_assert(last_repr_memmap->range);
+        range_get_end_assert(last_repr_memmap->range) -
+        first_repr_memmap->range.front;
 
     uint64_t kernel_memmap_size = 0;
     setup_kernel_pagemap(total_bytes_repr_by_structpage_table,

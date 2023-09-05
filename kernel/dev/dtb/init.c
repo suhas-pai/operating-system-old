@@ -18,7 +18,7 @@
 
 #if defined(__riscv64)
     static void init_serial_device(const void *const dtb, const int nodeoff) {
-        struct dtb_addr_size_pair base_addr_reg = {0};
+        struct dtb_addr_size_pair base_addr_reg = DTB_ADDR_SIZE_PAIR_INIT();
         uint32_t pair_count = 1;
 
         const bool get_base_addr_reg_result =
@@ -84,7 +84,7 @@ static void init_pci_node(const void *const dtb, const int pci_offset) {
 
     if (!get_bus_range_result) {
         printk(LOGLEVEL_INFO,
-               "dtb: 'bus-range' property of pci node is missing or "
+               "dtb: 'bus-range' property of pci node is either missing or "
                "malformed\n");
         return;
     }
@@ -107,7 +107,8 @@ static void init_pci_node(const void *const dtb, const int pci_offset) {
 
     if (!get_domain_result) {
         printk(LOGLEVEL_INFO,
-               "dtb: domain property of pci node is missing or malformed\n");
+               "dtb: domain property of pci node is either missing or "
+               "malformed\n");
         return;
     }
 
@@ -117,7 +118,7 @@ static void init_pci_node(const void *const dtb, const int pci_offset) {
         return;
     }
 
-    struct dtb_addr_size_pair base_addr_reg = {0};
+    struct dtb_addr_size_pair base_addr_reg = DTB_ADDR_SIZE_PAIR_INIT();
     uint32_t base_addr_pair_count = 1;
 
     const bool get_base_addr_reg_result =

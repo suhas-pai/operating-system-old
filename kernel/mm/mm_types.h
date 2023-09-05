@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "lib/assert.h"
 #include "mm/types.h"
 
 #define SIZEOF_STRUCTPAGE (sizeof(uint64_t) * 5)
@@ -21,8 +22,14 @@
 #define SECTION_SHIFT (sizeof(uint32_t) - sizeof(uint8_t))
 #define SECTION_MASK UINT8_MAX
 
-#define phys_to_pfn(phys) ((uint64_t)(phys) >> PAGE_SHIFT)
-#define pfn_to_phys(pfn) ((uint64_t)(pfn) << PAGE_SHIFT)
+#define phys_to_pfn(phys) \
+    ({\
+        const uint64_t __phys__ = (uint64_t)(phys); \
+        assert(__phys__ >= FIRST_PAGE_PHYS); \
+        ((__phys__ - FIRST_PAGE_PHYS) >> PAGE_SHIFT); \
+    })
+
+#define pfn_to_phys(pfn) (((uint64_t)(pfn) << PAGE_SHIFT) + FIRST_PAGE_PHYS)
 #define pfn_to_page(pfn) \
     ((struct page *)(PAGE_OFFSET + (SIZEOF_STRUCTPAGE * (uint64_t)(pfn))))
 
@@ -63,8 +70,8 @@ extern const uint64_t PAGE_OFFSET;
 extern const uint64_t VMAP_BASE;
 extern const uint64_t VMAP_END;
 
-// The mmio range is reserved but not actually mapped
 extern uint64_t PAGING_MODE;
+extern uint64_t FIRST_PAGE_PHYS;
 
 enum prot_flags {
     PROT_NONE,

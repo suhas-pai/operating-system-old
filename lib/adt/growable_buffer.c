@@ -206,9 +206,7 @@ gbuffer_remove_range(struct growable_buffer *const gbuffer,
     assert(range_get_end(range, &end));
 
     if (end != used - 1) {
-        memmove(gbuffer->begin + range.front,
-                gbuffer->begin + end,
-                used - end);
+        memmove(gbuffer->begin + range.front, gbuffer->begin + end, used - end);
     }
 
     gbuffer->index = used - 1;

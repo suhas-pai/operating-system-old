@@ -57,9 +57,8 @@ struct pagemap *vma_pagemap(struct vm_area *const vma);
 
 extern bool
 arch_make_mapping(struct pagemap *pagemap,
-                  uint64_t phys_addr,
+                  struct range phys_range,
                   uint64_t virt_addr,
-                  uint64_t size,
                   uint8_t prot,
                   enum vma_cachekind cachekind,
                   bool is_overwrite);

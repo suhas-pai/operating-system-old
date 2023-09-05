@@ -39,7 +39,7 @@ struct addrspace_node {
         .addrspace = addrspace,        \
         .avlnode = AVLNODE_INIT(),     \
         .list = LIST_INIT(name.list),  \
-        .range = range_create_empty(), \
+        .range = RANGE_EMPTY(),        \
         .largest_free_to_prev = 0      \
     })
 

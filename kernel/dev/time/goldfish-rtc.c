@@ -50,7 +50,7 @@ static uint64_t goldfish_rtc_read(struct clock_source *const clock_source) {
 
 static
 bool goldfish_rtc_init_from_dtb(const void *const dtb, const int nodeoff) {
-    struct dtb_addr_size_pair base_addr_reg = {0};
+    struct dtb_addr_size_pair base_addr_reg = DTB_ADDR_SIZE_PAIR_INIT();
     uint32_t pair_count = 1;
 
     const bool get_base_addr_reg_result =

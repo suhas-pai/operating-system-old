@@ -77,13 +77,12 @@ map_mmio_region(const struct range phys_range,
     const struct range virt_range = range_create(virt_addr, phys_range.size);
     const bool map_success =
         arch_make_mapping(&kernel_pagemap,
-                          phys_range.front,
+                          phys_range,
                           virt_range.front,
-                          phys_range.size,
                           prot,
                           (flags & __VMAP_MMIO_WT) ?
                             VMA_CACHEKIND_WRITETHROUGH : VMA_CACHEKIND_MMIO,
-                          /*is_overwrite=*/true);
+                          /*is_overwrite=*/false);
 
     spin_release_with_irq(&lock, flag);
     if (!map_success) {
@@ -193,11 +192,10 @@ bool vunmap_mmio(struct mmio_region *const region) {
     uint64_t phys = 0;
     if (region->flags & MMIO_REGION_LOW4G) {
         phys = ptwalker_virt_get_phys(&kernel_pagemap, (uint64_t)region->base);
-    }
-
-    if (phys == INVALID_PHYS) {
-        spin_release_with_irq(&kernel_pagemap.addrspace_lock, flag);
-        return false;
+        if (phys == INVALID_PHYS) {
+            spin_release_with_irq(&kernel_pagemap.addrspace_lock, flag);
+            return false;
+        }
     }
 
     arch_unmap_mapping(&kernel_pagemap, (uint64_t)region->base, region->size);

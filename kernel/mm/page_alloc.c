@@ -8,7 +8,7 @@
 #include "mm/page.h"
 #include "mm/zone.h"
 
-static void
+__optimize(3) static void
 add_to_freelist(struct page_freelist *const freelist, struct page *const page) {
     page_set_bit(page, PAGE_IN_FREE_LIST);
     list_add(&freelist->pages, &page->buddy.freelist);
@@ -16,7 +16,7 @@ add_to_freelist(struct page_freelist *const freelist, struct page *const page) {
     freelist->count++;
 }
 
-static struct page *
+__optimize(3) static struct page *
 take_off_freelist(struct page_freelist *const freelist, struct page *const page)
 {
     list_delete(&page->buddy.freelist);
@@ -26,6 +26,7 @@ take_off_freelist(struct page_freelist *const freelist, struct page *const page)
     return page;
 }
 
+__optimize(3)
 static struct page *get_from_freelist(struct page_freelist *const freelist) {
     if (list_empty(&freelist->pages)) {
         return NULL;
@@ -37,7 +38,7 @@ static struct page *get_from_freelist(struct page_freelist *const freelist) {
     return take_off_freelist(freelist, page);
 }
 
-static inline
+__optimize(3) static inline
 struct page *buddy_of(struct page *const page, const uint8_t order) {
     return pfn_to_page(page_to_pfn(page) ^ (1ull << order));
 }
@@ -119,7 +120,7 @@ done:
     return page;
 }
 
-void
+__optimize(3) void
 free_pages_to_zone(struct page *page,
                    struct page_zone *const zone,
                    uint8_t order)

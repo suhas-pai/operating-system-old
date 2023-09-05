@@ -29,9 +29,8 @@ static const char *type_check_kind_get_string(const enum type_check_kind kind) {
 }
 
 void
-__ubsan_handle_type_mismatch_v1(
-    struct type_mismatch_info_v1 *const info,
-    const uint64_t pointer)
+__ubsan_handle_type_mismatch_v1(struct type_mismatch_info_v1 *const info,
+                                const uint64_t pointer)
 {
     if (pointer == 0) {
         printk(LOGLEVEL_ERROR,
@@ -401,8 +400,8 @@ __ubsan_handle_implicit_conversion(struct implicit_conversion_info *const info,
     if (typedesc_is_signed_int(info->to_type)) {
         printk(LOGLEVEL_ERROR,
                "ubsan: [" SOURCE_LOCATION_FMT "] implicit conversion from "
-               "type %s of value %" PRIu64 " (%s, %d-bit) to type %s changed "
-               "value to %" PRId64 " (%s, %d-bit)\n",
+               "type %s of value %" PRIu64 " (%s, %" PRIu8 "-bit) to type %s "
+               "changed value to %" PRId64 " (%s, %" PRIu8 "-bit)\n",
                SOURCE_LOCATION_FMT_ARGS(&info->location),
                info->from_type->name,
                value,
@@ -415,8 +414,8 @@ __ubsan_handle_implicit_conversion(struct implicit_conversion_info *const info,
     } else {
         printk(LOGLEVEL_ERROR,
                "ubsan: [" SOURCE_LOCATION_FMT "] implicit conversion from "
-               "type %s of value %" PRIu64 " (%s, %d-bit) to type %s changed "
-               "value to %" PRIu64 " (%s, %d-bit)\n",
+               "type %s of value %" PRIu64 " (%s, %" PRIu8 "-bit) to type %s "
+               "changed value to %" PRIu64 " (%s, %" PRIu8 "-bit)\n",
                SOURCE_LOCATION_FMT_ARGS(&info->location),
                info->from_type->name,
                value,

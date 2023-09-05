@@ -40,8 +40,7 @@ struct lapic_registers {
     _Alignas(16) volatile const struct lapic_aligned_value in_service[8];
     _Alignas(16) volatile const struct lapic_aligned_value trigger_mode[8];
 
-    _Alignas(16)
-    volatile const struct lapic_aligned_value interrupt_request[8];
+    _Alignas(16) volatile const struct lapic_aligned_value interrupt_request[8];
 
     _Alignas(16) volatile const uint32_t error_status;
     _Alignas(16) volatile uint32_t reserved_4[24];

@@ -105,8 +105,8 @@ bool rtc_read_cmos_info(struct rtc_cmos_info *const info_out) {
      * reading in the middle of an rtc-update.
      */
 
-    struct rtc_cmos_info info = {0};
-    struct rtc_cmos_info check = {0};
+    struct rtc_cmos_info info = RTC_CMOS_INFO_INIT();
+    struct rtc_cmos_info check = RTC_CMOS_INFO_INIT();
 
     bool should_return = true;
     for (uint64_t i = 0; i != MAX_ATTEMPTS; i++) {

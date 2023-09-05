@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "lib/macros.h"
 #include "mm/mm_types.h"
 
 #include "limine.h"
@@ -13,33 +14,34 @@ const uint64_t VMAP_BASE = 0xffffd00000000000;
 const uint64_t VMAP_END = 0xffffe00000000000;
 
 uint64_t PAGING_MODE = 0;
+uint64_t FIRST_PAGE_PHYS = 0;
 
-pgt_level_t pgt_get_top_level() {
+__optimize(3) pgt_level_t pgt_get_top_level() {
     const bool has_5lvl_paging = PAGING_MODE == LIMINE_PAGING_MODE_AARCH64_5LVL;
     return has_5lvl_paging ? 5 : 4;
 }
 
-bool pte_is_present(const pte_t pte) {
+__optimize(3) bool pte_is_present(const pte_t pte) {
     return (pte & __PTE_VALID) != 0;
 }
 
-bool pte_level_can_have_large(const pgt_level_t level) {
+__optimize(3) bool pte_level_can_have_large(const pgt_level_t level) {
     return (level == 2 || level == 3 || level == 4);
 }
 
-bool pte_is_large(const pte_t pte) {
+__optimize(3) bool pte_is_large(const pte_t pte) {
     return (pte & (__PTE_VALID | __PTE_TABLE)) == __PTE_VALID;
 }
 
-pte_t pte_read(const pte_t *const pte) {
-    return *pte;
+__optimize(3) pte_t pte_read(const pte_t *const pte) {
+    return *(volatile const pte_t *)pte;
 }
 
-void pte_write(pte_t *const pte, const pte_t value) {
-    *pte = value;
+__optimize(3) void pte_write(pte_t *const pte, const pte_t value) {
+    *(volatile pte_t *)pte = value;
 }
 
-bool
+__optimize(3) bool
 pte_flags_equal(const pte_t pte, const pgt_level_t level, const uint64_t flags)
 {
     (void)level;

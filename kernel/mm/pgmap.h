@@ -13,6 +13,7 @@ struct pgmap_options {
     void *free_pgtable_cb_info;
 
     uint8_t supports_largepage_at_level_mask;
+
     bool is_in_early : 1;
     bool is_overwrite : 1;
 };

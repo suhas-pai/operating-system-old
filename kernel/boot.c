@@ -52,7 +52,7 @@ static volatile struct limine_boot_time_request boot_time_request = {
 
 static struct mm_memmap mm_memmap_list[64] = {0};
 static uint64_t mm_memmap_count = 0;
-static void *rsdp = NULL;
+static const void *rsdp = NULL;
 static const void *dtb = NULL;
 int64_t boot_time = 0;
 
@@ -64,7 +64,7 @@ uint64_t mm_get_memmap_count() {
     return mm_memmap_count;
 }
 
-void *boot_get_rsdp() {
+const void *boot_get_rsdp() {
     return rsdp;
 }
 
@@ -121,7 +121,6 @@ void boot_init() {
     }
 
     mm_memmap_count = memmap_index;
-
     if (rsdp_request.response == NULL ||
         rsdp_request.response->address == NULL)
     {

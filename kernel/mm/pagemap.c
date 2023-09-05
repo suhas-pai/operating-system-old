@@ -22,9 +22,9 @@ struct pagemap kernel_pagemap = {
 
     .cpu_list = LIST_INIT(kernel_pagemap.cpu_list),
     .cpu_lock = SPINLOCK_INIT(),
+    .addrspace = ADDRSPACE_INIT(kernel_pagemap.addrspace),
     .addrspace_lock = SPINLOCK_INIT(),
     .refcount = refcount_create_max(),
-    .addrspace = ADDRSPACE_INIT(kernel_pagemap.addrspace),
 };
 
 #if defined(__aarch64__)
@@ -77,9 +77,8 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
     if (vma->prot != PROT_NONE) {
         const bool map_result =
             arch_make_mapping(pagemap,
-                              phys_addr,
+                              range_create(phys_addr, vma->node.range.size),
                               vma->node.range.front,
-                              vma->node.range.size,
                               vma->prot,
                               vma->cachekind,
                               /*is_overwrite=*/false);
@@ -110,9 +109,8 @@ pagemap_add_vma_at(struct pagemap *const pagemap,
     if (vma->prot != PROT_NONE) {
         const bool map_result =
             arch_make_mapping(pagemap,
-                              phys_addr,
+                              range_create(phys_addr, vma->node.range.size),
                               vma->node.range.front,
-                              vma->node.range.size,
                               vma->prot,
                               vma->cachekind,
                               /*is_overwrite=*/false);

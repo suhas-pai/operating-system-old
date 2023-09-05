@@ -104,6 +104,8 @@ arch_pcie_write(const struct pci_device_info *s,
                 uint32_t value,
                 uint8_t access_size);
 
+#define PCI_DEVICE_MAX_BAR_COUNT 6
+
 struct pci_device_info {
     struct list list_in_domain;
     struct list list_in_devices;

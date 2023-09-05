@@ -184,7 +184,7 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
 
     // We use port_range to internally store the phys range.
     const struct range phys_range = bar->port_range;
-    struct range aligned_range = range_create_empty();
+    struct range aligned_range = RANGE_EMPTY();
 
     if (!range_align_out(phys_range, PAGE_SIZE, &aligned_range)) {
         printk(LOGLEVEL_WARN,

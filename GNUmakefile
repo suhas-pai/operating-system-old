@@ -68,11 +68,11 @@ run-hdd-riscv64: ovmf-riscv64 $(IMAGE_NAME).hdd
 
 .PHONY: run-bios
 run-bios: $(IMAGE_NAME).iso
-	qemu-system-x86_64 -M q35 -m 2G -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m 2G -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-hdd-bios
 run-hdd-bios: $(IMAGE_NAME).hdd
-	qemu-system-x86_64 -M q35 -m 2G -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m 2G -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
 
 .PHONY: ovmf
 ovmf: ovmf-$(ARCH)

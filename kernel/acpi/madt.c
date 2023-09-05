@@ -72,7 +72,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 lapic_add(&lapic_info);
             #else
                 printk(LOGLEVEL_WARN,
-                       "madt: found local-apic entry. ignoring");
+                       "madt: found local-apic entry. ignoring\n");
             #endif /* defined(__x86_64__) */
 
                 break;
@@ -101,8 +101,7 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 ioapic_add(hdr->apic_id, hdr->base, hdr->gsib);
             #else
-                printk(LOGLEVEL_WARN,
-                       "madt: found ioapic entry. ignoring");
+                printk(LOGLEVEL_WARN, "madt: found ioapic entry. ignoring\n");
             #endif /* defined(__x86_64__) */
                 break;
             }
@@ -221,7 +220,8 @@ void madt_init(const struct acpi_madt *const madt) {
                 local_apic_base = hdr->base;
             #else
                 printk(LOGLEVEL_WARN,
-                       "madt: found local-apic addr override entry. ignoring");
+                       "madt: found local-apic addr override entry. "
+                       "ignoring\n");
             #endif /* defined(__x86_64__) */
 
                 break;
@@ -250,7 +250,7 @@ void madt_init(const struct acpi_madt *const madt) {
                        hdr->x2apic_id,
                        hdr->flags);
             #else
-                printk(LOGLEVEL_WARN, "madt: found x2apic entry. ignoring");
+                printk(LOGLEVEL_WARN, "madt: found x2apic entry. ignoring\n");
             #endif /* defined(__x86_64__) */
 
                 break;
@@ -279,7 +279,8 @@ void madt_init(const struct acpi_madt *const madt) {
                        hdr->flags,
                        hdr->local_x2apic_lint);
             #else
-                printk(LOGLEVEL_WARN, "madt: found x2apic nmi entry. ignoring");
+                printk(LOGLEVEL_WARN,
+                       "madt: found x2apic nmi entry. ignoring\n");
             #endif /* defined(__x86_64__) */
 
                 break;
@@ -341,7 +342,7 @@ void madt_init(const struct acpi_madt *const madt) {
                        cpu->spe_overflow_interrupt);
             #else
                 printk(LOGLEVEL_WARN,
-                       "madt: found gic cpu-interface entry. ignoring");
+                       "madt: found gic cpu-interface entry. ignoring\n");
             #endif /* defined(__aarch64__) */
 
                 break;
@@ -373,15 +374,15 @@ void madt_init(const struct acpi_madt *const madt) {
 
                 if (!has_align(dist->phys_base_address, PAGE_SIZE)) {
                     printk(LOGLEVEL_WARN,
-                           "madt: gic msi frame's physical base address (%p) "
-                           "is not aligned to the page-size (%" PRIu32 ")\n",
+                           "madt: gic msi frame's physical base address %p is "
+                           "not aligned to the page-size (%" PRIu32 ")\n",
                            (void *)dist->phys_base_address,
                            (uint32_t)PAGE_SIZE);
                     continue;
                 }
             #else
                 printk(LOGLEVEL_WARN,
-                       "madt: found gic distributor entry. ignoring");
+                       "madt: found gic distributor entry. ignoring\n");
             #endif /* defined(__aarch64__) */
 
                 break;
@@ -399,23 +400,6 @@ void madt_init(const struct acpi_madt *const madt) {
             #if defined(__aarch64__)
                 const struct acpi_madt_entry_gic_msi_frame *const frame =
                     (const struct acpi_madt_entry_gic_msi_frame *)iter;
-
-                printk(LOGLEVEL_INFO,
-                       "madt: found msi-frame\n"
-                       "\tmsi frame id: %" PRIu32 "\n"
-                       "\tphys base address: 0x%" PRIx64 "\n"
-                       "\tflags: 0x%" PRIx8 "\n"
-                       "\t\toverride msi_typer: %s\n"
-                       "\tspi count: %" PRIu16 "\n"
-                       "\tspi base: %" PRIu16 "\n",
-                       frame->msi_frame_id,
-                       frame->phys_base_address,
-                       frame->flags,
-                       (frame->flags &
-                        __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR) != 0 ?
-                            "yes" : "no",
-                       frame->spi_count,
-                       frame->spi_base);
 
                 if (!has_align(frame->phys_base_address, PAGE_SIZE)) {
                     printk(LOGLEVEL_WARN,
@@ -448,12 +432,32 @@ void madt_init(const struct acpi_madt *const madt) {
                     .spi_count = frame->spi_count
                 };
 
+                printk(LOGLEVEL_INFO,
+                       "madt: found msi-frame\n"
+                       "\tmsi frame id: %" PRIu32 "\n"
+                       "\tphys base address: 0x%" PRIx64 "\n"
+                       "\t\tmmio: " RANGE_FMT "\n"
+                       "\tflags: 0x%" PRIx8 "\n"
+                       "\t\toverride msi_typer: %s\n"
+                       "\tspi count: %" PRIu16 "\n"
+                       "\tspi base: %" PRIu16 "\n",
+                       frame->msi_frame_id,
+                       frame->phys_base_address,
+                       RANGE_FMT_ARGS(mmio_region_get_range(mmio)),
+                       frame->flags,
+                       (frame->flags &
+                        __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR) != 0 ?
+                            "yes" : "no",
+                       frame->spi_count,
+                       frame->spi_base);
+
+
                 assert_msg(array_append(&get_acpi_info_mut()->msi_frame_list,
                                         &msi_frame),
                            "madt: failed to append msi-frame to array");
             #else
                 printk(LOGLEVEL_WARN,
-                       "madt: found gic msi-frame entry. ignoring");
+                       "madt: found gic msi-frame entry. ignoring\n");
             #endif /* defined(__aarch64__) */
 
                 break;

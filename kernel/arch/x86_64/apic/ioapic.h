@@ -53,7 +53,7 @@ enum ioapic_reg {
 };
 
 struct ioapic_info {
-    uint8_t id;
+    uint8_t arbid;
     uint8_t version;
 
     uint32_t gsi_base;
@@ -64,20 +64,18 @@ struct ioapic_info {
 };
 
 void ioapic_add(uint8_t apic_id, uint32_t base, uint32_t gsib);
-
-uint32_t
-ioapic_read(volatile struct ioapic_registers *ioapic_regs, enum ioapic_reg reg);
+uint32_t ioapic_read(const struct ioapic_info *ioapic, enum ioapic_reg reg);
 
 void
-ioapic_write(volatile struct ioapic_registers *ioapic_regs,
+ioapic_write(const struct ioapic_info *ioapic,
              enum ioapic_reg reg,
              uint32_t value);
 
 void
 ioapic_redirect_irq(uint8_t lapic_id, uint8_t irq, uint8_t vector, bool masked);
 
-static inline uint8_t ioapic_id_reg_get_id(const uint32_t version) {
-    /* Bits [0:8] of the id register holds the id */
+static inline uint8_t ioapic_id_reg_get_arbid(const uint32_t version) {
+    /* Bits [24:27] of the id register holds the id */
     return (version >> 24) & 0b1111;
 }
 

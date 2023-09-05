@@ -655,7 +655,7 @@ signed_to_string_view(int64_t number,
     });
 
     // Buffer + final_index points to the null-terminator, which is the end
-    return sv_create_end(&buffer[i], buffer + final_index);
+    return sv_create_end(buffer + i, buffer + final_index);
 }
 
 unsigned long int

@@ -20,9 +20,9 @@ dtb_get_string_prop(const void *const dtb,
         return false;
     }
 
-    *sv_out =
-        sv_create_length(prop->data,
-                         strnlen(prop->data, (uint64_t)name_length_max));
+    const uint64_t length = strnlen(prop->data, (uint64_t)name_length_max);
+    *sv_out = sv_create_length(prop->data, length);
+
     return true;
 }
 

@@ -3,10 +3,14 @@
  * © suhas pai
  */
 
+#include "dev/printk.h"
 #include "lib/align.h"
 
 #include "mm/pagemap.h"
 #include "mm/pageop.h"
+#include "mm/pgmap.h"
+
+#include "cpu.h"
 
 static inline uint64_t
 flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
@@ -36,104 +40,29 @@ flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
     return result;
 }
 
-static bool
-undo_changes(struct pt_walker *const walker,
-             struct pageop *const pageop,
-             const uint64_t size)
-{
-    for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
-        walker->tables[0][walker->indices[0]] = 0;
-
-        ptwalker_deref_from_level(walker, /*level=*/1, pageop);
-        const enum pt_walker_result ptwalker_result =
-            ptwalker_prev(walker, pageop);
-
-        if (ptwalker_result != E_PT_WALKER_OK) {
-            pageop_finish(pageop);
-            return false;
-        }
-    }
-
-    return true;
-}
-
 bool
 arch_make_mapping(struct pagemap *const pagemap,
-                  const uint64_t phys_addr,
+                  const struct range phys_range,
                   const uint64_t virt_addr,
-                  const uint64_t size,
                   const uint8_t prot,
                   const enum vma_cachekind cachekind,
                   const bool is_overwrite)
 {
-    assert(has_align(size, PAGE_SIZE));
     const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
+    const struct pgmap_options options = {
+        .pte_flags = flags_from_info(prot, cachekind),
 
-    // TODO: Add Huge page support
-    struct pageop pageop;
-    pageop_init(&pageop);
+        .alloc_pgtable_cb_info = NULL,
+        .free_pgtable_cb_info = NULL,
 
-    struct pt_walker walker;
-    ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
+        .supports_largepage_at_level_mask =
+            (1 << 2 | get_cpu_capabilities()->supports_1gib_pages << 3),
 
-    enum pt_walker_result ptwalker_result =
-        ptwalker_fill_in_to(&walker,
-                            /*level=*/1,
-                            /*should_ref=*/true,
-                            /*alloc_pgtable_cb_info=*/NULL,
-                            /*free_pgtable_cb_info=*/&pageop);
+        .is_in_early = false,
+        .is_overwrite = is_overwrite
+    };
 
-    if (ptwalker_result != E_PT_WALKER_OK) {
-        pageop_finish(&pageop);
-        spin_release_with_irq(&pagemap->addrspace_lock, flag);
-
-        return false;
-    }
-
-    const uint64_t flags = flags_from_info(prot, cachekind);
-    if (is_overwrite) {
-        for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
-            const pte_t entry = walker.tables[0][walker.indices[0]];
-            const pte_t new_entry = phys_create_pte(phys_addr + i) | flags;
-
-            walker.tables[0][walker.indices[0]] = new_entry;
-            if (pte_is_present(entry)) {
-                const uint64_t flags_mask =
-                    __PTE_WRITE | __PTE_USER | __PTE_PWT | __PTE_PCD |
-                    __PTE_PAT | __PTE_GLOBAL | __PTE_NOEXEC;
-
-                if ((entry & flags_mask) != (new_entry & flags_mask) ||
-                    pte_to_phys(entry) != pte_to_phys(new_entry))
-                {
-                    //pageop_flush(&pageop, virt_addr + i);
-                }
-            }
-
-            ptwalker_result = ptwalker_next(&walker, &pageop);
-            if (ptwalker_result != E_PT_WALKER_OK) {
-                pageop_finish(&pageop);
-                spin_release_with_irq(&pagemap->addrspace_lock, flag);
-
-                return false;
-            }
-        }
-    } else {
-        for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
-            walker.tables[0][walker.indices[0]] =
-                phys_create_pte(phys_addr + i) | flags;
-
-            ptwalker_result = ptwalker_next(&walker, &pageop);
-            if (ptwalker_result != E_PT_WALKER_OK) {
-                undo_changes(&walker, &pageop, i);
-                pageop_finish(&pageop);
-                spin_release_with_irq(&pagemap->addrspace_lock, flag);
-
-                return false;
-            }
-        }
-    }
-
-    pageop_finish(&pageop);
+    pgmap_at(pagemap, phys_range, virt_addr, &options);
     spin_release_with_irq(&pagemap->addrspace_lock, flag);
 
     return true;
@@ -144,17 +73,19 @@ arch_unmap_mapping(struct pagemap *const pagemap,
                    const uint64_t virt_addr,
                    const uint64_t size)
 {
+    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
+
     struct pageop pageop;
     pageop_init(&pageop);
 
     struct pt_walker walker;
     ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
 
-    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
     for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
-        const pte_t entry = walker.tables[0][walker.indices[0]];
-        walker.tables[0][walker.indices[0]] = 0;
+        pte_t *const pte = walker.tables[0] + walker.indices[0];
+        const pte_t entry = pte_read(pte);
 
+        pte_write(pte, /*value=*/0);
         if (pte_is_present(entry)) {
             //pageop_flush(&pageop, virt_addr + i);
         }

@@ -13,7 +13,7 @@
 #include "page_alloc.h"
 
 struct freepages_info {
-    struct list list_entry;
+    struct list list;
     const struct mm_memmap *memmap;
 
     // Count of contiguous pages, starting from this one
@@ -21,6 +21,10 @@ struct freepages_info {
     // Number of available pages in this freepages_info struct.
     uint64_t avail_page_count;
 };
+
+_Static_assert(sizeof(struct freepages_info) <= PAGE_SIZE,
+               "freepages_info struct must be small enough to store on a "
+               "single page");
 
 static struct list freepages_list = LIST_INIT(freepages_list);
 static uint64_t freepages_list_count = 0;
@@ -37,11 +41,16 @@ static void claim_pages(const struct mm_memmap *const memmap) {
 
     if (freepages_list_count != 0) {
         struct freepages_info *const back =
-            list_tail(&freepages_list, struct freepages_info, list_entry);
+            list_tail(&freepages_list, struct freepages_info, list);
 
-        const uint64_t back_size = back->total_page_count * PAGE_SIZE;
+        // Use avail_page_count so we don't merge two memmaps that seem to
+        // connect but actually have a block of allocated pages separating them.
+
+        const uint64_t back_size = back->avail_page_count * PAGE_SIZE;
         if ((void *)back + back_size == (void *)info) {
+            back->avail_page_count += page_count;
             back->total_page_count += page_count;
+
             return;
         }
     }
@@ -50,7 +59,7 @@ static void claim_pages(const struct mm_memmap *const memmap) {
     info->avail_page_count = page_count;
     info->total_page_count = page_count;
 
-    list_add(&freepages_list, &info->list_entry);
+    list_add(&freepages_list, &info->list);
     freepages_list_count++;
 }
 
@@ -61,7 +70,7 @@ uint64_t early_alloc_page() {
     }
 
     struct freepages_info *const info =
-        list_head(&freepages_list, struct freepages_info, list_entry);
+        list_head(&freepages_list, struct freepages_info, list);
 
     // Take last page out of list, because first page stores the freepage_info
     // struct.
@@ -71,7 +80,7 @@ uint64_t early_alloc_page() {
         virt_to_phys(info) + (info->avail_page_count * PAGE_SIZE);
 
     if (info->avail_page_count == 0) {
-        list_delete(&info->list_entry);
+        list_delete(&info->list);
     }
 
     bzero(phys_to_virt(free_page), PAGE_SIZE);
@@ -89,7 +98,7 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
     uint64_t free_page = INVALID_PHYS;
     bool is_in_middle = false;
 
-    list_foreach(info, &freepages_list, list_entry) {
+    list_foreach(info, &freepages_list, list) {
         uint64_t avail_page_count = info->avail_page_count;
         if (avail_page_count < alloc_amount) {
             continue;
@@ -121,11 +130,12 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
         const uint64_t old_info_count = info->avail_page_count;
 
         info->avail_page_count = PAGE_COUNT(free_page - virt_to_phys(info));
-        info->total_page_count = info->avail_page_count;
+        info->total_page_count =
+            info->avail_page_count + PAGE_COUNT(alloc_amount);
 
         if (info->avail_page_count == 0) {
-            prev = list_prev(info, list_entry);
-            list_delete(&info->list_entry);
+            prev = list_prev(info, list);
+            list_delete(&info->list);
         }
 
         const uint64_t new_info_phys = free_page + (PAGE_SIZE * alloc_amount);
@@ -140,12 +150,12 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
             new_info->avail_page_count = new_info_count;
             new_info->total_page_count = new_info_count;
 
-            list_add(&prev->list_entry, &new_info->list_entry);
+            list_add(&prev->list, &new_info->list);
         }
     } else {
         info->avail_page_count -= alloc_amount;
         if (info->avail_page_count == 0) {
-            list_delete(&info->list_entry);
+            list_delete(&info->list);
         }
     }
 
@@ -154,6 +164,8 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
 }
 
 uint64_t KERNEL_BASE = 0;
+
+uint64_t memmap_first_repr_index = UINT64_MAX;
 uint64_t memmap_last_repr_index = 0;
 
 void mm_early_init() {
@@ -168,6 +180,10 @@ void mm_early_init() {
             case MM_MEMMAP_KIND_NONE:
                 verify_not_reached();
             case MM_MEMMAP_KIND_USABLE:
+                if (memmap_first_repr_index == UINT64_MAX) {
+                    memmap_first_repr_index = index;
+                }
+
                 claim_pages(memmap);
 
                 type_desc = "usable";
@@ -178,11 +194,19 @@ void mm_early_init() {
                 type_desc = "reserved";
                 break;
             case MM_MEMMAP_KIND_ACPI_RECLAIMABLE:
+                if (memmap_first_repr_index == UINT64_MAX) {
+                    memmap_first_repr_index = index;
+                }
+
                 type_desc = "acpi-reclaimable";
                 memmap_last_repr_index = index;
 
                 break;
             case MM_MEMMAP_KIND_ACPI_NVS:
+                if (memmap_first_repr_index == UINT64_MAX) {
+                    memmap_first_repr_index = index;
+                }
+
                 type_desc = "acpi-nvs";
                 memmap_last_repr_index = index;
 
@@ -191,18 +215,37 @@ void mm_early_init() {
                 type_desc = "bad-memory";
                 break;
             case MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE:
-                claim_pages(memmap);
+                if (memmap_first_repr_index == UINT64_MAX) {
+                    memmap_first_repr_index = index;
+                }
+
+                // Don't claim bootloader-reclaimable memmaps until after we
+                // switch to our own pagemap, because there is a slight chance
+                // we allocate the root physical page of the bootloader's
+                // page tables.
 
                 type_desc = "bootloader-reclaimable";
+
+                // Because we're claiming this kind of memmap later, they are
+                // still represented in the structpage table.
+
                 memmap_last_repr_index = index;
 
                 break;
             case MM_MEMMAP_KIND_KERNEL_AND_MODULES:
+                if (memmap_first_repr_index == UINT64_MAX) {
+                    memmap_first_repr_index = index;
+                }
+
                 type_desc = "kernel-and-modules";
                 memmap_last_repr_index = index;
 
                 break;
             case MM_MEMMAP_KIND_FRAMEBUFFER:
+                if (memmap_first_repr_index == UINT64_MAX) {
+                    memmap_first_repr_index = index;
+                }
+
                 type_desc = "framebuffer";
                 memmap_last_repr_index = index;
 
@@ -217,6 +260,7 @@ void mm_early_init() {
                type_desc);
     }
 
+    FIRST_PAGE_PHYS = mm_get_memmap_list()[memmap_first_repr_index].range.front;
     printk(LOGLEVEL_INFO,
            "mm: system has %" PRIu64 " usable pages\n",
            total_free_pages);
@@ -319,30 +363,42 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
 
 void mark_used_pages(const struct mm_memmap *const memmap) {
     struct freepages_info *iter = NULL;
-    list_foreach(iter, &freepages_list, list_entry) {
+    list_foreach(iter, &freepages_list, list) {
         if (iter->memmap != memmap) {
             continue;
         }
 
-        struct page *page =
-            phys_to_page(virt_to_phys(iter) + iter->avail_page_count);
+        struct page *page = phys_to_page(memmap->range.front);
+        const struct page *const end = virt_to_page(iter);
 
-        for (uint64_t i = iter->avail_page_count;
-             i != iter->total_page_count;
-             i++, page++)
-        {
-            page->flags |= PAGE_NOT_USABLE;
+        for (; page != end; page++) {
+            page->flags = PAGE_NOT_USABLE;
+        }
+
+        while (true) {
+            page = phys_to_page(virt_to_phys(iter) + iter->avail_page_count);
+            for (uint64_t i = iter->avail_page_count;
+                 i != iter->total_page_count;
+                 i++, page++)
+            {
+                page->flags = PAGE_NOT_USABLE;
+            }
+
+            iter = list_next(iter, list);
+            if (&iter->list == &freepages_list || iter->memmap != memmap) {
+                return;
+            }
         }
     }
 
     // If we couldn't find a corresponding freepages_info struct, then this
-    // entire usable has been used, and needs to be marked as such.
+    // entire memmap has been used, and needs to be marked as such.
 
     const uint64_t memmap_page_count = PAGE_COUNT(memmap->range.size);
     struct page *page = phys_to_page(memmap->range.front);
 
     for (uint64_t i = 0; i != memmap_page_count; i++, page++) {
-        page->flags |= PAGE_NOT_USABLE;
+        page->flags = PAGE_NOT_USABLE;
     }
 }
 
@@ -354,20 +410,20 @@ void mm_early_post_arch_init() {
     init_table_page(kernel_pagemap.root);
 #endif
 
-    const struct mm_memmap *const first_memmap = mm_get_memmap_list() + 0;
-    if (first_memmap->range.front != 0) {
-        struct page *page = phys_to_page(0);
-        const uint64_t page_count = PAGE_COUNT(first_memmap->range.front);
+    // Claim bootloader-reclaimable memmaps once we've switched to our own
+    // pagemap.
 
-        for (uint64_t j = 0; j != page_count; j++, page++) {
-            // Avoid using `set_page_bit()` because we don't need atomic ops
-            // this early.
-
-            page->flags = PAGE_NOT_USABLE;
+    for (uint64_t index = 0; index != mm_get_memmap_count(); index++) {
+        const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
+        if (memmap->kind == MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE) {
+            claim_pages(memmap);
         }
     }
 
-    for (uint64_t i = 0; i <= memmap_last_repr_index; i++) {
+    for (uint64_t i = memmap_first_repr_index;
+         i <= memmap_last_repr_index;
+         i++)
+    {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
         if (memmap->kind == MM_MEMMAP_KIND_USABLE) {
             mark_used_pages(memmap);
@@ -393,8 +449,8 @@ void mm_early_post_arch_init() {
     struct freepages_info *tmp = NULL;
 
     uint64_t free_page_count = 0;
-    list_foreach_mut(iter, tmp, &freepages_list, list_entry) {
-        list_delete(&iter->list_entry);
+    list_foreach_mut(iter, tmp, &freepages_list, list) {
+        list_delete(&iter->list);
 
         struct page *page = virt_to_page(iter);
         const struct page *const page_end = page + iter->avail_page_count;

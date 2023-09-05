@@ -571,20 +571,6 @@ call_cb(struct printf_spec_info *const info,
     return write_sv_cb(info, sv_cb_info, sv, cont_out);
 }
 
-__optimize(3) static void reset_spec_info(struct printf_spec_info *const spec) {
-    spec->add_base_prefix = false;
-    spec->left_justify = false;
-    spec->add_pos_sign = false;
-    spec->add_base_prefix = false;
-    spec->leftpad_zeros = false;
-
-    spec->spec = '\0';
-    spec->width = 0;
-    spec->precision = 0;
-
-    spec->length_sv = sv_create_empty();
-}
-
 __optimize(3) uint64_t
 parse_printf(const char *const fmt,
              const printf_write_char_callback_t write_char_cb,
@@ -597,9 +583,10 @@ parse_printf(const char *const fmt,
     va_copy(list_struct.list, list);
 
     // Add 2 for a int-prefix, and one for a sign.
-    char buffer[MAX_CONVERT_CAP + 3] = {0};
+    char buffer[MAX_CONVERT_CAP + 3];
+    bzero(buffer, sizeof(buffer));
 
-    struct printf_spec_info curr_spec = {0};
+    struct printf_spec_info curr_spec = PRINTF_SPEC_INFO_INIT();
     const char *unformatted_start = fmt;
 
     uint64_t written_out = 0;
@@ -630,7 +617,6 @@ parse_printf(const char *const fmt,
         }
 
         // Format is %[flags][width][.precision][length]specifier
-        reset_spec_info(&curr_spec);
         if (!parse_flags(&curr_spec, iter, &iter)) {
             // If we have an incomplete spec, then we exit without writing
             // anything.
@@ -687,6 +673,7 @@ parse_printf(const char *const fmt,
             case E_HANDLE_SPEC_REACHED_END:
                 return written_out;
             case E_HANDLE_SPEC_CONTINUE:
+                curr_spec = PRINTF_SPEC_INFO_INIT();
                 continue;
         }
 
@@ -846,13 +833,15 @@ parse_printf(const char *const fmt,
                 }
             }
         }
+
+        curr_spec = PRINTF_SPEC_INFO_INIT();
     }
 
     if (*unformatted_start != '\0') {
         const struct string_view unformatted =
             sv_create_length(unformatted_start, strlen(unformatted_start));
 
-        curr_spec = (struct printf_spec_info){0};
+        curr_spec = PRINTF_SPEC_INFO_INIT();
         written_out +=
             call_cb(NULL,
                     unformatted,

@@ -12,7 +12,25 @@
 #include "fadt.h"
 #include "madt.h"
 
-static struct acpi_info info = {0};
+static struct acpi_info info = {
+    .madt = NULL,
+    .fadt = NULL,
+    .mcfg = NULL,
+    .rsdp = NULL,
+    .rsdt = NULL,
+
+#if defined(__aarch64__)
+    .msi_frame_list = ARRAY_INIT(sizeof(struct acpi_msi_frame)),
+#endif /* defined(__aarch64__) */
+
+    .iso_list = ARRAY_INIT(sizeof(struct apic_iso_info)),
+    .nmi_lint = 0,
+
+#if defined(__x86_64__)
+    .using_x2apic = false
+#endif /* defined(__x86_64__) */
+};
+
 static inline bool has_xsdt() {
     return (info.rsdp->revision >= 2 && info.rsdp->v2.xsdt_addr != 0);
 }
@@ -62,17 +80,11 @@ static inline void acpi_init_each_sdt(const struct acpi_sdt *const sdt) {
 }
 
 void acpi_init(void) {
-    info.rsdp = (const struct acpi_rsdp *)boot_get_rsdp();
+    info.rsdp = boot_get_rsdp();
     if (info.rsdp == NULL) {
         return;
     }
 
-#if defined(__aarch64__)
-    array_init(&get_acpi_info_mut()->msi_frame_list,
-               sizeof(struct acpi_msi_frame));
-#endif /* defined(__x86_64__) */
-
-    array_init(&get_acpi_info_mut()->iso_list, sizeof(struct apic_iso_info));
     if (has_xsdt()) {
         info.rsdt = phys_to_virt(info.rsdp->v2.xsdt_addr);
     } else {

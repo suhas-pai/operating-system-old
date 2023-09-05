@@ -19,6 +19,12 @@ struct string_view {
     uint64_t length;
 };
 
+#define SV_EMPTY() \
+    ((struct string_view){ \
+        .begin = "", \
+        .length = 0 \
+    })
+
 #define SV_STATIC(c_str) sv_create_nocheck(c_str, LEN_OF(c_str))
 #define sv_foreach(sv, iter) \
     for (const char *iter = sv.begin; iter != (sv.begin + sv.length); iter++)
@@ -27,7 +33,7 @@ struct string_view {
 #define SV_FMT_ARGS(sv) (int)(sv).length, (sv).begin
 
 static inline struct string_view sv_create_empty() {
-    return (struct string_view){ .begin = "", .length = 0 };
+    return SV_EMPTY();
 }
 
 static inline struct string_view sv_create(const char *const str) {

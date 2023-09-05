@@ -532,7 +532,7 @@ find_set_at_mult(struct bitmap *const bitmap,
                                    sizeof_bits(type),                          \
                                    bad_iter)                                   \
         {                                                                      \
-            const struct range iter = range_create_empty();                    \
+            const struct range iter = RANGE_EMPTY();                           \
                 /*loc_rng_create_sub_rng_mult_of(bad_iter, mult);*/            \
                                                                                \
             if (iter.size < count) {                                           \

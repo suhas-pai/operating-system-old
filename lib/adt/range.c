@@ -29,7 +29,7 @@ range_multiply(const struct range range,
                const uint64_t mult,
                struct range *const result_out)
 {
-    struct range result = range_create_empty();
+    struct range result = RANGE_EMPTY();
     if (!check_mul(range.front, mult, &result.front)) {
         return false;
     }
@@ -44,8 +44,10 @@ range_multiply(const struct range range,
 
 struct range range_align_in(const struct range range, const uint64_t boundary) {
     uint64_t front = 0;
-    if (!align_up(range.front, boundary, &front)) {
-        return range_create_empty();
+    if (!align_up(range.front, boundary, &front) ||
+        (front - range.front) >= range.size)
+    {
+        return RANGE_EMPTY();
     }
 
     return range_create(front, align_down(range.size, boundary));
@@ -96,7 +98,7 @@ range_round_up_subrange(const struct range range,
                         const uint64_t mult,
                         struct range *const result_out)
 {
-    struct range result = range_create_empty();
+    struct range result = RANGE_EMPTY();
     if (!round_up(range.front, mult, &result.front)) {
         return false;
     }

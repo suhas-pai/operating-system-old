@@ -31,6 +31,12 @@ struct dtb_addr_size_pair {
     uint64_t size;
 };
 
+#define DTB_ADDR_SIZE_PAIR_INIT() \
+    ((struct dtb_addr_size_pair){ \
+        .address = 0, \
+        .size = 0, \
+    })
+
 bool
 dtb_get_reg_pairs(const void *dtb,
                   int nodeoff,

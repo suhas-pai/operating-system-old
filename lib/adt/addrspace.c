@@ -21,7 +21,7 @@ addrspace_node_init(struct address_space *const addrspace,
     list_init(&node->list);
 
     node->addrspace = addrspace;
-    node->range = range_create_empty();
+    node->range = RANGE_EMPTY();
     node->largest_free_to_prev = 0;
 }
 

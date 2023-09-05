@@ -24,7 +24,7 @@ struct range {
         end;                          \
     })
 
-#define range_create_empty() ((struct range){ .front = 0, .size = 0 })
+#define RANGE_EMPTY() ((struct range){ .front = 0, .size = 0 })
 #define range_create_max() ((struct range){ .front = 0, .size = UINT64_MAX })
 
 struct range range_create(uint64_t front, uint64_t size);

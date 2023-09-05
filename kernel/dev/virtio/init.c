@@ -9,6 +9,7 @@
 #include "dev/printk.h"
 
 #include "drivers/scsi.h"
+
 #include "lib/align.h"
 #include "mm/kmalloc.h"
 
@@ -249,7 +250,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
     if (kind == NULL) {
         const struct range device_id_range = range_create_end(0x1040, 0x107f);
-        if (!range_has_loc(device_id_range, 0x1040 + device_kind)) {
+        if (!range_has_index(device_id_range, device_kind)) {
             printk(LOGLEVEL_WARN,
                    "virtio-pci: device-id (0x%" PRIx16 ") is invalid\n",
                    device_kind);
@@ -271,15 +272,10 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         return;
     }
 
-    struct virtio_device virt_device = {0};
+    struct virtio_device virt_device = VIRTIO_DEVICE_INIT(virt_device);
 
     virt_device.kind = device_kind;
     virt_device.is_transitional = is_trans;
-
-    array_init(&virt_device.vendor_cfg_list, sizeof(uint8_t));
-    array_init(&virt_device.shmem_regions,
-               sizeof(struct virtio_device_shmem_region));
-
     virt_device.pci_device = pci_device;
 
 #define pci_read_virtio_cap_field(field) \
@@ -301,15 +297,6 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         }
 
         const uint8_t bar_index = pci_read_virtio_cap_field(cap.bar);
-        if (bar_index > 5) {
-            printk(LOGLEVEL_WARN,
-                   "\tindex of bar of capability %" PRIu8 " > 5\n",
-                   cap_index);
-
-            cap_index++;
-            continue;
-        }
-
         if (!index_in_bounds(bar_index, pci_device->max_bar_count)) {
             printk(LOGLEVEL_INFO,
                    "\tindex of base-address-reg (%" PRIu8 ") bar is past end "
@@ -325,7 +312,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
         if (!bar->is_present) {
             printk(LOGLEVEL_INFO,
-                   "\tbase-address-reg (%" PRIu8 ") bar is not present\n",
+                   "\tbase-address-reg of bar %" PRIu8 " is not present\n",
                    bar_index);
 
             cap_index++;

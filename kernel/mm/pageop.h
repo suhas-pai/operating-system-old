@@ -19,7 +19,7 @@ struct pageop {
 
 #define PAGEOP_INIT(name) \
     ((struct pageop){ \
-        .flush_range = range_create_empty(), \
+        .flush_range = RANGE_EMPTY(), \
         .delayed_free = LIST_INIT(name.delayed_free) \
     })
 

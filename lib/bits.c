@@ -32,7 +32,7 @@ get_range_of_lsb_one_bits(const uint64_t number,
     if ((first_bit_index == FIND_BIT_INVALID ||
         !index_in_bounds(first_bit_index, end_index)))
     {
-        return range_create_empty();
+        return RANGE_EMPTY();
     }
 
     const uint64_t one_count = count_lsb_one_bits(number, first_bit_index);
@@ -71,7 +71,7 @@ get_next_range_of_lsb_zero_bits(const uint64_t number,
 {
     const uint64_t prev_end = range_get_end_assert(prev);
     if (prev_end == sizeof_bits(uint64_t)) {
-        return range_create_empty();
+        return RANGE_EMPTY();
     }
 
     return get_range_of_lsb_zero_bits(number, prev_end, end_index);
@@ -84,7 +84,7 @@ get_next_range_of_lsb_one_bits(const uint64_t number,
 {
     const uint64_t prev_end = range_get_end_assert(prev);
     if (prev_end == sizeof_bits(uint64_t)) {
-        return range_create_empty();
+        return RANGE_EMPTY();
     }
 
     return get_range_of_lsb_one_bits(number, prev_end, end_index);

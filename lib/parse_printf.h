@@ -22,6 +22,18 @@ struct printf_spec_info {
     struct string_view length_sv;
 };
 
+#define PRINTF_SPEC_INFO_INIT() \
+    ((struct printf_spec_info) { \
+        .add_one_space_for_sign = false, \
+        .left_justify = false, \
+        .add_pos_sign = false, \
+        .leftpad_zeros = false, \
+        .spec = '\0', \
+        .width = 0, \
+        .precision = 0, \
+        .length_sv = SV_EMPTY() \
+    })
+
 typedef uint64_t
 (*printf_write_char_callback_t)(struct printf_spec_info *spec_info,
                                 void *info,

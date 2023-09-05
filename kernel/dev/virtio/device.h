@@ -34,3 +34,17 @@ struct virtio_device {
     bool is_transitional : 1;
     enum virtio_device_kind kind;
 };
+
+#define VIRTIO_DEVICE_INIT(name) \
+    ((struct virtio_device){ \
+        .list = LIST_INIT(name.list), \
+        .pci_device = NULL, \
+        .common_cfg = NULL, \
+        .shmem_regions = ARRAY_INIT(sizeof(struct virtio_device_shmem_region)),\
+        .vendor_cfg_list = ARRAY_INIT(sizeof(uint8_t)), \
+        .pci_cfg_offset = 0, \
+        .notify_cfg_offset = 0, \
+        .isr_cfg_offset = 0, \
+        .is_transitional = false, \
+        .kind = VIRTIO_DEVICE_KIND_INVALID \
+    })

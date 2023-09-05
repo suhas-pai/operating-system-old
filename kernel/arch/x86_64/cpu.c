@@ -13,14 +13,20 @@
 
 #include "cpu.h"
 
-static struct cpu_capabilities g_cpu_capabilities = {0};
+static struct cpu_capabilities g_cpu_capabilities = {
+    .supports_avx512 = false,
+    .supports_x2apic = false,
+    .supports_1gib_pages = false,
+    .xsave_store_size = false
+};
+
 static struct cpu_info g_base_cpu_info = {
     .processor_id = 0,
     .lapic_id = 0,
     .lapic_timer_frequency = 0,
     .timer_ticks = 0,
 
-    .pagemap = NULL,
+    .pagemap = &kernel_pagemap,
     .pagemap_node = LIST_INIT(g_base_cpu_info.pagemap_node),
 
     .spur_int_count = 0
@@ -183,7 +189,7 @@ static void init_cpuid_features() {
 
     write_cr4(read_cr4() | cr4_bits);
 
-    /* Enable Syscalls, No-Execute, and Fast-FPU */
+    /* Enable Syscalls and Fast-FPU */
     write_msr(IA32_MSR_EFER,
               (read_msr(IA32_MSR_EFER) | __IA32_MSR_EFER_BIT_SCE));
 
@@ -219,7 +225,9 @@ const struct cpu_capabilities *get_cpu_capabilities() {
 
 void cpu_init() {
     init_cpuid_features();
+
     write_gsbase((uint64_t)&g_base_cpu_info);
+    list_add(&kernel_pagemap.cpu_list, &g_base_cpu_info.pagemap_node);
 
     g_base_cpu_init = true;
 }

@@ -21,7 +21,7 @@
 
 void pageop_init(struct pageop *const pageop) {
     pageop->pagemap = get_cpu_info()->pagemap;
-    pageop->flush_range = range_create_empty();
+    pageop->flush_range = RANGE_EMPTY();
 
     list_init(&pageop->delayed_free);
 }
@@ -79,7 +79,7 @@ void pageop_finish(struct pageop *const pageop) {
     asm volatile ("fence.i" ::: "memory");
 #endif /* defined(__x86_64__) */
 
-    pageop->flush_range = range_create_empty();
+    pageop->flush_range = RANGE_EMPTY();
 }
 
 struct page *alloc_table() {
