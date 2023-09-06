@@ -20,7 +20,8 @@ enum mmio_region_flags {
 enum prot_fail {
     PROT_FAIL_NONE,
     PROT_FAIL_PROT_NONE,
-    PROT_FAIL_PROT_EXEC
+    PROT_FAIL_PROT_EXEC,
+    PROT_FAIL_PROT_USER
 };
 
 static enum prot_fail verify_prot(const uint8_t prot) {
@@ -30,6 +31,10 @@ static enum prot_fail verify_prot(const uint8_t prot) {
 
     if (prot & PROT_EXEC) {
         return PROT_FAIL_PROT_EXEC;
+    }
+
+    if (prot & PROT_USER) {
+        return PROT_FAIL_PROT_USER;
     }
 
     return PROT_FAIL_NONE;
@@ -124,6 +129,11 @@ vmap_mmio_low4g(const uint8_t prot, const uint64_t order, const uint64_t flags)
                    "vmap_mmio_low4g(): attempting to map a low-4g mmio range "
                    "with execute permissions\n");
             return NULL;
+        case PROT_FAIL_PROT_USER:
+            printk(LOGLEVEL_WARN,
+                   "vmap_mmio_low4g(): attempting to map a low-4g mmio range "
+                   "with user permissions\n");
+            return NULL;
     }
 
     struct page *const page = alloc_pages(__ALLOC_ZERO | __ALLOC_LOW4G, order);
@@ -170,14 +180,20 @@ vmap_mmio(const struct range phys_range,
             break;
         case PROT_FAIL_PROT_NONE:
             printk(LOGLEVEL_WARN,
-                   "vmap_mmio(): attempting to map mmio range " RANGE_FMT
-                   " w/o access permissions\n",
+                   "vmap_mmio(): attempting to map mmio range " RANGE_FMT " "
+                   "w/o access permissions\n",
                    RANGE_FMT_ARGS(phys_range));
             return NULL;
         case PROT_FAIL_PROT_EXEC:
             printk(LOGLEVEL_WARN,
-                   "vmap_mmio(): attempting to map mmio range " RANGE_FMT
-                   " with execute permissions\n",
+                   "vmap_mmio(): attempting to map mmio range " RANGE_FMT " "
+                   "with execute permissions\n",
+                   RANGE_FMT_ARGS(phys_range));
+            return NULL;
+        case PROT_FAIL_PROT_USER:
+            printk(LOGLEVEL_WARN,
+                   "vmap_mmio(): attempting to map mmio range " RANGE_FMT " "
+                   "with user permissions\n",
                    RANGE_FMT_ARGS(phys_range));
             return NULL;
     }

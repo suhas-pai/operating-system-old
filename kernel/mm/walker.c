@@ -173,15 +173,14 @@ ptwalker_create_from_toplevel(struct pt_walker *const walker,
     }
 }
 
-enum pt_walker_result
-ptwalker_next(struct pt_walker *const walker, struct pageop *const pageop) {
+enum pt_walker_result ptwalker_next(struct pt_walker *const walker) {
     return ptwalker_next_with_options(walker,
                                       walker->level,
                                       /*alloc_parents=*/true,
                                       /*alloc_level=*/true,
                                       /*should_ref=*/true,
                                       /*alloc_pgtable_cb_info=*/NULL,
-                                      /*free_pgtable_cb_info=*/pageop);
+                                      /*free_pgtable_cb_info=*/NULL);
 }
 
 __optimize(3) static void
@@ -423,15 +422,14 @@ ptwalker_next_with_options(struct pt_walker *const walker,
                                 free_pgtable_cb_info);
 }
 
-enum pt_walker_result
-ptwalker_prev(struct pt_walker *const walker, struct pageop *const pageop) {
+enum pt_walker_result ptwalker_prev(struct pt_walker *const walker) {
     return ptwalker_prev_with_options(walker,
                                       /*level=*/1,
                                       /*alloc_parents=*/true,
                                       /*alloc_level=*/true,
                                       /*should_ref=*/true,
                                       /*alloc_pgtable_cb_info=*/NULL,
-                                      /*free_pgtable_cb_info=*/pageop);
+                                      /*free_pgtable_cb_info=*/NULL);
 }
 
 enum pt_walker_result

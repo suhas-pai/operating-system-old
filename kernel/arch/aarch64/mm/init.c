@@ -243,7 +243,9 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     kernel_pagemap.higher_root = phys_to_page(higher_root);
 
     const struct range ident_map_range = range_create_end(kib(16), gib(4));
-    map_into_kernel_pagemap(ident_map_range, ident_map_range.front, __PTE_MMIO);
+    map_into_kernel_pagemap(/*phys_range=*/ident_map_range,
+                            /*virt_addr=*/ident_map_range.front,
+                            __PTE_MMIO);
 
     // Map all 'good' regions into the hhdm
     uint64_t kernel_memmap_size = 0;

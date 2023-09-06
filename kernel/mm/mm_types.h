@@ -75,9 +75,11 @@ extern uint64_t FIRST_PAGE_PHYS;
 
 enum prot_flags {
     PROT_NONE,
+
     PROT_READ = 1 << 0,
     PROT_WRITE = 1 << 1,
     PROT_EXEC = 1 << 2,
+    PROT_USER = 1 << 3,
 
     PROT_RW = PROT_READ | PROT_WRITE,
     PROT_WX = PROT_WRITE | PROT_EXEC,

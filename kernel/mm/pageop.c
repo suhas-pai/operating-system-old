@@ -57,7 +57,7 @@ pageop_flush_pte(struct pageop *const pageop,
 
     spin_release_with_irq(&pagemap->cpu_lock, flag);
     struct flush_pte_info flush_info = {
-        .ref = refcount_create_count(array_item_count(cpu_array)),
+        .ref = REFCOUNT_CREATE(array_item_count(cpu_array)),
         .delayed_free_list = LIST_INIT(flush_info.delayed_free_list),
         .lock = SPINLOCK_INIT(),
         .pte_phys = pte_phys,

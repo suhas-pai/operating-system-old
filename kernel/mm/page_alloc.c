@@ -110,8 +110,8 @@ done:
     }
 
     if (alloc_flags & __ALLOC_TABLE) {
-        refcount_init(&page->table.refcount);
         list_init(&page->table.delayed_free_list);
+        page->table.refcount = REFCOUNT_EMPTY();
     } else if (alloc_flags & __ALLOC_SLAB_HEAD) {
         page_set_bit(page, PAGE_IS_SLAB_HEAD);
         list_init(&page->slab.head.slab_list);

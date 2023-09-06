@@ -9,9 +9,16 @@
 #include "mm/pgmap.h"
 
 static inline uint64_t
-flags_from_info(const uint8_t prot, const enum vma_cachekind cachekind) {
+flags_from_info(struct pagemap *const pagemap,
+                const uint8_t prot,
+                const enum vma_cachekind cachekind)
+{
     uint64_t result =
         __PTE_VALID | __PTE_INNER_SH | __PTE_ACCESS | __PTE_4KPAGE;
+
+    if (pagemap != &kernel_pagemap) {
+        result |= __PTE_NONGLOBAL | __PTE_USER;
+    }
 
     if (!(prot & PROT_WRITE)) {
         result |= __PTE_RO;
@@ -49,9 +56,8 @@ arch_make_mapping(struct pagemap *const pagemap,
                   const enum vma_cachekind cachekind,
                   const bool is_overwrite)
 {
-    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
     const struct pgmap_options options = {
-        .pte_flags = flags_from_info(prot, cachekind),
+        .pte_flags = flags_from_info(pagemap, prot, cachekind),
 
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,
@@ -63,8 +69,6 @@ arch_make_mapping(struct pagemap *const pagemap,
     };
 
     pgmap_at(pagemap, phys_range, virt_addr, &options);
-    spin_release_with_irq(&pagemap->addrspace_lock, flag);
-
     return true;
 }
 
@@ -73,9 +77,6 @@ arch_unmap_mapping(struct pagemap *pagemap,
                    uint64_t virt_addr,
                    uint64_t size)
 {
-    struct pageop pageop;
-    pageop_init(&pageop);
-
     const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
 
     struct pt_walker walker;
@@ -89,17 +90,13 @@ arch_unmap_mapping(struct pagemap *pagemap,
             //pageop_flush(&pageop, virt_addr + i);
         }
 
-        const enum pt_walker_result result = ptwalker_next(&walker, &pageop);
+        const enum pt_walker_result result = ptwalker_next(&walker);
         if (result != E_PT_WALKER_OK) {
-            pageop_finish(&pageop);
             spin_release_with_irq(&pagemap->addrspace_lock, flag);
-
             return false;
         }
     }
 
-    pageop_finish(&pageop);
     spin_release_with_irq(&pagemap->addrspace_lock, flag);
-
     return true;
 }

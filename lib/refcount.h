@@ -15,9 +15,9 @@ struct refcount {
 #define REFCOUNT_SATURATED (INT32_MAX / 2)
 #define REFCOUNT_MAX INT32_MAX
 
-#define refcount_create() ((struct refcount){ .count = 1 })
-#define refcount_create_count(amt) ((struct refcount){ .count = (amt) })
-#define refcount_create_max() ((struct refcount){ .count = REFCOUNT_MAX })
+#define REFCOUNT_EMPTY() ((struct refcount){ .count = 0 })
+#define REFCOUNT_CREATE(amt) ((struct refcount){ .count = (amt) })
+#define REFCOUNT_CREATE_MAX() ((struct refcount){ .count = REFCOUNT_MAX })
 
 void refcount_init(struct refcount *ref);
 void refcount_init_max(struct refcount *ref);

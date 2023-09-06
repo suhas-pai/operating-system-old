@@ -240,10 +240,16 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
     uint64_t kernel_memmap_size = 0;
 
     // Map all 'good' regions into the hhdm, except the kernel, which goes in
-    // its own range
-    for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
-        const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
+    // its own range.
 
+    const struct mm_memmap *const memmap_begin = mm_get_memmap_list();
+    const struct mm_memmap *const memmap_end =
+        memmap_begin + mm_get_memmap_count();
+
+    for (const struct mm_memmap *memmap = memmap_begin;
+         memmap != memmap_end;
+         memmap++)
+    {
         // ACPI's RSDP pointer and other ACPI information is currently stored in
         // a reserved memmap, so map reserved memmaps in the HHDM for now.
 

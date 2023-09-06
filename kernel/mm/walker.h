@@ -85,11 +85,8 @@ enum pt_walker_result {
 
 struct pageop;
 
-enum pt_walker_result
-ptwalker_prev(struct pt_walker *walker, struct pageop *op);
-
-enum pt_walker_result
-ptwalker_next(struct pt_walker *walker, struct pageop *op);
+enum pt_walker_result ptwalker_prev(struct pt_walker *walker);
+enum pt_walker_result ptwalker_next(struct pt_walker *walker);
 
 enum pt_walker_result
 ptwalker_prev_with_options(struct pt_walker *walker,
@@ -124,6 +121,11 @@ ptwalker_fill_in_to(struct pt_walker *walker,
                     void *free_pgtable_cb_info);
 
 uint64_t ptwalker_get_virt_addr(const struct pt_walker *walker);
-uint64_t ptwalker_virt_get_phys(struct pagemap *kernel_pagemap, uint64_t virt);
 
+/*
+ * NOTE: ptwalker_virt_get_phys() requires that pagemap's addrspace-lock is
+ * held.
+ */
+
+uint64_t ptwalker_virt_get_phys(struct pagemap *kernel_pagemap, uint64_t virt);
 bool ptwalker_points_to_largepage(const struct pt_walker *walker);

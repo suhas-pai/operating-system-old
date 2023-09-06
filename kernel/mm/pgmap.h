@@ -19,7 +19,7 @@ struct pgmap_options {
 };
 
 bool
-pgmap_at(const struct pagemap *pagemap,
+pgmap_at(struct pagemap *pagemap,
          struct range phys_range,
          uint64_t virt_addr,
          const struct pgmap_options *options);

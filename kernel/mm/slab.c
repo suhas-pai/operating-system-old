@@ -90,8 +90,8 @@ static struct page *alloc_slab_page(struct slab_allocator *const alloc) {
         free_obj->next = i + 1;
     }
 
-    ((struct free_slab_object *)(page_virt + object_byte_index))->next =
-        UINT32_MAX;
+    struct free_slab_object *const last_object = page_virt + object_byte_index;
+    last_object->next = UINT32_MAX;
 
     return head;
 }

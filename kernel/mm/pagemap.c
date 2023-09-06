@@ -24,7 +24,7 @@ struct pagemap kernel_pagemap = {
     .cpu_lock = SPINLOCK_INIT(),
     .addrspace = ADDRSPACE_INIT(kernel_pagemap.addrspace),
     .addrspace_lock = SPINLOCK_INIT(),
-    .refcount = refcount_create_max(),
+    .refcount = REFCOUNT_CREATE_MAX(),
 };
 
 #if defined(__aarch64__)

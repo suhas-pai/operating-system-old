@@ -92,7 +92,6 @@ finish_split_info(struct pt_walker *const walker,
 
     const uint64_t walker_virt_addr = ptwalker_get_virt_addr(walker);
     if (walker_virt_addr >= virt_end) {
-        //pageop_finish(pageop);
         return;
     }
 
@@ -806,7 +805,7 @@ pgmap_with_ptwalker(struct pt_walker *const walker,
 }
 
 bool
-pgmap_at(const struct pagemap *const pagemap,
+pgmap_at(struct pagemap *const pagemap,
          struct range phys_range,
          uint64_t virt_addr,
          const struct pgmap_options *const options)
@@ -829,6 +828,8 @@ pgmap_at(const struct pagemap *const pagemap,
         return false;
     }
 
+    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
+
     struct pt_walker walker;
     if (options->is_in_early) {
         ptwalker_create_for_pagemap(&walker,
@@ -842,10 +843,9 @@ pgmap_at(const struct pagemap *const pagemap,
 
     /*
      * There's a chance the virtual address is pointing into the middle of a
-     * large page, in which case we have to split the large page, and
-     * appropriately setup the current_split_info variable, but only if the
-     * large page needs to be replaced (has a different phys-addr or different
-     * flags)
+     * large page, in which case we have to split the large page and
+     * appropriately setup the current_split_info, but only if the large page
+     * needs to be replaced (has a different phys-addr or different flags)
      */
 
     struct current_split_info curr_split = CURRENT_SPLIT_INFO_INIT();
@@ -864,16 +864,14 @@ pgmap_at(const struct pagemap *const pagemap,
             {
                 offset += PAGE_SIZE_AT_LEVEL(walker.level);
                 if (!range_has_index(phys_range, offset)) {
+                    spin_release_with_irq(&pagemap->addrspace_lock, flag);
                     return OVERRIDE_DONE;
                 }
 
                 phys_range = range_from_index(phys_range, offset);
                 virt_addr += offset;
             } else {
-                split_large_page(&walker,
-                                 &curr_split,
-                                 walker.level,
-                                 options);
+                split_large_page(&walker, &curr_split, walker.level, options);
 
                 const struct range largepage_phys_range =
                     range_create(curr_split.phys_range.front, offset);
@@ -885,6 +883,7 @@ pgmap_at(const struct pagemap *const pagemap,
                                         options);
 
                 if (!result) {
+                    spin_release_with_irq(&pagemap->addrspace_lock, flag);
                     return result;
                 }
 
@@ -895,10 +894,13 @@ pgmap_at(const struct pagemap *const pagemap,
         }
     }
 
-    return
+    const bool result =
         pgmap_with_ptwalker(&walker,
                             &curr_split,
                             phys_range,
                             virt_addr,
                             options);
+
+    spin_release_with_irq(&pagemap->addrspace_lock, flag);
+    return result;
 }
