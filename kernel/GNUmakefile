@@ -19,8 +19,8 @@ endef
 override DEFAULT_ARCH := x86_64
 $(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 
-# It is highly recommended to use a custom built cross toolchain to build a kernel.
-# We are only using "cc" as a placeholder here. It may work by using
+# It is suggested to use a custom built cross toolchain to build a kernel.
+# We are using the standard "cc" here, it may work by using
 # the host system's toolchain, but this is not guaranteed.
 
 override DEFAULT_CC := clang
@@ -41,7 +41,7 @@ $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
 COMMON_FLAGS = -g3 -pipe -Wcast-align -Wcast-qual -Wsign-conversion -Werror \
 			   -Wfloat-equal -Wredundant-decls -Wshadow -Wstrict-overflow=5 \
 			   -Wundef -Wnull-dereference -funsigned-char \
-			   -Werror=format-security -I. -I../ -Iarch/$(ARCH) -DBUILD_KERNEL \
+			   -Werror=format-security -I. -I.. -Iarch/$(ARCH) -DBUILD_KERNEL \
 			   -Wno-address-of-packed-member -fno-omit-frame-pointer \
 			   -fsanitize=undefined
 
@@ -190,28 +190,28 @@ limine.h:
 	curl -Lo $@ https://github.com/limine-bootloader/limine/raw/trunk/limine.h
 
 # Link rules for the final kernel executable.
-$(KERNEL): $(OBJ)
+$(KERNEL): GNUMakefile arch/$(ARCH)/linker.ld $(OBJ)
 	$(LD) $(OBJ) $(LDFLAGS) -o $@
 
 # Include header dependencies.
 -include $(HEADER_DEPS)
 
 # Compilation rules for *.c files.
-obj/%.o: %.c limine.h
+obj/%.o: %.c GNUMakefile limine.h
 	@mkdir -p $(dir $@)
 	$(CC) -std=gnu17 $(CFLAGS) -c $< -o $@
 
-obj/lib/%.c.o: ../lib/%.c
+obj/lib/%.c.o: ../lib/%.c GNUMakefile
 	@mkdir -p $(dir $@)
 	$(CC) -std=gnu17 $(CFLAGS) -c $< -o $@
 
 # Compilation rules for *.S files.
-obj/%.S.o: %.S limine.h
+obj/%.S.o: %.S GNUMakefile limine.h
 	@mkdir -p $(dir $@)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
 
 # Compilation rules for *.asm (nasm) files.
-obj/%.asm.o: %.asm
+obj/%.asm.o: %.asm GNUMakefile limine.h
 	@mkdir -p $(dir $@)
 	nasm $(NASMFLAGS) $< -o $@
 
