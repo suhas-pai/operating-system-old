@@ -77,10 +77,11 @@ static void calibrate_timer() {
 
 /******* PUBLIC APIs *******/
 
-uint32_t lapic_read(const enum x2apic_lapic_reg reg) {
+__optimize(3) uint32_t lapic_read(const enum x2apic_lapic_reg reg) {
     return read_msr(IA32_MSR_X2APIC_BASE + reg);
 }
 
+__optimize(3)
 void lapic_write(const enum x2apic_lapic_reg reg, const uint64_t value) {
     write_msr(IA32_MSR_X2APIC_BASE + reg, value);
 }
@@ -144,7 +145,7 @@ void lapic_enable() {
     printk(LOGLEVEL_INFO, "apic: lapic enabled\n");
 }
 
-void lapic_eoi() {
+__optimize(3) void lapic_eoi() {
     if (get_acpi_info()->using_x2apic) {
         lapic_write(X2APIC_LAPIC_REG_EOI, 0);
     } else {
@@ -152,6 +153,7 @@ void lapic_eoi() {
     }
 }
 
+__optimize(3)
 void lapic_send_ipi(const uint32_t lapic_id, const uint32_t vector) {
     if (get_acpi_info()->using_x2apic) {
         lapic_write(X2APIC_LAPIC_REG_ICR, (uint64_t)lapic_id << 32 | vector);
@@ -161,7 +163,7 @@ void lapic_send_ipi(const uint32_t lapic_id, const uint32_t vector) {
     }
 }
 
-void lapic_send_self_ipi(const uint32_t vector) {
+__optimize(3) void lapic_send_self_ipi(const uint32_t vector) {
     if (get_acpi_info()->using_x2apic) {
         lapic_write(X2APIC_LAPIC_REG_SELF_IPI, vector);
     } else {

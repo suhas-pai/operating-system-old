@@ -65,6 +65,14 @@
     #endif /* __has_attribute(alloc_size) */
 #endif /* !defined(__alloc_size) */
 
+#if !defined(__hidden)
+    #if __has_attribute(visibility)
+        #define __hidden __attribute__((visibility("hidden")))
+    #else
+        #define __hidden
+    #endif /* __has_attribute(visibility) */
+#endif /* !defined(__hidden) */
+
 #define sizeof_field(type, field) sizeof(((type *)0)->field)
 #define LEN_OF(str) (sizeof(str) - 1)
 

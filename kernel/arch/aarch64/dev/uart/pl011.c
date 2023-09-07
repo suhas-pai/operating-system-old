@@ -59,6 +59,7 @@ struct pl011_device_info {
 static struct pl011_device_info early_infos[8] = {};
 static uint16_t early_info_count = 0;
 
+__optimize(3)
 static void wait_tx_complete(volatile const struct pl011_device *const dev) {
     for (uint64_t i = 0; i != MAX_ATTEMPTS; i++) {
         if ((mmio_read(&dev->fr_offset) & FR_BUSY) == 0) {
@@ -67,7 +68,7 @@ static void wait_tx_complete(volatile const struct pl011_device *const dev) {
     }
 }
 
-static void
+__optimize(3) static void
 pl011_send_char(struct terminal *const term,
                 const char ch,
                 const uint32_t amount)
@@ -92,7 +93,7 @@ pl011_send_char(struct terminal *const term,
     }
 }
 
-static void
+__optimize(3) static void
 pl011_send_sv(struct terminal *const term, const struct string_view sv) {
     struct pl011_device_info *const info = (struct pl011_device_info *)term;
     volatile struct pl011_device *const device = info->device;

@@ -17,15 +17,15 @@ struct range {
 
 #define RANGE_FMT "0x%" PRIx64 " - 0x%" PRIx64
 #define RANGE_FMT_ARGS(range) \
-    (range).front,                    \
-    ({                                \
-        uint64_t __end__ = 0;         \
+    (range).front,            \
+    ({                        \
+        uint64_t __end__ = 0; \
         range_get_end((range), &__end__); \
         __end__; \
     })
 
 #define RANGE_EMPTY() ((struct range){ .front = 0, .size = 0 })
-#define range_create_max() ((struct range){ .front = 0, .size = UINT64_MAX })
+#define RANGE_MAX() ((struct range){ .front = 0, .size = UINT64_MAX })
 
 struct range range_create(uint64_t front, uint64_t size);
 struct range range_create_upto(uint64_t size);
@@ -62,7 +62,6 @@ bool range_is_loc_above(struct range range, uint64_t index);
 bool range_is_loc_below(struct range range, uint64_t index);
 
 bool range_has_align(struct range range, uint64_t align);
-
 uint64_t range_get_end_assert(struct range range);
 
 struct range subrange_from_index(struct range range, uint64_t index);

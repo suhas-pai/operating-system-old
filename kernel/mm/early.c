@@ -170,8 +170,8 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
     return free_page;
 }
 
-uint64_t KERNEL_BASE = 0;
-uint64_t structpage_page_count = 0;
+__hidden uint64_t KERNEL_BASE = 0;
+__hidden uint64_t structpage_page_count = 0;
 
 void mm_early_init() {
     printk(LOGLEVEL_INFO, "mm: hhdm at %p\n", (void *)HHDM_OFFSET);
@@ -191,6 +191,7 @@ void mm_early_init() {
 
                 structpage_page_count += PAGE_COUNT(memmap->range.size);
                 usable_index++;
+
                 break;
             case MM_MEMMAP_KIND_RESERVED:
                 type_desc = "reserved";

@@ -93,7 +93,7 @@ set_reg(const port_t uart8250_base,
 
 #define MAX_ATTEMPTS 10
 
-static void
+__optimize(3) static void
 uart8250_putc(const port_t base,
               struct uart8250_info *const info,
               const char ch)
@@ -106,7 +106,7 @@ uart8250_putc(const port_t base,
     }
 }
 
-static void
+__optimize(3) static void
 uart8250_send_char(struct terminal *const term,
                    const char ch,
                    const uint32_t amount)
@@ -121,7 +121,7 @@ uart8250_send_char(struct terminal *const term,
     spin_release_with_irq(&info->lock, flag);
 }
 
-static void
+__optimize(3) static void
 uart8250_send_sv(struct terminal *const term, const struct string_view sv) {
     struct uart8250_info *const info = (struct uart8250_info *)term;
     const bool flag = spin_acquire_with_irq(&info->lock);

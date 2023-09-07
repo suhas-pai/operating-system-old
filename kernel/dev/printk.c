@@ -9,11 +9,13 @@
 #include "printk.h"
 
 static struct terminal *_Atomic g_first_term = NULL;
-void printk_add_terminal(struct terminal *const term) {
+
+__optimize(3) void printk_add_terminal(struct terminal *const term) {
     atomic_store(&term->next, g_first_term);
     atomic_store(&g_first_term, term);
 }
 
+__optimize(3)
 void printk(const enum log_level loglevel, const char *const string, ...) {
     va_list list;
     (void)loglevel;
@@ -65,7 +67,7 @@ write_sv(struct printf_spec_info *const spec_info,
     return sv.length;
 }
 
-void
+__optimize(3) void
 vprintk(const enum log_level loglevel, const char *const string, va_list list) {
     (void)loglevel;
 

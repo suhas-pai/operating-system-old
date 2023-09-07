@@ -8,7 +8,7 @@
 
 #include "limine.h"
 
-uint64_t HHDM_OFFSET = 0;
+__hidden uint64_t HHDM_OFFSET = 0;
 
 __optimize(3) void *phys_to_virt(const uint64_t phys) {
     return (void *)check_add_assert(HHDM_OFFSET, phys);

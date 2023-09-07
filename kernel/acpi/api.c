@@ -146,10 +146,10 @@ struct acpi_sdt *acpi_lookup_sdt(const char signature[static const 4]) {
     return NULL;
 }
 
-const struct acpi_info *get_acpi_info() {
+__optimize(3) const struct acpi_info *get_acpi_info() {
     return &info;
 }
 
-struct acpi_info *get_acpi_info_mut() {
+__optimize(3) struct acpi_info *get_acpi_info_mut() {
     return &info;
 }

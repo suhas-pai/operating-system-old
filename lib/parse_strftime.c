@@ -633,6 +633,8 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
         } else {
             unformat_buffer_ptr = orig_iter;
         }
+
+        spec_info = (struct strftime_spec_info){0};
     }
 
     if (*unformat_buffer_ptr != '\0') {
