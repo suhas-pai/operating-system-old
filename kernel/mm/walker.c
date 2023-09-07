@@ -17,12 +17,17 @@
 
 #include "walker.h"
 
-static struct page *
+static uint64_t
 ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
     (void)walker;
     (void)cb_info;
 
-    return alloc_table();
+    struct page *const table = alloc_table();
+    if (table != NULL) {
+        return page_to_phys(table);
+    }
+
+    return INVALID_PHYS;
 }
 
 static void
@@ -41,13 +46,13 @@ get_root_phys(const struct pagemap *const pagemap, const uint64_t virt_addr) {
 #if defined(__aarch64__)
     uint64_t root_phys = 0;
     if (virt_addr & (1ull << 63)) {
-        root_phys = page_to_phys(pagemap->higher_root);
+        root_phys = virt_to_phys(pagemap->higher_root);
     } else {
-        root_phys = page_to_phys(pagemap->lower_root);
+        root_phys = virt_to_phys(pagemap->lower_root);
     }
 #else
     (void)virt_addr;
-    const uint64_t root_phys = page_to_phys(pagemap->root);
+    const uint64_t root_phys = virt_to_phys(pagemap->root);
 #endif /* defined(__x86_64__) */
 
     return root_phys;
@@ -105,7 +110,7 @@ ptwalker_create_for_pagemap(struct pt_walker *const walker,
 
     walker->tables[walker->top_level - 1] = phys_to_virt(root_phys);
     walker->indices[walker->top_level - 1] =
-        virt_to_pt_index((void *)virt_addr, walker->top_level);
+        virt_to_pt_index(virt_addr, walker->top_level);
 
     pte_t *prev_table = walker->tables[walker->top_level - 1];
     for (pgt_level_t level = walker->top_level - 1; level >= 1; level--) {
@@ -128,7 +133,7 @@ ptwalker_create_for_pagemap(struct pt_walker *const walker,
         }
 
         walker->tables[level - 1] = table;
-        walker->indices[level - 1] = virt_to_pt_index((void *)virt_addr, level);
+        walker->indices[level - 1] = virt_to_pt_index(virt_addr, level);
 
         prev_table = table;
     }
@@ -240,18 +245,18 @@ alloc_single_pte(struct pt_walker *const walker,
                  const pgt_level_t level,
                  pte_t *const pte)
 {
-    struct page *const pt =
+    const uint64_t phys =
         walker->alloc_pgtable(walker, alloc_pgtable_cb_info);
 
-    if (pt == NULL) {
+    if (phys == INVALID_PHYS) {
         walker->level = level + 1;
         ptwalker_drop_lowest(walker, free_pgtable_cb_info);
 
         return false;
     }
 
-    walker->tables[level - 1] = page_to_virt(pt);
-    pte_write(pte, phys_create_pte(page_to_phys(pt)) | PGT_FLAGS);
+    walker->tables[level - 1] = phys_to_virt(phys);
+    pte_write(pte, phys_create_pte(phys) | PGT_FLAGS);
 
     return true;
 }

@@ -29,9 +29,7 @@ struct pagemap kernel_pagemap = {
 
 #if defined(__aarch64__)
     struct pagemap
-    pagemap_create(struct page *const lower_root,
-                   struct page *const higher_root)
-    {
+    pagemap_create(pte_t *const lower_root, pte_t *const higher_root) {
         struct pagemap result = {
             .lower_root = lower_root,
             .higher_root = higher_root
@@ -43,7 +41,7 @@ struct pagemap kernel_pagemap = {
         return result;
     }
 #else
-    struct pagemap pagemap_create(struct page *const root) {
+    struct pagemap pagemap_create(pte_t *const root) {
         struct pagemap result = {
             .root = root,
         };
@@ -145,10 +143,10 @@ void switch_to_pagemap(struct pagemap *const pagemap) {
     get_cpu_info_mut()->pagemap = pagemap;
 
 #if defined(__x86_64__)
-    write_cr3(page_to_phys(pagemap->root));
+    write_cr3(virt_to_phys(pagemap->root));
 #elif defined(__aarch64__)
-    write_ttbr0_el1(page_to_phys(pagemap->lower_root));
-    write_ttbr1_el1(page_to_phys(pagemap->higher_root));
+    write_ttbr0_el1(virt_to_phys(pagemap->lower_root));
+    write_ttbr1_el1(virt_to_phys(pagemap->higher_root));
 
     asm volatile ("dsb sy; isb" ::: "memory");
 #else

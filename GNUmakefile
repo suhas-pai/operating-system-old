@@ -21,6 +21,9 @@ $(eval $(call DEFAULT_VAR,HOST_CC,$(DEFAULT_HOST_CC)))
 override DEFAULT_ARCH := x86_64
 $(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 
+override DEFAULT_MEM := 4G
+$(eval $(call DEFAULT_VAR,MEM,$(DEFAULT_MEM)))
+
 EXTRA_QEMU_ARGS=-d guest_errors -d unimp -d int -D ./log.txt -rtc base=localtime
 ifeq ($(DEBUG), 1)
 	EXTRA_QEMU_ARGS += -s -S -serial stdio
@@ -44,35 +47,35 @@ run-hdd: run-hdd-$(ARCH)
 
 .PHONY: run-x86_64
 run-x86_64: ovmf-x86_64 $(IMAGE_NAME).iso
-	qemu-system-x86_64 -M q35 -cpu max -m 2G -bios ovmf-x86_64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -bios ovmf-x86_64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-hdd-x86_64
 run-hdd-x86_64: ovmf-x86_64 $(IMAGE_NAME).hdd
-	qemu-system-x86_64 -M q35 -cpu max -m 2G -bios ovmf-x86_64/OVMF.fd -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -bios ovmf-x86_64/OVMF.fd -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-aarch64
 run-aarch64: ovmf-aarch64 $(IMAGE_NAME).iso
-	qemu-system-aarch64 -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -m 2G -bios ovmf-aarch64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
+	qemu-system-aarch64 -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -bios ovmf-aarch64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-hdd-aarch64
 run-hdd-aarch64: ovmf-aarch64 $(IMAGE_NAME).hdd
-	qemu-system-aarch64 -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -m 2G -bios ovmf-aarch64/OVMF.fd -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-aarch64 -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -bios ovmf-aarch64/OVMF.fd -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-riscv64
 run-riscv64: ovmf-riscv64 $(IMAGE_NAME).iso
-	qemu-system-riscv64 -M virt,acpi=off -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m 2G -drive if=pflash,unit=1,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-cd,drive=cd0 -drive id=cd0,format=raw,file=$(IMAGE_NAME).iso $(EXTRA_QEMU_ARGS)
+	qemu-system-riscv64 -M virt,acpi=off -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -drive if=pflash,unit=1,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-cd,drive=cd0 -drive id=cd0,format=raw,file=$(IMAGE_NAME).iso $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-hdd-riscv64
 run-hdd-riscv64: ovmf-riscv64 $(IMAGE_NAME).hdd
-	qemu-system-riscv64 -M virt,acpi=off -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m 2G -drive if=pflash,unit=1,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,format=raw,file=$(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-riscv64 -M virt,acpi=off -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -drive if=pflash,unit=1,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,format=raw,file=$(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-bios
 run-bios: $(IMAGE_NAME).iso
-	qemu-system-x86_64 -M q35 -cpu max -m 2G -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
 
 .PHONY: run-hdd-bios
 run-hdd-bios: $(IMAGE_NAME).hdd
-	qemu-system-x86_64 -M q35 -cpu max -m 2G -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
 
 .PHONY: ovmf
 ovmf: ovmf-$(ARCH)

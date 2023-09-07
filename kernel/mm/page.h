@@ -47,8 +47,8 @@ enum struct_page_flags {
 };
 
 void page_set_bit(struct page *page, enum struct_page_flags flag);
-bool page_has_bit(struct page *page, enum struct_page_flags flag);
+bool page_has_bit(const struct page *page, enum struct_page_flags flag);
 void page_clear_bit(struct page *page, enum struct_page_flags flag);
 
-uint8_t page_get_section(struct page *page);
+page_section_t page_get_section(const struct page *page);
 struct page *alloc_table();

@@ -18,6 +18,7 @@
 #define PTE_PHYS_MASK 0x0000fffffffff000
 
 #define PGT_LEVEL_COUNT 5
+#define PGT_COUNT 512
 
 #define PML2_SIZE (1ull << PML2_SHIFT)
 #define PML3_SIZE (1ull << PML3_SHIFT)

@@ -5,7 +5,9 @@
 
 #include "dev/printk.h"
 #include "lib/align.h"
+
 #include "mm/pagemap.h"
+#include "mm/zone.h"
 
 #include "boot.h"
 #include "kmalloc.h"
@@ -164,14 +166,13 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
 }
 
 uint64_t KERNEL_BASE = 0;
-
-uint64_t memmap_first_repr_index = UINT64_MAX;
-uint64_t memmap_last_repr_index = 0;
+uint64_t structpage_page_count = 0;
 
 void mm_early_init() {
     printk(LOGLEVEL_INFO, "mm: hhdm at %p\n", (void *)HHDM_OFFSET);
     printk(LOGLEVEL_INFO, "mm: kernel at %p\n", (void *)KERNEL_BASE);
 
+    uint64_t usable_index = 0;
     for (uint64_t index = 0; index != mm_get_memmap_count(); index++) {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
         const char *type_desc = "<unknown>";
@@ -180,45 +181,25 @@ void mm_early_init() {
             case MM_MEMMAP_KIND_NONE:
                 verify_not_reached();
             case MM_MEMMAP_KIND_USABLE:
-                if (memmap_first_repr_index == UINT64_MAX) {
-                    memmap_first_repr_index = index;
-                }
-
-                claim_pages(memmap);
-
+                claim_pages(mm_get_usable_list() + usable_index);
                 type_desc = "usable";
-                memmap_last_repr_index = index;
 
+                structpage_page_count += PAGE_COUNT(memmap->range.size);
+                usable_index++;
                 break;
             case MM_MEMMAP_KIND_RESERVED:
                 type_desc = "reserved";
                 break;
             case MM_MEMMAP_KIND_ACPI_RECLAIMABLE:
-                if (memmap_first_repr_index == UINT64_MAX) {
-                    memmap_first_repr_index = index;
-                }
-
                 type_desc = "acpi-reclaimable";
-                memmap_last_repr_index = index;
-
                 break;
             case MM_MEMMAP_KIND_ACPI_NVS:
-                if (memmap_first_repr_index == UINT64_MAX) {
-                    memmap_first_repr_index = index;
-                }
-
                 type_desc = "acpi-nvs";
-                memmap_last_repr_index = index;
-
                 break;
             case MM_MEMMAP_KIND_BAD_MEMORY:
                 type_desc = "bad-memory";
                 break;
             case MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE:
-                if (memmap_first_repr_index == UINT64_MAX) {
-                    memmap_first_repr_index = index;
-                }
-
                 // Don't claim bootloader-reclaimable memmaps until after we
                 // switch to our own pagemap, because there is a slight chance
                 // we allocate the root physical page of the bootloader's
@@ -229,26 +210,15 @@ void mm_early_init() {
                 // Because we're claiming this kind of memmap later, they are
                 // still represented in the structpage table.
 
-                memmap_last_repr_index = index;
+                structpage_page_count += PAGE_COUNT(memmap->range.size);
+                usable_index++;
 
                 break;
             case MM_MEMMAP_KIND_KERNEL_AND_MODULES:
-                if (memmap_first_repr_index == UINT64_MAX) {
-                    memmap_first_repr_index = index;
-                }
-
                 type_desc = "kernel-and-modules";
-                memmap_last_repr_index = index;
-
                 break;
             case MM_MEMMAP_KIND_FRAMEBUFFER:
-                if (memmap_first_repr_index == UINT64_MAX) {
-                    memmap_first_repr_index = index;
-                }
-
                 type_desc = "framebuffer";
-                memmap_last_repr_index = index;
-
                 break;
         }
 
@@ -260,7 +230,6 @@ void mm_early_init() {
                type_desc);
     }
 
-    FIRST_PAGE_PHYS = mm_get_memmap_list()[memmap_first_repr_index].range.front;
     printk(LOGLEVEL_INFO,
            "mm: system has %" PRIu64 " usable pages\n",
            total_free_pages);
@@ -361,7 +330,24 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
     }
 }
 
-void mark_used_pages(const struct mm_memmap *const memmap) {
+void
+set_section_for_memmap(const struct mm_memmap *const memmap,
+                       const page_section_t section)
+{
+    const uint64_t page_count = PAGE_COUNT(memmap->range.size);
+
+    struct page *page = phys_to_page(memmap->range.front);
+    const struct page *const end = page + page_count;
+
+    for (; page != end; page++) {
+        page->flags = (section & SECTION_MASK) << SECTION_SHIFT;
+    }
+}
+
+void
+mark_used_pages(const struct mm_memmap *const memmap,
+                const page_section_t section)
+{
     struct freepages_info *iter = NULL;
     list_foreach(iter, &freepages_list, list) {
         if (iter->memmap != memmap) {
@@ -369,14 +355,25 @@ void mark_used_pages(const struct mm_memmap *const memmap) {
         }
 
         struct page *page = phys_to_page(memmap->range.front);
-        const struct page *const end = virt_to_page(iter);
+        struct page *const unusable_end = virt_to_page(iter);
+
+        for (; page != unusable_end; page++) {
+            page->flags = PAGE_NOT_USABLE;
+        }
+
+        page = unusable_end;
+        struct page *const end = virt_to_page(iter) + iter->avail_page_count;
 
         for (; page != end; page++) {
-            page->flags = PAGE_NOT_USABLE;
+            page->flags = (section & SECTION_MASK) << SECTION_SHIFT;
         }
 
         while (true) {
             page = phys_to_page(virt_to_phys(iter) + iter->avail_page_count);
+            for (uint64_t i = 0; i != iter->avail_page_count; i++, page++) {
+                page->flags = (section & SECTION_MASK) << SECTION_SHIFT;
+            }
+
             for (uint64_t i = iter->avail_page_count;
                  i != iter->total_page_count;
                  i++, page++)
@@ -404,40 +401,40 @@ void mark_used_pages(const struct mm_memmap *const memmap) {
 
 void mm_early_post_arch_init() {
 #if defined(__aarch64__)
-    init_table_page(kernel_pagemap.lower_root);
-    init_table_page(kernel_pagemap.higher_root);
+    init_table_page(virt_to_page(kernel_pagemap.lower_root));
+    init_table_page(virt_to_page(kernel_pagemap.higher_root));
 #else
-    init_table_page(kernel_pagemap.root);
+    init_table_page(virt_to_page(kernel_pagemap.root));
 #endif
 
     // Claim bootloader-reclaimable memmaps once we've switched to our own
     // pagemap.
 
-    for (uint64_t index = 0; index != mm_get_memmap_count(); index++) {
-        const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
+    for (uint64_t index = 0; index != mm_get_usable_count(); index++) {
+        const struct mm_memmap *const memmap = mm_get_usable_list() + index;
         if (memmap->kind == MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE) {
             claim_pages(memmap);
         }
     }
 
-    for (uint64_t i = memmap_first_repr_index;
-         i <= memmap_last_repr_index;
-         i++)
-    {
-        const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
-        if (memmap->kind == MM_MEMMAP_KIND_USABLE) {
-            mark_used_pages(memmap);
-            continue;
-        }
-
-        struct page *page = phys_to_page(memmap->range.front);
-        const uint64_t page_count = PAGE_COUNT(memmap->range.size);
-
-        for (uint64_t j = 0; j != page_count; j++, page++) {
-            // Avoid using `set_page_bit()` because we don't need atomic ops
-            // this early.
-
-            page->flags = PAGE_NOT_USABLE;
+    for (uint64_t index = 0; index != mm_get_usable_count(); index++) {
+        const struct mm_memmap *const memmap = mm_get_usable_list() + index;
+        switch (memmap->kind) {
+            case MM_MEMMAP_KIND_NONE:
+                verify_not_reached();
+            case MM_MEMMAP_KIND_USABLE:
+                mark_used_pages(memmap, /*section=*/index);
+                break;
+            case MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE:
+                set_section_for_memmap(memmap, /*section=*/index);
+                break;
+            case MM_MEMMAP_KIND_RESERVED:
+            case MM_MEMMAP_KIND_ACPI_RECLAIMABLE:
+            case MM_MEMMAP_KIND_ACPI_NVS:
+            case MM_MEMMAP_KIND_BAD_MEMORY:
+            case MM_MEMMAP_KIND_KERNEL_AND_MODULES:
+            case MM_MEMMAP_KIND_FRAMEBUFFER:
+                verify_not_reached();
         }
     }
 
@@ -455,8 +452,9 @@ void mm_early_post_arch_init() {
         struct page *page = virt_to_page(iter);
         const struct page *const page_end = page + iter->avail_page_count;
 
+        struct page_zone *const zone = page_to_zone(page);
         for (; page != page_end; page++) {
-            free_page(page);
+            free_pages_to_zone(page, zone, /*order=*/0);
         }
 
         free_page_count += iter->avail_page_count;

@@ -26,10 +26,7 @@ struct string string_create() {
 }
 
 struct string string_create_alloc(const struct string_view sv) {
-    struct string result = {
-        .gbuffer = gbuffer_alloc(sv.length + 1)
-    };
-
+    struct string result = { .gbuffer = gbuffer_alloc(sv.length + 1) };
     if (result.gbuffer.begin != NULL) {
         memcpy(result.gbuffer.begin, sv.begin, sv.length);
         set_null_terminator(&result);
@@ -149,15 +146,30 @@ int64_t string_find_char(struct string *const string, char ch) {
     return -1;
 }
 
-int64_t string_find_sv(struct string *string, const struct string_view sv) {
-    // TODO:
-    (void)string;
-    (void)sv;
+int64_t
+string_find_sv(struct string *const string, const struct string_view sv) {
+    const uint32_t string_len = string_length(*string);
+    if (string_len == 0 || sv.length == 0) {
+        return -1;
+    }
+
+    if (sv.length > string_len) {
+        return -1;
+    }
+
+    for (uint32_t i = 0; i <= (string_len - sv.length); i++) {
+        if (strncmp(string->gbuffer.begin + i, sv.begin, sv.length) == 0) {
+            return i;
+        }
+    }
 
     return -1;
 }
 
-int64_t string_find_string(struct string *string, const struct string *find) {
+int64_t
+string_find_string(struct string *const string,
+                   const struct string *const find)
+{
     return string_find_sv(string, string_to_sv(*find));
 }
 

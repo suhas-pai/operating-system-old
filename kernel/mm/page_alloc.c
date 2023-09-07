@@ -132,7 +132,9 @@ free_pages_to_zone(struct page *page,
             break;
         }
 
-        if (page_has_bit(buddy, PAGE_NOT_USABLE)) {
+        if (page_has_bit(buddy, PAGE_NOT_USABLE) ||
+            page_get_section(page) != page_get_section(buddy))
+        {
             continue;
         }
 

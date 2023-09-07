@@ -16,6 +16,7 @@
 #define PTE_PHYS_MASK 0x003ffffffffffc00
 
 #define PGT_LEVEL_COUNT 5
+#define PGT_COUNT 512
 
 #define L3_SIZE (1ull << L3_SHIFT)
 #define L2_SIZE (1ull << L2_SHIFT)

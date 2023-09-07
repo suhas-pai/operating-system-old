@@ -11,7 +11,7 @@
 
 struct pt_walker;
 
-typedef struct page *
+typedef uint64_t
 (*ptwalker_alloc_pgtable_t)(struct pt_walker *walker, void *cb_info);
 
 typedef void

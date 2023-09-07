@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "lib/size.h"
 #include "mm/zone.h"
 
 static struct page_zone zone_low4G = {
@@ -18,7 +19,15 @@ static struct page_zone zone_highmem = {
 };
 
 struct page_zone *page_to_zone(struct page *const page) {
-    (void)page;
+    const uint64_t phys = page_to_phys(page);
+    if (phys < gib(4)) {
+        return &zone_low4G;
+    }
+
+    if (phys >= gib(896)) {
+        return &zone_highmem;
+    }
+
     return &zone_default;
 }
 

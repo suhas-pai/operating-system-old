@@ -11,10 +11,10 @@
 
 struct pagemap {
 #if defined(__aarch64__)
-    struct page *lower_root;
-    struct page *higher_root;
+    pte_t *lower_root;
+    pte_t *higher_root;
 #else
-    struct page *root;
+    pte_t *root;
 #endif /* defined(__aarch64__) */
 
     struct list cpu_list;
@@ -27,10 +27,9 @@ struct pagemap {
 };
 
 #if defined(__aarch64__)
-    struct pagemap
-    pagemap_create(struct page *lower_root, struct page *higher_root);
+    struct pagemap pagemap_create(pte_t *lower_root, pte_t *higher_root);
 #else
-    struct pagemap pagemap_create(struct page *root);
+    struct pagemap pagemap_create(pte_t *root);
 #endif
 
 extern struct pagemap kernel_pagemap;

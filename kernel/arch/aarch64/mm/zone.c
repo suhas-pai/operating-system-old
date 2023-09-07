@@ -21,11 +21,12 @@ static struct page_zone zone_highmem = {
 };
 
 struct page_zone *page_to_zone(struct page *const page) {
-    if (page_to_phys(page) < gib(4)) {
+    const uint64_t phys = page_to_phys(page);
+    if (phys < gib(4)) {
         return &zone_low4G;
     }
 
-    if (page_to_phys(page) >= gib(896)) {
+    if (phys >= gib(896)) {
         return &zone_highmem;
     }
 

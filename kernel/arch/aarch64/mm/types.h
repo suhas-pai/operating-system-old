@@ -16,6 +16,7 @@
 #define PTE_PHYS_MASK 0x0000fffffffff000
 
 #define PGT_LEVEL_COUNT 5
+#define PGT_COUNT 512
 
 #define PML1_MASK 0x1ff
 #define PML2_MASK PML1_MASK

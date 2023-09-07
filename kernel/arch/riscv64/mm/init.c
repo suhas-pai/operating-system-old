@@ -13,7 +13,7 @@
 
 #include "boot.h"
 
-static struct page *
+static uint64_t
 ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
     (void)walker;
     (void)cb_info;
@@ -24,7 +24,7 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
 
     const uint64_t phys = early_alloc_page();
     if (phys != INVALID_PHYS) {
-        return phys_to_page(phys);
+        return phys;
     }
 
     panic("mm: failed to setup page-structs, ran out of memory\n");
@@ -179,10 +179,10 @@ map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
     }
 }
 
-static void setup_pagestructs_table(const uint64_t byte_count) {
-    const uint64_t structpage_count = PAGE_COUNT(byte_count);
-    uint64_t map_size = structpage_count * SIZEOF_STRUCTPAGE;
+extern uint64_t structpage_page_count;
 
+static void setup_pagestructs_table() {
+    uint64_t map_size = structpage_page_count * SIZEOF_STRUCTPAGE;
     if (!align_up(map_size, PAGE_SIZE, &map_size)) {
         panic("mm: failed to initialize memory, overflow error when aligning");
     }
@@ -194,6 +194,8 @@ static void setup_pagestructs_table(const uint64_t byte_count) {
     // Map struct page table
     const uint64_t pte_flags = __PTE_WRITE | __PTE_GLOBAL;
     map_region(PAGE_OFFSET, map_size, pte_flags);
+
+    printk(LOGLEVEL_INFO, "mm: finished mapping structpage-table\n");
 }
 
 static void
@@ -221,15 +223,13 @@ map_into_kernel_pagemap(const struct range phys_range,
 }
 
 static void
-setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
-                     uint64_t *const kernel_memmap_size_out)
-{
+setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
     const uint64_t root_phys = early_alloc_page();
     if (root_phys == INVALID_PHYS) {
         panic("mm: failed to allocate root page for the kernel-pagemap");
     }
 
-    kernel_pagemap.root = phys_to_page(root_phys);
+    kernel_pagemap.root = phys_to_virt(root_phys);
     map_into_kernel_pagemap(/*phys_range=*/range_create_end(kib(64), gib(4)),
                             /*virt_addr=*/kib(64),
                             __PTE_WRITE);
@@ -269,7 +269,7 @@ setup_kernel_pagemap(const uint64_t total_bytes_repr_by_structpage_table,
 
     *kernel_memmap_size_out = kernel_memmap_size;
 
-    setup_pagestructs_table(total_bytes_repr_by_structpage_table);
+    setup_pagestructs_table();
     switch_to_pagemap(&kernel_pagemap);
 
     // All 'good' memmaps use pages with associated struct pages to them,
@@ -335,21 +335,9 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
         "mm: failed to setup kernel-pagemap");
 }
 
-extern uint64_t memmap_first_repr_index;
-extern uint64_t memmap_last_repr_index;
-
 void mm_init() {
-    const struct mm_memmap *const first_repr_memmap =
-        mm_get_memmap_list() + memmap_first_repr_index;
-    const struct mm_memmap *const last_repr_memmap =
-        mm_get_memmap_list() + memmap_last_repr_index;
-    const uint64_t total_bytes_repr_by_structpage_table =
-        range_get_end_assert(last_repr_memmap->range) -
-        first_repr_memmap->range.front;
-
     uint64_t kernel_memmap_size = 0;
-    setup_kernel_pagemap(total_bytes_repr_by_structpage_table,
-                         &kernel_memmap_size);
+    setup_kernel_pagemap(&kernel_memmap_size);
 
     mm_early_post_arch_init();
     fill_kernel_pagemap_struct(kernel_memmap_size);

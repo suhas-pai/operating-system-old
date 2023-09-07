@@ -50,8 +50,12 @@ static volatile struct limine_boot_time_request boot_time_request = {
     .revision = 0
 };
 
-static struct mm_memmap mm_memmap_list[64] = {0};
-static uint64_t mm_memmap_count = 0;
+static struct mm_memmap mm_memmap_list[255] = {0};
+static struct mm_memmap mm_usable_list[255] = {0};
+
+static uint8_t mm_memmap_count = 0;
+static uint8_t mm_usable_count = 0;
+
 static const void *rsdp = NULL;
 static const void *dtb = NULL;
 int64_t boot_time = 0;
@@ -60,8 +64,16 @@ const struct mm_memmap *mm_get_memmap_list() {
     return mm_memmap_list;
 }
 
-uint64_t mm_get_memmap_count() {
+const struct mm_memmap *mm_get_usable_list() {
+    return mm_usable_list;
+}
+
+uint8_t mm_get_memmap_count() {
     return mm_memmap_count;
+}
+
+uint8_t mm_get_usable_count() {
+    return mm_usable_count;
 }
 
 const void *boot_get_rsdp() {
@@ -105,22 +117,50 @@ void boot_init() {
     struct limine_memmap_entry *const *entries = resp->entries;
     struct limine_memmap_entry *const *const end = entries + resp->entry_count;
 
-    uint64_t memmap_index = 0;
+    uint8_t memmap_index = 0;
+    uint8_t usable_index = 0;
+    uint64_t pfn = 0;
+
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         if (memmap_index == countof(mm_memmap_list)) {
             panic("boot: too many memmaps\n");
         }
 
         const struct limine_memmap_entry *const memmap = *memmap_iter;
+        struct range range = RANGE_EMPTY();
+
+        if (!range_align_out(range_create(memmap->base, memmap->length),
+                             /*boundary=*/PAGE_SIZE,
+                             &range))
+        {
+            panic("boot: failed to align memmap");
+        }
+
         mm_memmap_list[memmap_index] = (struct mm_memmap){
-            .range = range_create(memmap->base, memmap->length),
+            .range = range,
             .kind = (enum mm_memmap_kind)(memmap->type + 1)
         };
+
+        if (memmap->type == LIMINE_MEMMAP_USABLE ||
+            memmap->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE)
+        {
+            mm_memmap_list[memmap_index].pfn = pfn;
+            mm_usable_list[usable_index] = mm_memmap_list[memmap_index];
+
+            pfn += PAGE_COUNT(range.size);
+            usable_index++;
+        }
 
         memmap_index++;
     }
 
     mm_memmap_count = memmap_index;
+    mm_usable_count = usable_index;
+
+    printk(LOGLEVEL_INFO,
+           "boot: there are %" PRIu8 " usable memmaps\n",
+           mm_usable_count);
+
     if (rsdp_request.response == NULL ||
         rsdp_request.response->address == NULL)
     {

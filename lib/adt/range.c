@@ -121,8 +121,8 @@ bool range_has_loc(const struct range range, const uint64_t loc) {
     return (loc >= range.front && (loc - range.front) < range.size);
 }
 
-bool range_has_end(const struct range range, const uint64_t loc) {
-    return (loc > range.front && (loc - range.front) <= range.size);
+bool range_has_end(const struct range range, const uint64_t end) {
+    return (end > range.front && (end - range.front) <= range.size);
 }
 
 bool range_get_end(const struct range range, uint64_t *const end_out) {

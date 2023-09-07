@@ -80,7 +80,7 @@ static inline uint8_t ioapic_id_reg_get_arbid(const uint32_t version) {
 }
 
 static inline uint8_t ioapic_version_reg_get_version(const uint32_t version) {
-    /* Bits [0:8] of the version register holds the version, minus */
+    /* Bits [0:8] of the version register holds the version */
     return (uint8_t)version;
 }
 

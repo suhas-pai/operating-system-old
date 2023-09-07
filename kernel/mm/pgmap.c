@@ -12,20 +12,16 @@
 
 #include "pgmap.h"
 
-static struct page *
+static uint64_t
 ptwalker_early_alloc_pgtable_cb(struct pt_walker *const walker,
                                 void *const cb_info)
 {
     (void)walker;
     (void)cb_info;
 
-    // We don't have a structpage-table setup yet when this function is called,
-    // but because ptwalker never dereferences the page, we can return a pointer
-    // to where the page would've been.
-
     const uint64_t phys = early_alloc_page();
     if (phys != INVALID_PHYS) {
-        return phys_to_page(phys);
+        return phys;
     }
 
     panic("mm: failed to setup page-structs, ran out of memory\n");

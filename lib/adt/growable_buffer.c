@@ -187,9 +187,8 @@ gbuffer_remove_index(struct growable_buffer *const gbuffer,
     assert(index_in_bounds(index, used));
 
     if (index != used - 1) {
-        memmove(gbuffer->begin + index,
-                gbuffer->begin + index + 1,
-                used - index);
+        void *const dst = gbuffer->begin + index;
+        memmove(dst, dst + 1, used - index);
     }
 
     gbuffer->index = used - 1;
@@ -202,9 +201,7 @@ gbuffer_remove_range(struct growable_buffer *const gbuffer,
     const uint64_t used = gbuffer->index;
     assert(index_range_in_bounds(range, used));
 
-    uint64_t end = 0;
-    assert(range_get_end(range, &end));
-
+    const uint64_t end = range_get_end_assert(range);
     if (end != used - 1) {
         memmove(gbuffer->begin + range.front, gbuffer->begin + end, used - end);
     }

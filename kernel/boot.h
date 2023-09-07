@@ -20,15 +20,18 @@ enum mm_memmap_kind {
 
 struct mm_memmap {
     struct range range;
+    uint64_t pfn;
     enum mm_memmap_kind kind;
 };
 
 const struct mm_memmap *mm_get_memmap_list();
+const struct mm_memmap *mm_get_usable_list();
 
 void boot_early_init();
 void boot_init();
 
-uint64_t mm_get_memmap_count();
+uint8_t mm_get_memmap_count();
+uint8_t mm_get_usable_count();
 
 const void *boot_get_rsdp();
 const void *boot_get_dtb();

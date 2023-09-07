@@ -17,25 +17,21 @@
 #define INVALID_PHYS (uint64_t)-1
 
 #define PAGE_COUNT(size) (((uint64_t)(size) / PAGE_SIZE))
-#define PGT_COUNT (PAGE_SIZE/sizeof(pte_t))
 
 #define SECTION_SHIFT (sizeof(uint32_t) - sizeof(uint8_t))
 #define SECTION_MASK UINT8_MAX
 
-#define phys_to_pfn(phys) \
-    ({\
-        const uint64_t __phys__ = (uint64_t)(phys); \
-        assert(__phys__ >= FIRST_PAGE_PHYS); \
-        ((__phys__ - FIRST_PAGE_PHYS) >> PAGE_SHIFT); \
-    })
+uint64_t phys_to_pfn(uint64_t phys);
+uint64_t page_to_phys(const struct page *page);
 
-#define pfn_to_phys(pfn) (((uint64_t)(pfn) << PAGE_SHIFT) + FIRST_PAGE_PHYS)
+typedef uint8_t page_section_t;
+
+#define pfn_to_phys(pfn) page_to_phys(pfn_to_page(pfn))
 #define pfn_to_page(pfn) \
     ((struct page *)(PAGE_OFFSET + (SIZEOF_STRUCTPAGE * (uint64_t)(pfn))))
 
 #define page_to_pfn(page) (((uint64_t)(page) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE)
 
-#define page_to_phys(page) pfn_to_phys(page_to_pfn(page))
 #define phys_to_page(phys) pfn_to_page(phys_to_pfn(phys))
 #define virt_to_page(virt) phys_to_page(virt_to_phys(virt))
 #define page_to_virt(page) phys_to_virt(page_to_phys(page))
@@ -62,8 +58,8 @@ extern uint64_t HHDM_OFFSET;
 void pagezones_init();
 
 static inline
-uint16_t virt_to_pt_index(const void *const virt, const pgt_level_t level) {
-    return ((uint64_t)virt >> PAGE_SHIFTS[level - 1]) & PT_LEVEL_MASKS[level];
+uint16_t virt_to_pt_index(const uint64_t virt, const pgt_level_t level) {
+    return (virt >> PAGE_SHIFTS[level - 1]) & PT_LEVEL_MASKS[level];
 }
 
 extern const uint64_t PAGE_OFFSET;
@@ -71,7 +67,6 @@ extern const uint64_t VMAP_BASE;
 extern const uint64_t VMAP_END;
 
 extern uint64_t PAGING_MODE;
-extern uint64_t FIRST_PAGE_PHYS;
 
 enum prot_flags {
     PROT_NONE,
