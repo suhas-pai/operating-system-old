@@ -28,7 +28,7 @@ take_off_freelist(struct page_freelist *const freelist, struct page *const page)
 
 __optimize(3)
 static struct page *get_from_freelist(struct page_freelist *const freelist) {
-    if (list_empty(&freelist->pages)) {
+    if (__builtin_expect(list_empty(&freelist->pages), 0)) {
         return NULL;
     }
 
@@ -106,7 +106,8 @@ struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
     return NULL;
 done:
     if (alloc_flags & __ALLOC_ZERO) {
-        bzero(page_to_virt(page), PAGE_SIZE);
+        void *__page_aligned const virt = page_to_virt(page);
+        bzero(virt, PAGE_SIZE);
     }
 
     if (alloc_flags & __ALLOC_TABLE) {
@@ -132,11 +133,24 @@ free_pages_to_zone(struct page *page,
             break;
         }
 
-        if (page_has_bit(buddy, PAGE_NOT_USABLE) ||
-            page_get_section(page) != page_get_section(buddy))
-        {
+        // Because both the not-usable flag and the section-number are constant,
+        // try speeding up this function by atomically loading flags once rather
+        // than twice.
+
+        const uint32_t buddy_flags = page_get_flags(buddy);
+        if (buddy_flags & PAGE_NOT_USABLE) {
             continue;
         }
+
+        const page_section_t buddy_section =
+            (buddy_flags >> SECTION_SHIFT) & SECTION_SHIFT;
+
+        if (page_get_section(page) != buddy_section) {
+            continue;
+        }
+
+        // Don't use buddy_flags here because the in-free-list flag is not
+        // constant.
 
         if (!page_has_bit(buddy, PAGE_IN_FREE_LIST)) {
             break;

@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "macros.h"
+
 enum desc {
     ALPHA_NUM = 1 << 0,
 
@@ -154,11 +156,11 @@ static uint16_t ctype_array[128] = {
     CNTRL
 };
 
-static inline bool is_ascii(const int c) {
+__optimize(3) static inline bool is_ascii(const int c) {
     return (c > 0 && c < 128);
 }
 
-int isalnum(const int c) {
+__optimize(3) int isalnum(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -166,7 +168,7 @@ int isalnum(const int c) {
     return (ctype_array[c] & ALPHA_NUM) ? 1 : 0;
 }
 
-int isalpha(const int c) {
+__optimize(3) int isalpha(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -174,7 +176,7 @@ int isalpha(const int c) {
     return (ctype_array[c] & ALPHA) ? 1 : 0;
 }
 
-int iscntrl(const int c) {
+__optimize(3) int iscntrl(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -182,7 +184,7 @@ int iscntrl(const int c) {
     return (ctype_array[c] & CNTRL) ? 1 : 0;
 }
 
-int isdigit(const int c) {
+__optimize(3) int isdigit(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -190,7 +192,7 @@ int isdigit(const int c) {
     return (ctype_array[c] & DIGIT) ? 1 : 0;
 }
 
-int isgraph(const int c) {
+__optimize(3) int isgraph(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -198,7 +200,7 @@ int isgraph(const int c) {
     return (ctype_array[c] & GRAPH) ? 1 : 0;
 }
 
-int islower(const int c) {
+__optimize(3) int islower(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -206,7 +208,7 @@ int islower(const int c) {
     return (ctype_array[c] & ALPHA_LOWER) ? 1 : 0;
 }
 
-int isprint(const int c) {
+__optimize(3) int isprint(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -214,7 +216,7 @@ int isprint(const int c) {
     return (ctype_array[c] & PRINT) ? 1 : 0;
 }
 
-int ispunct(const int c) {
+__optimize(3) int ispunct(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -222,7 +224,7 @@ int ispunct(const int c) {
     return (ctype_array[c] & PUNCT) ? 1 : 0;
 }
 
-int isspace(const int c) {
+__optimize(3) int isspace(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -230,7 +232,7 @@ int isspace(const int c) {
     return (ctype_array[c] & SPACE) ? 1 : 0;
 }
 
-int isupper(const int c) {
+__optimize(3) int isupper(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -238,7 +240,7 @@ int isupper(const int c) {
     return (ctype_array[c] & ALPHA_UPPER) ? 1 : 0;
 }
 
-int isxdigit(const int c) {
+__optimize(3) int isxdigit(const int c) {
     if (!is_ascii(c)) {
         return 0;
     }
@@ -246,7 +248,7 @@ int isxdigit(const int c) {
     return (ctype_array[c] & HEX_DIGIT) ? 1 : 0;
 }
 
-int tolower(const int c) {
+__optimize(3) int tolower(const int c) {
     if (!isupper(c)) {
         return c;
     }
@@ -255,7 +257,7 @@ int tolower(const int c) {
     return c + 32;
 }
 
-int toupper(const int c) {
+__optimize(3) int toupper(const int c) {
     if (!islower(c)) {
         return c;
     }

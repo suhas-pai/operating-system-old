@@ -14,6 +14,7 @@ struct pgmap_options {
 
     uint8_t supports_largepage_at_level_mask;
 
+    bool free_pages : 1;
     bool is_in_early : 1;
     bool is_overwrite : 1;
 };

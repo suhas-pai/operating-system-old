@@ -58,10 +58,10 @@ struct addrspace_node *addrspace_node_next(struct addrspace_node *node);
 #define ADDRSPACE_INVALID_ADDR UINT64_MAX
 
 uint64_t
-addrspace_find_space_for_node(struct address_space *addrspace,
-                              struct range in_range,
-                              struct addrspace_node *node,
-                              uint64_t align);
+addrspace_find_space_and_add_node(struct address_space *addrspace,
+                                  struct range in_range,
+                                  struct addrspace_node *node,
+                                  uint64_t align);
 
 bool
 addrspace_add_node(struct address_space *addrspace,

@@ -4,10 +4,9 @@
  */
 
 #pragma once
-#include "cpu/spinlock.h"
 
+#include "cpu/spinlock.h"
 #include "lib/adt/addrspace.h"
-#include "mm/walker.h"
 
 #include "mm_types.h"
 
@@ -48,8 +47,7 @@ vma_create(struct pagemap *pagemap,
 struct vm_area *
 vma_create_at(struct pagemap *pagemap,
               struct range range,
-              uint64_t virt_addr,
-              uint64_t align,
+              uint64_t phys_addr,
               uint8_t prot,
               enum vma_cachekind cachekind);
 

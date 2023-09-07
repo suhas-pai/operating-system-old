@@ -105,7 +105,7 @@ ifeq ($(ARCH),x86_64)
 
 	override CFLAGS += \
 		-m64 \
-		-march=x86-64 \
+		-march=x86-64-v3 \
 		-mno-80387 \
 		-mno-mmx \
 		-mno-sse \

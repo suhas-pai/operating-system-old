@@ -12,7 +12,7 @@
 #include "lib/align.h"
 #include "mmio.h"
 
-uint32_t
+__optimize(3) uint32_t
 arch_pcie_read(const struct pci_device_info *const device,
                const uint32_t offset,
                const uint8_t access_size)
@@ -42,7 +42,7 @@ arch_pcie_read(const struct pci_device_info *const device,
     verify_not_reached();
 }
 
-bool
+__optimize(3) bool
 arch_pcie_write(const struct pci_device_info *const device,
                 const uint32_t offset,
                 const uint32_t value,
@@ -84,7 +84,7 @@ enum pci_config_address_flags {
     __PCI_CONFIG_ADDR_ENABLE = 1ull << 31,
 };
 
-static inline void
+__optimize(3) static inline void
 seek_to_config_space(const struct pci_config_space *const config_space,
                      const uint32_t offset)
 {
@@ -99,7 +99,7 @@ seek_to_config_space(const struct pci_config_space *const config_space,
 }
 
 
-uint32_t
+__optimize(3) uint32_t
 arch_pci_read(const struct pci_device_info *const device,
               const uint32_t offset,
               const uint8_t access_size)
@@ -121,7 +121,7 @@ arch_pci_read(const struct pci_device_info *const device,
     verify_not_reached();
 }
 
-bool
+__optimize(3) bool
 arch_pci_write(const struct pci_device_info *const device,
                const uint32_t offset,
                const uint32_t value,

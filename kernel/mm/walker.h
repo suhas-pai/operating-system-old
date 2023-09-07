@@ -11,8 +11,8 @@
 
 struct pt_walker;
 
-typedef uint64_t
-(*ptwalker_alloc_pgtable_t)(struct pt_walker *walker, void *cb_info);
+typedef
+uint64_t (*ptwalker_alloc_pgtable_t)(struct pt_walker *walker, void *cb_info);
 
 typedef void
 (*ptwalker_free_pgtable_t)(struct pt_walker *walker,

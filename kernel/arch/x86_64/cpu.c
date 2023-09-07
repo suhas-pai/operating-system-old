@@ -204,22 +204,22 @@ static void init_cpuid_features() {
                __IA32_MSR_MISC_FAST_STRING_ENABLE));
 }
 
-const struct cpu_info *get_base_cpu_info() {
+__optimize(3) const struct cpu_info *get_base_cpu_info() {
     assert(g_base_cpu_init);
     return &g_base_cpu_info;
 }
 
-const struct cpu_info *get_cpu_info() {
+__optimize(3) const struct cpu_info *get_cpu_info() {
     assert(g_base_cpu_init);
     return (const struct cpu_info *)read_gsbase();
 }
 
-struct cpu_info *get_cpu_info_mut() {
+__optimize(3) struct cpu_info *get_cpu_info_mut() {
     assert(g_base_cpu_init);
     return (struct cpu_info *)read_gsbase();
 }
 
-const struct cpu_capabilities *get_cpu_capabilities() {
+__optimize(3) const struct cpu_capabilities *get_cpu_capabilities() {
     return &g_cpu_capabilities;
 }
 

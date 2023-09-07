@@ -19,9 +19,9 @@ struct range {
 #define RANGE_FMT_ARGS(range) \
     (range).front,                    \
     ({                                \
-        uint64_t end = 0;             \
-        range_get_end((range), &end); \
-        end;                          \
+        uint64_t __end__ = 0;         \
+        range_get_end((range), &__end__); \
+        __end__; \
     })
 
 #define RANGE_EMPTY() ((struct range){ .front = 0, .size = 0 })

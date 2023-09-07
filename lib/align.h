@@ -10,6 +10,7 @@
 
 #include "assert.h"
 
+__optimize(3)
 static inline bool has_align(const uint64_t number, const uint64_t boundary) {
     assert(boundary != 0);
     return (number & (boundary - 1)) == 0;

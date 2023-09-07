@@ -9,7 +9,7 @@
 #include "convert.h"
 #include "ctype.h"
 
-enum str_to_num_result
+__optimize(3) enum str_to_num_result
 convert_cstr_to_64int(const char *string,
                       const struct str_to_num_options options,
                       const bool is_signed,
@@ -214,7 +214,7 @@ convert_cstr_to_64int(const char *string,
     return E_STR_TO_NUM_OK;
 }
 
-enum str_to_num_result
+__optimize(3) enum str_to_num_result
 convert_sv_to_64int(struct string_view sv,
                     const struct str_to_num_options options,
                     const bool is_signed,
@@ -505,7 +505,7 @@ sv_to_signed(const struct string_view sv,
         }                                                                      \
     } while (false)
 
-struct string_view
+__optimize(3) struct string_view
 unsigned_to_string_view(uint64_t number,
                         const enum numeric_base base,
                         char buffer[static const MAX_CONVERT_CAP],
@@ -596,7 +596,7 @@ unsigned_to_string_view(uint64_t number,
         }                                                                      \
     } while (false)
 
-struct string_view
+__optimize(3) struct string_view
 signed_to_string_view(int64_t number,
                       const enum numeric_base base,
                       char buffer[static const MAX_CONVERT_CAP],

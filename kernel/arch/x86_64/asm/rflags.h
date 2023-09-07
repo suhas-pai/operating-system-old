@@ -37,7 +37,7 @@ enum rflags {
     RFLAGS_CPUID_BIT = 1 << 21
 };
 
-static inline uint64_t read_rflags() {
+__optimize(3) static inline uint64_t read_rflags() {
     uint64_t rflags = 0;
     asm volatile("pushfq;"
                  "popq %0" : "=r" (rflags) : : "memory");
@@ -45,7 +45,7 @@ static inline uint64_t read_rflags() {
     return rflags;
 }
 
-static inline void write_rflags(const uint64_t rflags) {
+__optimize(3) static inline void write_rflags(const uint64_t rflags) {
     asm volatile("push %0;"
                  "popfq" :: "r" (rflags) : "memory");
 }

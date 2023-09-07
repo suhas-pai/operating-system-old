@@ -36,11 +36,12 @@ static inline struct string_view sv_create_empty() {
     return SV_EMPTY();
 }
 
+__optimize(3)
 static inline struct string_view sv_create(const char *const str) {
     return (struct string_view){ .begin = str, .length = strlen(str) };
 }
 
-static inline struct string_view
+__optimize(3) static inline struct string_view
 sv_create_nocheck(const char *const c_str, const uint64_t length) {
     return (struct string_view){
         .begin = c_str,
@@ -48,13 +49,13 @@ sv_create_nocheck(const char *const c_str, const uint64_t length) {
     };
 }
 
-static inline struct string_view
+__optimize(3) static inline struct string_view
 sv_create_end(const char *const c_str, const char *const end) {
     assert(c_str <= end);
     return sv_create_nocheck(c_str, distance(c_str, end));
 }
 
-static inline struct string_view
+__optimize(3) static inline struct string_view
 sv_create_length(const char *const c_str, const uint64_t length) {
     check_add_assert((uint64_t)c_str, length);
     return sv_create_nocheck(c_str, length);
@@ -68,12 +69,12 @@ const char *sv_get_end(const struct string_view sv);
 bool sv_compare_c_str(struct string_view sv, const char *c_str);
 int sv_compare(struct string_view sv, struct string_view sv2);
 
-static inline
+__optimize(3) static inline
 bool sv_equals_c_str(const struct string_view sv, const char *const c_str) {
     return sv_compare_c_str(sv, c_str) == 0;
 }
 
-static inline
+__optimize(3) static inline
 bool sv_equals(const struct string_view sv, const struct string_view sv2) {
     return sv_compare(sv, sv2) == 0;
 }

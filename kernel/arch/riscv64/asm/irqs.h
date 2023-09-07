@@ -8,15 +8,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-static inline void disable_all_interrupts(void) {
+#include "lib/macros.h"
+
+__optimize(3) static inline void disable_all_interrupts(void) {
     asm volatile ("csrci sstatus, 0x2" ::: "memory");
 }
 
-static inline void enable_all_interrupts(void) {
+__optimize(3) static inline void enable_all_interrupts(void) {
     asm volatile ("csrsi sstatus, 0x2" ::: "memory");
 }
 
-static inline bool are_interrupts_enabled() {
+__optimize(3) static inline bool are_interrupts_enabled() {
     uint64_t info = 0;
     asm volatile("csrr %0, sstatus" : "=r" (info));
 

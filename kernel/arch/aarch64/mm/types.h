@@ -4,7 +4,9 @@
  */
 
 #pragma once
+
 #include <stdint.h>
+#include "lib/macros.h"
 
 #define PML1_SHIFT 12
 #define PML2_SHIFT 21
@@ -16,7 +18,7 @@
 #define PTE_PHYS_MASK 0x0000fffffffff000
 
 #define PGT_LEVEL_COUNT 5
-#define PGT_COUNT 512
+#define PGT_PTE_COUNT 512
 
 #define PML1_MASK 0x1ff
 #define PML2_MASK PML1_MASK
@@ -34,6 +36,7 @@
 #define phys_create_pte(phys) (phys)
 
 typedef uint64_t pte_t;
+
 static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
     { (1ull << 12) - 1, PML1_MASK, PML2_MASK, PML3_MASK, PML4_MASK, PML5_MASK };
 
@@ -53,8 +56,8 @@ static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
             PAGE_SIZE_2MIB, \
             PAGE_SIZE_1GIB, \
             /* The following aren't valid largepage sizes, but keep them */ \
-            PAGE_SIZE_1GIB * PGT_COUNT, \
-            PAGE_SIZE_1GIB * PGT_COUNT * PGT_COUNT \
+            PAGE_SIZE_1GIB * PGT_PTE_COUNT, \
+            PAGE_SIZE_1GIB * PGT_PTE_COUNT * PGT_PTE_COUNT \
         }; \
        __sizes__[level - 1];\
     })

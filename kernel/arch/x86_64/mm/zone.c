@@ -21,7 +21,7 @@ static struct page_zone zone_high_896gib = {
     .fallback_zone = &zone_default
 };
 
-struct page_zone *page_to_zone(struct page *const page) {
+__optimize(3) struct page_zone *page_to_zone(struct page *const page) {
     const uint64_t phys = page_to_phys(page);
     if (phys < gib(4)) {
         return &zone_low4g;
@@ -34,15 +34,16 @@ struct page_zone *page_to_zone(struct page *const page) {
     return &zone_default;
 }
 
-struct page_zone *page_zone_iterstart() {
+__optimize(3) struct page_zone *page_zone_iterstart() {
     return &zone_high_896gib;
 }
 
+__optimize(3)
 struct page_zone *page_zone_iternext(struct page_zone *const zone) {
     return zone->fallback_zone;
 }
 
-struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
+__optimize(3) struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
     if (flags & __ALLOC_HIGHMEM) {
         return &zone_high_896gib;
     }

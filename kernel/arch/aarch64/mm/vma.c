@@ -7,6 +7,7 @@
 
 #include "mm/pageop.h"
 #include "mm/pgmap.h"
+#include "mm/walker.h"
 
 static inline uint64_t
 flags_from_info(struct pagemap *const pagemap,
@@ -64,6 +65,7 @@ arch_make_mapping(struct pagemap *const pagemap,
 
         .supports_largepage_at_level_mask = 1 << 2 | 1 << 3,
 
+        .free_pages = true,
         .is_in_early = false,
         .is_overwrite = is_overwrite
     };
@@ -77,8 +79,6 @@ arch_unmap_mapping(struct pagemap *pagemap,
                    uint64_t virt_addr,
                    uint64_t size)
 {
-    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
-
     struct pt_walker walker;
     ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
 
@@ -92,11 +92,9 @@ arch_unmap_mapping(struct pagemap *pagemap,
 
         const enum pt_walker_result result = ptwalker_next(&walker);
         if (result != E_PT_WALKER_OK) {
-            spin_release_with_irq(&pagemap->addrspace_lock, flag);
             return false;
         }
     }
 
-    spin_release_with_irq(&pagemap->addrspace_lock, flag);
     return true;
 }

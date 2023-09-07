@@ -11,6 +11,7 @@
 
 #include "mm/early.h"
 #include "mm/pgmap.h"
+#include "mm/walker.h"
 
 #include "boot.h"
 #include "cpu.h"
@@ -54,7 +55,7 @@ map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
         do {
             const uint64_t page =
-                early_alloc_large_page(/*order=*/PGT_COUNT * PGT_COUNT);
+                early_alloc_large_page(/*order=*/PGT_PTE_COUNT * PGT_PTE_COUNT);
 
             if (page == INVALID_PHYS) {
                 // We failed to alloc a 1gib page, so try 2mib pages next.
@@ -99,7 +100,9 @@ map_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
         }
 
         do {
-            const uint64_t page = early_alloc_large_page(/*order=*/PGT_COUNT);
+            const uint64_t page =
+                early_alloc_large_page(/*order=*/PGT_PTE_COUNT);
+
             if (page == INVALID_PHYS) {
                 // We failed to alloc a 2mib page, so fill with 4kib pages
                 // instead.
@@ -205,12 +208,14 @@ map_into_kernel_pagemap(const struct range phys_range,
 
     const struct pgmap_options options = {
         .pte_flags = __PTE_GLOBAL | pte_flags,
-        .supports_largepage_at_level_mask =
-            supports_1gib << 3 | supports_2mib << 2,
 
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,
 
+        .supports_largepage_at_level_mask =
+            supports_1gib << 3 | supports_2mib << 2,
+
+        .free_pages = true,
         .is_in_early = true,
         .is_overwrite = false
     };

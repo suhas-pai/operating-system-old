@@ -7,6 +7,7 @@
 #include "lib/align.h"
 
 #include "mm/pagemap.h"
+#include "mm/walker.h"
 #include "mm/zone.h"
 
 #include "boot.h"
@@ -22,7 +23,7 @@ struct freepages_info {
     uint64_t total_page_count;
     // Number of available pages in this freepages_info struct.
     uint64_t avail_page_count;
-};
+} __page_aligned;
 
 _Static_assert(sizeof(struct freepages_info) <= PAGE_SIZE,
                "freepages_info struct must be small enough to store on a "
@@ -85,7 +86,9 @@ uint64_t early_alloc_page() {
         list_delete(&info->list);
     }
 
-    bzero(phys_to_virt(free_page), PAGE_SIZE);
+    void *__page_aligned const virt = phys_to_virt(free_page);
+    bzero(virt, PAGE_SIZE);
+
     return free_page;
 }
 
@@ -161,7 +164,9 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
         }
     }
 
-    bzero(phys_to_virt(free_page), PAGE_SIZE * alloc_amount);
+    void *__page_aligned const virt = phys_to_virt(free_page);
+    bzero(virt, PAGE_SIZE * alloc_amount);
+
     return free_page;
 }
 
@@ -260,14 +265,14 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
 
     // Track changes to the `walker.tables` array by
     //   (1) Seeing if the index of the lowest level ever reaches
-    //       (PGT_COUNT - 1).
+    //       (PGT_PTE_COUNT - 1).
     //   (2) Comparing the previous level with the latest level. When the
     //       previous level is greater, the walker has incremented past a
     //       large page, so there may be some tables in between the large page
     //       level and the current level that need to be initialized.
 
     uint8_t prev_level = walker.level;
-    bool prev_was_at_end = walker.indices[walker.level - 1] == PGT_COUNT - 1;
+    bool prev_was_at_end = walker.indices[prev_level - 1] == PGT_PTE_COUNT - 1;
 
     for (uint64_t i = 0; i < length;) {
         const enum pt_walker_result advance_result =
@@ -326,7 +331,7 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
         i += PAGE_SIZE_AT_LEVEL(walker.level);
 
         prev_level = walker.level;
-        prev_was_at_end = walker.indices[walker.level - 1] == PGT_COUNT - 1;
+        prev_was_at_end = walker.indices[prev_level - 1] == PGT_PTE_COUNT - 1;
     }
 }
 
@@ -452,9 +457,8 @@ void mm_early_post_arch_init() {
         struct page *page = virt_to_page(iter);
         const struct page *const page_end = page + iter->avail_page_count;
 
-        struct page_zone *const zone = page_to_zone(page);
         for (; page != page_end; page++) {
-            free_pages_to_zone(page, zone, /*order=*/0);
+            free_pages_to_zone(page, page_to_zone(page), /*order=*/0);
         }
 
         free_page_count += iter->avail_page_count;

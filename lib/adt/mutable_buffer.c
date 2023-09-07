@@ -6,7 +6,7 @@
 #include "lib/overflow.h"
 #include "mutable_buffer.h"
 
-static uint8_t *
+__optimize(3) static uint8_t *
 preprocess_for_append(struct mutable_buffer *const mbuffer,
                       uint64_t length,
                       uint64_t *const length_out)
@@ -44,39 +44,40 @@ mbuffer_open_static(void *const buffer,
     return mbuffer;
 }
 
-void *mbuffer_get_current_ptr(struct mutable_buffer mbuffer) {
+__optimize(3) void *mbuffer_get_current_ptr(struct mutable_buffer mbuffer) {
     return mbuffer.ptr;
 }
 
+__optimize(3)
 uint64_t mbuffer_get_free_space(const struct mutable_buffer mbuffer) {
     return distance(mbuffer.end, mbuffer.ptr);
 }
 
-uint64_t mbuffer_used_size(const struct mutable_buffer mbuffer) {
+__optimize(3) uint64_t mbuffer_used_size(const struct mutable_buffer mbuffer) {
     return distance(mbuffer.ptr, mbuffer.begin);
 }
 
-uint64_t mbuffer_capacity(const struct mutable_buffer mbuffer) {
+__optimize(3) uint64_t mbuffer_capacity(const struct mutable_buffer mbuffer) {
     return distance(mbuffer.end, mbuffer.begin);
 }
 
-bool
+__optimize(3) bool
 mbuffer_can_add_size(const struct mutable_buffer mbuffer, const uint64_t size) {
     return (size <= mbuffer_get_free_space(mbuffer));
 }
 
-bool mbuffer_empty(const struct mutable_buffer mbuffer) {
+__optimize(3) bool mbuffer_empty(const struct mutable_buffer mbuffer) {
     return (mbuffer_used_size(mbuffer) == 0);
 }
 
-bool mbuffer_full(struct mutable_buffer mbuffer) {
+__optimize(3) bool mbuffer_full(struct mutable_buffer mbuffer) {
     const uint64_t used_size = mbuffer_used_size(mbuffer);
     const uint64_t capacity = mbuffer_capacity(mbuffer);
 
     return used_size == capacity;
 }
 
-uint64_t
+__optimize(3) uint64_t
 mbuffer_increment_ptr(struct mutable_buffer *const mbuffer,
                       const uint64_t bad_amt)
 {
@@ -86,7 +87,7 @@ mbuffer_increment_ptr(struct mutable_buffer *const mbuffer,
     return increment_amt;
 }
 
-uint64_t
+__optimize(3) uint64_t
 mbuffer_decrement_ptr(struct mutable_buffer *const mbuffer,
                       const uint64_t bad_amt)
 {
@@ -97,7 +98,7 @@ mbuffer_decrement_ptr(struct mutable_buffer *const mbuffer,
     return decrement_amt;
 }
 
-uint64_t
+__optimize(3) uint64_t
 mbuffer_append_byte(struct mutable_buffer *const mbuffer,
                     const uint8_t byte,
                     uint64_t count)
@@ -108,7 +109,7 @@ mbuffer_append_byte(struct mutable_buffer *const mbuffer,
     return count;
 }
 
-uint64_t
+__optimize(3) uint64_t
 mbuffer_append_data(struct mutable_buffer *const mbuffer,
                     const void *const data,
                     uint64_t length)
@@ -119,14 +120,14 @@ mbuffer_append_data(struct mutable_buffer *const mbuffer,
     return length;
 }
 
-uint64_t
+__optimize(3) uint64_t
 mbuffer_append_sv(struct mutable_buffer *const mbuffer,
                   const struct string_view sv)
 {
     return mbuffer_append_data(mbuffer, sv.begin, sv.length);
 }
 
-bool
+__optimize(3) bool
 mbuffer_truncate(struct mutable_buffer *const mbuffer,
                  const uint64_t new_used_size)
 {

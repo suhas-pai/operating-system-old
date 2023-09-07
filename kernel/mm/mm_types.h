@@ -21,6 +21,8 @@
 #define SECTION_SHIFT (sizeof(uint32_t) - sizeof(uint8_t))
 #define SECTION_MASK UINT8_MAX
 
+#define __page_aligned __aligned(PAGE_SIZE)
+
 uint64_t phys_to_pfn(uint64_t phys);
 uint64_t page_to_phys(const struct page *page);
 
@@ -57,8 +59,8 @@ extern uint64_t HHDM_OFFSET;
 
 void pagezones_init();
 
-static inline
-uint16_t virt_to_pt_index(const uint64_t virt, const pgt_level_t level) {
+static inline uint16_t
+virt_to_pt_index(const uint64_t virt, const pgt_level_t level) {
     return (virt >> PAGE_SHIFTS[level - 1]) & PT_LEVEL_MASKS[level];
 }
 

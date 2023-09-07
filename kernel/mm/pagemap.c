@@ -60,71 +60,66 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
                                const uint64_t phys_addr,
                                const uint64_t align)
 {
-    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
+    int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
     const uint64_t addr =
-        addrspace_find_space_for_node(&pagemap->addrspace,
-                                      in_range,
-                                      &vma->node,
-                                      align);
+        addrspace_find_space_and_add_node(&pagemap->addrspace,
+                                          in_range,
+                                          &vma->node,
+                                          align);
 
+    spin_release_with_irq(&pagemap->addrspace_lock, flag);
     if (addr == ADDRSPACE_INVALID_ADDR) {
-        spin_release_with_irq(&pagemap->addrspace_lock, flag);
         return false;
     }
 
-    if (vma->prot != PROT_NONE) {
-        const bool map_result =
-            arch_make_mapping(pagemap,
-                              range_create(phys_addr, vma->node.range.size),
-                              vma->node.range.front,
-                              vma->prot,
-                              vma->cachekind,
-                              /*is_overwrite=*/false);
+    if (vma->prot == PROT_NONE) {
+        return true;
+    }
 
-        spin_release_with_irq(&pagemap->addrspace_lock, flag);
-        if (!map_result) {
-            return false;
-        }
-    } else {
-        spin_release_with_irq(&pagemap->addrspace_lock, flag);
+    flag = spin_acquire_with_irq(&vma->lock);
+    const bool map_result =
+        arch_make_mapping(pagemap,
+                          range_create(phys_addr, vma->node.range.size),
+                          vma->node.range.front,
+                          vma->prot,
+                          vma->cachekind,
+                          /*is_overwrite=*/false);
+
+    spin_release_with_irq(&vma->lock, flag);
+    if (!map_result) {
+        return false;
     }
 
     return true;
 }
 
 bool
-pagemap_add_vma_at(struct pagemap *const pagemap,
-                   struct vm_area *const vma,
-                   const struct range in_range,
-                   const uint64_t phys_addr,
-                   const uint64_t align)
+pagemap_add_vma(struct pagemap *const pagemap,
+                struct vm_area *const vma,
+                uint64_t phys_addr)
 {
-    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
+    int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
     if (!addrspace_add_node(&pagemap->addrspace, &vma->node)) {
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
         return false;
     }
 
-    if (vma->prot != PROT_NONE) {
-        const bool map_result =
-            arch_make_mapping(pagemap,
-                              range_create(phys_addr, vma->node.range.size),
-                              vma->node.range.front,
-                              vma->prot,
-                              vma->cachekind,
-                              /*is_overwrite=*/false);
-
-        spin_release_with_irq(&pagemap->addrspace_lock, flag);
-        if (!map_result) {
-            return false;
-        }
-    } else {
-        spin_release_with_irq(&pagemap->addrspace_lock, flag);
+    spin_release_with_irq(&pagemap->addrspace_lock, flag);
+    if (vma->prot == PROT_NONE) {
+        return true;
     }
 
-    (void)in_range;
-    (void)align;
+    flag = spin_acquire_with_irq(&vma->lock);
+    const bool map_result =
+        arch_make_mapping(pagemap,
+                          range_create(phys_addr, vma->node.range.size),
+                          vma->node.range.front,
+                          vma->prot,
+                          vma->cachekind,
+                          /*is_overwrite=*/false);
 
-    return true;
+    spin_release_with_irq(&vma->lock, flag);
+    return map_result;
 }
 
 void switch_to_pagemap(struct pagemap *const pagemap) {

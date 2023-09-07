@@ -31,6 +31,40 @@
     #endif /* __has_attribute(optimize) */
 #endif /* !defined(__optimize) */
 
+#if !defined(__aligned)
+    #if __has_attribute(aligned)
+        #define __aligned(n) __attribute__((aligned(n)))
+    #else
+        #define __aligned(n)
+    #endif /* __has_attribute(aligned) */
+#endif /* !defined(__optimize) */
+
+#if !defined(__malloclike)
+    #if __has_attribute(malloc)
+        #define __malloclike __attribute__((malloc))
+    #else
+        #define __malloclike
+    #endif /* __has_attribute(malloc) */
+#endif /* !defined(__malloclike) */
+
+#if !defined(__malloc_dealloc)
+    // Clang doesn't support malloc with arguments
+    #if __has_attribute(malloc) && !defined(__clang__)
+        #define __malloc_dealloc(func, arg) \
+            __attribute__((malloc(func, arg)))
+    #else
+        #define __malloc_dealloc(func, arg)
+    #endif /* __has_attribute(malloc) */
+#endif /* !defined(__malloc_dealloc) */
+
+#if !defined(__alloc_size)
+    #if __has_attribute(alloc_size)
+        #define __alloc_size(...) __attribute__((alloc_size(__VA_ARGS__)))
+    #else
+        #define __alloc_size(...)
+    #endif /* __has_attribute(alloc_size) */
+#endif /* !defined(__alloc_size) */
+
 #define sizeof_field(type, field) sizeof(((type *)0)->field)
 #define LEN_OF(str) (sizeof(str) - 1)
 
@@ -44,9 +78,11 @@
 #define TO_STRING(x) __TO_STRING_IMPL(x)
 
 #define h_var(token) VAR_CONCAT(VAR_CONCAT_3(__, token, __), __LINE__)
-#define countof(carr) (sizeof(carr) / sizeof(carr[0]))
+#define countof(carr) (sizeof(carr) / sizeof((carr)[0]))
 #define for_each_in_carr(arr, name) \
-    for (typeof(&arr[0]) name = &arr[0]; name != (arr + countof(arr)); name++)
+    for (typeof(&(arr)[0]) name = &arr[0]; \
+         name != ((arr) + countof(arr)); \
+         name++)
 
 #define swap(a, b) ({      \
     __auto_type __tmp = b; \
@@ -77,8 +113,8 @@
 #define RAND_VAR_NAME() VAR_CONCAT(__random__, __LINE__)
 
 #define bits_to_bytes_roundup(bits) \
-    ((((bits) % sizeof_bits(uint8_t)) != 0)? \
-        (((bits) / sizeof_bits(uint8_t)) + 1) : ((bits) / sizeof_bits(uint8_t)))
+    ((((bits) % sizeof_bits(uint8_t)) != 0) ? \
+        ((bits_to_bytes_noround(bits)) + 1) : bits_to_bytes_noround(bits))
 
 #define bits_to_bytes_noround(bits) ((bits) / sizeof_bits(uint8_t))
 #define bytes_to_bits(bits) ((bits) * 8)

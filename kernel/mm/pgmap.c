@@ -9,6 +9,7 @@
 #include "mm/early.h"
 #include "mm/page_alloc.h"
 #include "mm/pageop.h"
+#include "mm/walker.h"
 
 #include "pgmap.h"
 
@@ -88,6 +89,10 @@ finish_split_info(struct pt_walker *const walker,
 
     const uint64_t walker_virt_addr = ptwalker_get_virt_addr(walker);
     if (walker_virt_addr >= virt_end) {
+        if (curr_split->phys_range.front != 0) {
+            free_page(phys_to_page(curr_split->phys_range.front));
+        }
+
         return;
     }
 
@@ -106,25 +111,59 @@ finish_split_info(struct pt_walker *const walker,
 static void
 free_table_at_pte(struct pt_walker *const walker,
                   const pte_t table_pte,
-                  const pgt_level_t pte_level)
+                  const pgt_level_t pte_level,
+                  const struct pgmap_options *const options)
 {
     const pgt_level_t level = pte_level - 1;
     pte_t *const table = pte_to_virt(table_pte);
 
-    if (level > 1) {
-        if (pte_level_can_have_large(level)) {
-            pte_t *iter = table;
-            const pte_t *const end = iter + PGT_COUNT;
+    if (options->free_pages) {
+        if (level > 1) {
+            const uint8_t order = PAGE_SIZE_AT_LEVEL(level) / PAGE_SIZE;
+            if (pte_level_can_have_large(level)) {
+                pte_t *iter = table;
+                const pte_t *const end = iter + PGT_PTE_COUNT;
 
-            for (; iter != end; iter++) {
-                const pte_t entry = pte_read(iter);
-                if (!pte_is_large(entry)) {
-                    free_table_at_pte(walker, entry, level);
+                for (; iter != end; iter++) {
+                    const pte_t entry = pte_read(iter);
+                    if (!pte_is_large(entry)) {
+                        free_table_at_pte(walker, entry, level, options);
+                    } else {
+                        free_pages(pte_to_page(entry), order);
+                    }
+                }
+            } else {
+                for (pgt_index_t i = 0; i != PGT_PTE_COUNT; i++) {
+                    free_table_at_pte(walker,
+                                      pte_read(table + i),
+                                      level,
+                                      options);
                 }
             }
         } else {
-            for (pgt_index_t i = 0; i != PGT_COUNT; i++) {
-                free_table_at_pte(walker, pte_read(table + i), level);
+            for (pgt_index_t i = 0; i != PGT_PTE_COUNT; i++) {
+                free_page(pte_to_page(pte_read(table + i)));
+            }
+        }
+    } else {
+        if (level > 1) {
+            if (pte_level_can_have_large(level)) {
+                pte_t *iter = table;
+                const pte_t *const end = iter + PGT_PTE_COUNT;
+
+                for (; iter != end; iter++) {
+                    const pte_t entry = pte_read(iter);
+                    if (!pte_is_large(entry)) {
+                        free_table_at_pte(walker, entry, level, options);
+                    }
+                }
+            } else {
+                for (pgt_index_t i = 0; i != PGT_PTE_COUNT; i++) {
+                    free_table_at_pte(walker,
+                                      pte_read(table + i),
+                                      level,
+                                      options);
+                }
             }
         }
     }
@@ -157,7 +196,7 @@ override_pte(struct pt_walker *const walker,
         pte_t *const pte =
             walker->tables[level - 1] + walker->indices[level - 1];
 
-        free_table_at_pte(walker, pte_read(pte), level);
+        free_table_at_pte(walker, pte_read(pte), level, options);
         pte_write(pte, new_pte_value);
 
         return OVERRIDE_OK;
@@ -345,7 +384,7 @@ map_normal(struct pt_walker *const walker,
 
             pte_t *const table = walker->tables[0];
             pte_t *pte = table + walker->indices[0];
-            const pte_t *const end = table + PGT_COUNT;
+            const pte_t *const end = table + PGT_PTE_COUNT;
 
             do {
                 const pte_t new_pte_value =
@@ -357,7 +396,7 @@ map_normal(struct pt_walker *const walker,
                 pte++;
 
                 if (pte == end) {
-                    walker->indices[0] = PGT_COUNT - 1;
+                    walker->indices[0] = PGT_PTE_COUNT - 1;
                     ptwalker_result =
                         ptwalker_next_with_options(walker,
                                                    /*level=*/1,
@@ -400,8 +439,8 @@ map_large_at_top_level_overwrite(struct pt_walker *const walker,
                                  const struct pgmap_options *const options)
 {
     const pgt_level_t level = walker->top_level;
-
     const uint64_t largepage_size = PAGE_SIZE_AT_LEVEL(level);
+
     const uint64_t pte_flags = options->pte_flags;
 
     void *const alloc_pgtable_cb_info = options->alloc_pgtable_cb_info;
@@ -468,12 +507,12 @@ map_large_at_top_level_no_overwrite(struct pt_walker *const walker,
     const pgt_level_t level = walker->top_level;
 
     const uint64_t largepage_size = PAGE_SIZE_AT_LEVEL(level);
-    const uint64_t pte_flags = options->pte_flags;
+    const uint64_t phys_end = phys_begin + size;
 
     uint64_t offset = *offset_in;
     uint64_t phys_addr = phys_begin + offset;
 
-    const uint64_t phys_end = phys_begin + size;
+    const uint64_t pte_flags = options->pte_flags;
     pte_t *pte = walker->tables[level - 1] + walker->indices[level - 1];
 
     do {
@@ -619,7 +658,7 @@ map_large_at_level_no_overwrite(struct pt_walker *const walker,
 
         pte_t *const table = walker->tables[level - 1];
         pte_t *pte = table + walker->indices[level - 1];
-        const pte_t *const end = table + PGT_COUNT;
+        const pte_t *const end = table + PGT_PTE_COUNT;
 
         do {
             const pte_t new_pte_value =
@@ -637,7 +676,7 @@ map_large_at_level_no_overwrite(struct pt_walker *const walker,
 
             pte++;
             if (pte == end) {
-                walker->indices[level - 1] = PGT_COUNT - 1;
+                walker->indices[level - 1] = PGT_PTE_COUNT - 1;
                 ptwalker_result =
                     ptwalker_next_with_options(walker,
                                                level,
@@ -824,8 +863,6 @@ pgmap_at(struct pagemap *const pagemap,
         return false;
     }
 
-    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
-
     struct pt_walker walker;
     if (options->is_in_early) {
         ptwalker_create_for_pagemap(&walker,
@@ -860,7 +897,6 @@ pgmap_at(struct pagemap *const pagemap,
             {
                 offset += PAGE_SIZE_AT_LEVEL(walker.level);
                 if (!range_has_index(phys_range, offset)) {
-                    spin_release_with_irq(&pagemap->addrspace_lock, flag);
                     return OVERRIDE_DONE;
                 }
 
@@ -879,7 +915,6 @@ pgmap_at(struct pagemap *const pagemap,
                                         options);
 
                 if (!result) {
-                    spin_release_with_irq(&pagemap->addrspace_lock, flag);
                     return result;
                 }
 
@@ -897,6 +932,5 @@ pgmap_at(struct pagemap *const pagemap,
                             virt_addr,
                             options);
 
-    spin_release_with_irq(&pagemap->addrspace_lock, flag);
     return result;
 }

@@ -34,6 +34,7 @@ void kmalloc_init() {
     kmalloc_is_initialized = true;
 }
 
+__optimize(3) __malloclike __malloc_dealloc(kfree, 1) __alloc_size(1)
 void *kmalloc(const uint64_t size) {
     if (size == 0) {
         printk(LOGLEVEL_WARN, "kmalloc(): got size=0\n");
@@ -56,13 +57,18 @@ void *kmalloc(const uint64_t size) {
     return slab_alloc(allocator);
 }
 
+__optimize(3)
 void *krealloc(void *const buffer, const uint64_t size) {
     // Allow buffer=NULL to call kmalloc().
-    if (buffer == NULL) {
+    if (__builtin_expect(buffer == NULL, 0)) {
+        if (__builtin_expect(size == 0, 0)) {
+            return NULL;
+        }
+
         return kmalloc(size);
     }
 
-    if (size == 0) {
+    if (__builtin_expect(size == 0, 0)) {
         printk(LOGLEVEL_WARN, "krealloc(): got size=0, use kfree() instead\n");
         kfree(buffer);
 
@@ -85,6 +91,6 @@ void *krealloc(void *const buffer, const uint64_t size) {
     return ret;
 }
 
-void kfree(void *const buffer) {
+__optimize(3) void kfree(void *const buffer) {
     slab_free(buffer);
 }

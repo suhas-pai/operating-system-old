@@ -252,10 +252,10 @@ avltree_compare(struct avlnode *const our_node,
 }
 
 uint64_t
-addrspace_find_space_for_node(struct address_space *const addrspace,
-                              const struct range in_range,
-                              struct addrspace_node *const node,
-                              const uint64_t align)
+addrspace_find_space_and_add_node(struct address_space *const addrspace,
+                                  const struct range in_range,
+                                  struct addrspace_node *const node,
+                                  const uint64_t align)
 {
     struct addrspace_node *prev = NULL;
     const uint64_t addr =

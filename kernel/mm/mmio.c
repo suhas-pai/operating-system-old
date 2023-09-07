@@ -4,14 +4,16 @@
  */
 
 #include "dev/printk.h"
+
 #include "mm/page_alloc.h"
+#include "mm/walker.h"
 
 #include "kmalloc.h"
 #include "mmio.h"
 #include "pagemap.h"
 
 static struct address_space mmio_space = ADDRSPACE_INIT(mmio_space);
-static struct spinlock lock = {};
+static struct spinlock mmio_space_lock = {};
 
 enum mmio_region_flags {
     MMIO_REGION_LOW4G = 1 << 0
@@ -62,15 +64,15 @@ map_mmio_region(const struct range phys_range,
     addrspace_node_init(&mmio_space, &mmio->node);
     mmio->node.range.size = phys_range.size + GUARD_PAGE_SIZE;
 
-    const int flag = spin_acquire_with_irq(&lock);
+    const int flag = spin_acquire_with_irq(&mmio_space_lock);
     const uint64_t virt_addr =
-        addrspace_find_space_for_node(&mmio_space,
-                                      in_range,
-                                      &mmio->node,
-                                      /*align=*/PAGE_SIZE);
+        addrspace_find_space_and_add_node(&mmio_space,
+                                          in_range,
+                                          &mmio->node,
+                                          /*align=*/PAGE_SIZE);
 
     if (virt_addr == ADDRSPACE_INVALID_ADDR) {
-        spin_release_with_irq(&lock, flag);
+        spin_release_with_irq(&mmio_space_lock, flag);
         printk(LOGLEVEL_WARN,
                "vmap_mmio(): failed to find suitable virtual-address range to "
                "map phys-range " RANGE_FMT "\n",
@@ -89,7 +91,7 @@ map_mmio_region(const struct range phys_range,
                             VMA_CACHEKIND_WRITETHROUGH : VMA_CACHEKIND_MMIO,
                           /*is_overwrite=*/false);
 
-    spin_release_with_irq(&lock, flag);
+    spin_release_with_irq(&mmio_space_lock, flag);
     if (!map_success) {
         printk(LOGLEVEL_WARN,
                "vmap_mmio(): failed to map phys-range " RANGE_FMT " to virtual "
@@ -202,23 +204,24 @@ vmap_mmio(const struct range phys_range,
 }
 
 bool vunmap_mmio(struct mmio_region *const region) {
-    const int flag = spin_acquire_with_irq(&kernel_pagemap.addrspace_lock);
-    addrspace_remove_node(&region->node);
-
+    int flag = spin_acquire_with_irq(&mmio_space_lock);
     uint64_t phys = 0;
+
     if (region->flags & MMIO_REGION_LOW4G) {
         phys = ptwalker_virt_get_phys(&kernel_pagemap, (uint64_t)region->base);
         if (phys == INVALID_PHYS) {
-            spin_release_with_irq(&kernel_pagemap.addrspace_lock, flag);
+            spin_release_with_irq(&mmio_space_lock, flag);
             return false;
         }
     }
 
     arch_unmap_mapping(&kernel_pagemap, (uint64_t)region->base, region->size);
-    spin_release_with_irq(&kernel_pagemap.addrspace_lock, flag);
+
+    addrspace_remove_node(&region->node);
+    spin_release_with_irq(&mmio_space_lock, flag);
 
     if (region->flags & MMIO_REGION_LOW4G) {
-        free_pages(phys_to_page(phys), /*order=*/region->size / PAGE_SIZE);
+        free_pages(phys_to_page(phys), /*order=*/region->size >> PAGE_SHIFT);
     }
 
     kfree(region);

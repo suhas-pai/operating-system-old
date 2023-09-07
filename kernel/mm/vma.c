@@ -75,8 +75,7 @@ vma_create(struct pagemap *const pagemap,
 struct vm_area *
 vma_create_at(struct pagemap *const pagemap,
               const struct range range,
-              const uint64_t virt,
-              const uint64_t align,
+              const uint64_t phys_addr,
               const uint8_t prot,
               const enum vma_cachekind cachekind)
 {
@@ -85,8 +84,7 @@ vma_create_at(struct pagemap *const pagemap,
         return NULL;
     }
 
-    vma->node.range.front = virt;
-    if (!pagemap_add_vma_at(pagemap, vma, range, virt, align)) {
+    if (!pagemap_add_vma(pagemap, vma, phys_addr)) {
         kfree(vma);
         return NULL;
     }

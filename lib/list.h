@@ -9,6 +9,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "macros.h"
+
 /* list is a circular doubly-linked list */
 struct list {
     struct list *prev;
@@ -17,12 +19,12 @@ struct list {
 
 #define LIST_INIT(name) { .prev = &(name), .next = &(name) }
 
-static inline void list_init(struct list *const head) {
+__optimize(3) static inline void list_init(struct list *const head) {
     head->prev = head;
     head->next = head;
 }
 
-static inline void
+__optimize(3) static inline void
 list_add_common(struct list *const elem,
                 struct list *const prev,
                 struct list *const next)
@@ -35,20 +37,22 @@ list_add_common(struct list *const elem,
 }
 
 // Add to front of list
+__optimize(3)
 static inline void list_add(struct list *const head, struct list *const item) {
     list_add_common(item, head, head->next);
 }
 
 // Add to back of list
+__optimize(3)
 static inline void list_radd(struct list *const head, struct list *const item) {
     list_add_common(item, head->prev, head);
 }
 
-static inline bool list_empty(struct list *const list) {
+__optimize(3) static inline bool list_empty(struct list *const list) {
     return list == list->prev;
 }
 
-static inline void list_delete(struct list *const elem) {
+__optimize(3) static inline void list_delete(struct list *const elem) {
     elem->next->prev = elem->prev;
     elem->prev->next = elem->next;
 

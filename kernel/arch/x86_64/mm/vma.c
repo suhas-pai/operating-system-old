@@ -9,6 +9,7 @@
 #include "mm/pagemap.h"
 #include "mm/pageop.h"
 #include "mm/pgmap.h"
+#include "mm/walker.h"
 
 #include "cpu.h"
 
@@ -57,16 +58,22 @@ arch_make_mapping(struct pagemap *const pagemap,
                   const enum vma_cachekind cachekind,
                   const bool is_overwrite)
 {
+    const uint64_t pte_flags = flags_from_info(pagemap, prot, cachekind);
+    const bool supports_large = (pte_flags & __PTE_PAT) == 0;
+
     const struct pgmap_options options = {
-        .pte_flags = flags_from_info(pagemap, prot, cachekind),
+        .pte_flags = pte_flags,
 
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,
 
         .supports_largepage_at_level_mask =
-            (1 << 2 | get_cpu_capabilities()->supports_1gib_pages << 3),
+            (supports_large << 2 |
+             (supports_large &&
+                get_cpu_capabilities()->supports_1gib_pages) << 3),
 
         .is_in_early = false,
+        .free_pages = false,
         .is_overwrite = is_overwrite
     };
 
@@ -79,8 +86,6 @@ arch_unmap_mapping(struct pagemap *const pagemap,
                    const uint64_t virt_addr,
                    const uint64_t size)
 {
-    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
-
     struct pageop pageop;
     pageop_init(&pageop);
 
@@ -99,14 +104,10 @@ arch_unmap_mapping(struct pagemap *const pagemap,
         const enum pt_walker_result result = ptwalker_next(&walker);
         if (result != E_PT_WALKER_OK) {
             pageop_finish(&pageop);
-            spin_release_with_irq(&pagemap->addrspace_lock, flag);
-
             return false;
         }
     }
 
     pageop_finish(&pageop);
-    spin_release_with_irq(&pagemap->addrspace_lock, flag);
-
     return true;
 }

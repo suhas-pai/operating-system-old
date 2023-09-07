@@ -51,9 +51,17 @@ static volatile struct limine_boot_time_request boot_time_request = {
 };
 
 static struct mm_memmap mm_memmap_list[255] = {0};
-static struct mm_memmap mm_usable_list[255] = {0};
-
 static uint8_t mm_memmap_count = 0;
+
+// If we have a memmap whose memory pages will go in the structpage
+// table, then they will also be stored in the mm_usable_list array.
+//
+// We store twice so the functions `phys_to_pfn()` can efficiently find
+// the memmap that corresponds to a physical address w/o having to traverse the
+// entire memmap-list, which is made up mostly of memmaps not mapped into the
+// structpage-table
+
+static struct mm_memmap mm_usable_list[255] = {0};
 static uint8_t mm_usable_count = 0;
 
 static const void *rsdp = NULL;
@@ -119,8 +127,14 @@ void boot_init() {
 
     uint8_t memmap_index = 0;
     uint8_t usable_index = 0;
-    uint64_t pfn = 0;
 
+    // Usable (and bootloader-reclaimable) memmaps are sparsely located in the
+    // physical memory-space, but are stored together (contiguously) in the
+    // structpage-table in virtual-memory.
+    // To accomplish this, assign each memmap placed in the structpage-table a
+    // pfn that will be assigned to the first page residing in the memmap.
+
+    uint64_t pfn = 0;
     for (__auto_type memmap_iter = entries; memmap_iter != end; memmap_iter++) {
         if (memmap_index == countof(mm_memmap_list)) {
             panic("boot: too many memmaps\n");
@@ -134,6 +148,27 @@ void boot_init() {
                              &range))
         {
             panic("boot: failed to align memmap");
+        }
+
+        // If we find overlapping memmaps, try and fix the range of our current
+        // memmap based on the range of the previous memmap. We assume the
+        // memory-maps are sorted in ascending order.
+
+        if (memmap_index != 0) {
+            const struct range prev_range =
+                mm_memmap_list[memmap_index - 1].range;
+
+            if (range_overlaps(prev_range, range)) {
+                if (range_has(prev_range, range)) {
+                    // If the previous memmap completely contains this memmap,
+                    // then simply skip this memmap.
+
+                    continue;
+                }
+
+                const uint64_t prev_end = range_get_end_assert(prev_range);
+                range = range_from_loc(range, prev_end);
+            }
         }
 
         mm_memmap_list[memmap_index] = (struct mm_memmap){

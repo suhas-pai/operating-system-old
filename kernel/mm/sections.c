@@ -14,7 +14,7 @@ __optimize(3) uint64_t phys_to_pfn(const uint64_t phys) {
 
     for (const struct mm_memmap *iter = begin; iter != end; iter++) {
         if (range_has_loc(iter->range, phys)) {
-            return iter->pfn + ((phys - iter->range.front) / PAGE_SIZE);
+            return iter->pfn + ((phys - iter->range.front) >> PAGE_SHIFT);
         }
     }
 
@@ -26,5 +26,5 @@ __optimize(3) uint64_t page_to_phys(const struct page *const page) {
     const struct mm_memmap *const memmap = mm_get_usable_list() + section;
     const uint64_t relative_pfn = page_to_pfn(page) - memmap->pfn;
 
-    return memmap->range.front + (relative_pfn * PAGE_SIZE);
+    return memmap->range.front + (relative_pfn << PAGE_SHIFT);
 }

@@ -30,10 +30,7 @@ slab_allocator_init(struct slab_allocator *const slab_alloc,
     // To store free_page_objects, every object must be at least 8 bytes large.
     // We also make this the required minimum alignment.
 
-    if (!align_up(object_size,
-                  /*boundary=*/sizeof(struct free_slab_object),
-                  &object_size))
-    {
+    if (!align_up(object_size, /*boundary=*/16, &object_size)) {
         return false;
     }
 
@@ -139,13 +136,13 @@ void *slab_alloc(struct slab_allocator *const alloc) {
     }
 
     struct free_slab_object *const result = get_free_ptr(page, alloc);
-    page->slab.head.first_free_index = result->next;
+    page->slab.head.first_free_index = result ? result->next : UINT32_MAX;
 
     spin_release_with_irq(&alloc->lock, flag);
     return result;
 }
 
-static inline struct page *slab_head_of(const void *const mem) {
+__optimize(3) static inline struct page *slab_head_of(const void *const mem) {
     struct page *const page = virt_to_page(mem);
     if (page_has_bit(page, PAGE_IS_SLAB_HEAD)) {
         return page;
@@ -191,7 +188,7 @@ void slab_free(void *const mem) {
     spin_release_with_irq(&alloc->lock, flag);
 }
 
-uint32_t slab_object_size(void *const mem) {
+__optimize(3) uint32_t slab_object_size(void *const mem) {
     if (mem == NULL) {
         panic("slab_object_size(): Got mem=NULL");
     }

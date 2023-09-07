@@ -46,6 +46,8 @@ enum struct_page_flags {
     PAGE_IS_SLAB_HEAD = 1 << 2,
 };
 
+uint32_t page_get_flags(const struct page *page);
+
 void page_set_bit(struct page *page, enum struct_page_flags flag);
 bool page_has_bit(const struct page *page, enum struct_page_flags flag);
 void page_clear_bit(struct page *page, enum struct_page_flags flag);

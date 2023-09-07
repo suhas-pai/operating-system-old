@@ -6,7 +6,7 @@
 #include "lib/overflow.h"
 #include "math.h"
 
-bool
+__optimize(3) bool
 round_up(const uint64_t number,
          const uint64_t multiple,
          uint64_t *const result_out)

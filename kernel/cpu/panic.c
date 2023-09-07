@@ -5,14 +5,14 @@
 
 #if __has_include("asm/stack_trace.h")
     #include "asm/stack_trace.h"
-#endif /* defined(__x86_64__) */
+#endif /* __has_include("asm/stack_trace.h") */
 
 #include "cpu/util.h"
 #include "dev/printk.h"
 
 #include "lib/parse_printf.h"
 
-void panic(const char *const fmt, ...) {
+__optimize(3) void panic(const char *const fmt, ...) {
     va_list list;
     va_start(list, fmt);
 
