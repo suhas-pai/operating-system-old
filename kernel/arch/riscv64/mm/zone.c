@@ -55,7 +55,7 @@ __optimize(3) struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
 void pagezones_init() {
     for_each_page_zone (zone) {
         for (uint8_t i = 0; i != MAX_ORDER; i++) {
-            list_init(&zone->freelist_list[i].pages);
+            list_init(&zone->freelist_list[i].page_list);
 
             zone->freelist_list[i].count = 0;
             zone->freelist_list[i].order = i;

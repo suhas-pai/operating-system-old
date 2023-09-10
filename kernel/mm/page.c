@@ -17,7 +17,7 @@ void page_set_bit(struct page *const page, const enum struct_page_flags flag) {
 
 __optimize(3) bool
 page_has_bit(const struct page *const page, const enum struct_page_flags flag) {
-    return page_get_flags(page) & flag;
+    return (page_get_flags(page) & flag) != 0;
 }
 
 __optimize(3) void

@@ -40,7 +40,7 @@ flags_from_info(struct pagemap *const pagemap,
             result |= __PTE_PWT;
             break;
         case VMA_CACHEKIND_WRITECOMBINING:
-            result |= __PTE_PAT;
+            result |= __PTE_WC;
             break;
         case VMA_CACHEKIND_NO_CACHE:
             result |= __PTE_PCD;
@@ -59,7 +59,7 @@ arch_make_mapping(struct pagemap *const pagemap,
                   const bool is_overwrite)
 {
     const uint64_t pte_flags = flags_from_info(pagemap, prot, cachekind);
-    const bool supports_large = (pte_flags & __PTE_PAT) == 0;
+    const bool supports_large = (pte_flags & __PTE_WC) == 0;
 
     const struct pgmap_options options = {
         .pte_flags = pte_flags,

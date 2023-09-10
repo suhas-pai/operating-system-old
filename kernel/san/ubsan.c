@@ -157,7 +157,8 @@ __ubsan_handle_shift_out_of_bounds(struct shift_out_of_bounds_info *const info,
     }
 }
 
-void __ubsan_handle_shift_out_of_bounds_abort(
+void
+__ubsan_handle_shift_out_of_bounds_abort(
     struct shift_out_of_bounds_info *const info,
     const uint64_t lhs_value,
     const uint64_t rhs_value)

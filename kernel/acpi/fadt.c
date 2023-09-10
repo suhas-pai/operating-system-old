@@ -24,6 +24,8 @@ void fadt_init(const struct acpi_fadt *const fadt) {
     if (!(fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042)) {
         printk(LOGLEVEL_WARN, "fadt: ps2 devices are not supported\n");
     }
+
+    assert_msg(fadt->century != 0, "fadt: doesn't support century register");
 #elif defined(__aarch64__)
     printk(LOGLEVEL_INFO,
            "fadt: flags: 0x%" PRIx32 "\n",

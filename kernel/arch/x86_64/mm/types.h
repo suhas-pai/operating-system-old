@@ -75,7 +75,7 @@ enum pte_flags {
     __PTE_PCD      = 1ull << 4,
     __PTE_ACCESSED = 1ull << 5,
     __PTE_LARGE    = 1ull << 7,
-    __PTE_PAT      = 1ull << 7, // Only on PML1 pages
+    __PTE_WC       = 1ull << 7, // Only on PML1 pages
     __PTE_GLOBAL   = 1ull << 8,
 
     __PTE_NOEXEC = 1ull << 63

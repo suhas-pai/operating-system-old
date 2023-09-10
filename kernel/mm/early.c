@@ -17,7 +17,6 @@
 
 struct freepages_info {
     struct list list;
-    const struct mm_memmap *memmap;
 
     // Count of contiguous pages, starting from this one
     uint64_t total_page_count;
@@ -58,7 +57,6 @@ static void claim_pages(const struct mm_memmap *const memmap) {
         }
     }
 
-    info->memmap = memmap;
     info->avail_page_count = page_count;
     info->total_page_count = page_count;
 
@@ -113,8 +111,9 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
         uint64_t last_phys =
             phys + ((avail_page_count - alloc_amount) * PAGE_SIZE);
 
-        if (!has_align(last_phys, PAGE_SIZE * alloc_amount)) {
-            last_phys = align_down(last_phys, PAGE_SIZE * alloc_amount);
+        const uint64_t boundary = PAGE_SIZE * alloc_amount;
+        if (!has_align(last_phys, boundary)) {
+            last_phys = align_down(last_phys, boundary);
             if (last_phys < phys) {
                 continue;
             }
@@ -151,7 +150,6 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
             struct freepages_info *const new_info =
                 (struct freepages_info *)phys_to_virt(new_info_phys);
 
-            new_info->memmap = info->memmap;
             new_info->avail_page_count = new_info_count;
             new_info->total_page_count = new_info_count;
 
@@ -356,7 +354,7 @@ mark_used_pages(const struct mm_memmap *const memmap,
 {
     struct freepages_info *iter = NULL;
     list_foreach(iter, &freepages_list, list) {
-        if (iter->memmap != memmap) {
+        if (!range_has_loc(memmap->range, virt_to_phys(iter))) {
             continue;
         }
 
@@ -388,7 +386,11 @@ mark_used_pages(const struct mm_memmap *const memmap,
             }
 
             iter = list_next(iter, list);
-            if (&iter->list == &freepages_list || iter->memmap != memmap) {
+            if (&iter->list == &freepages_list) {
+                return;
+            }
+
+            if (!range_has_loc(memmap->range, virt_to_phys(iter))) {
                 return;
             }
         }
@@ -423,6 +425,7 @@ void mm_early_post_arch_init() {
         }
     }
 
+    boot_merge_usable_memmaps();
     for (uint64_t index = 0; index != mm_get_usable_count(); index++) {
         const struct mm_memmap *const memmap = mm_get_usable_list() + index;
         switch (memmap->kind) {

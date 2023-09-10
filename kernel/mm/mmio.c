@@ -50,9 +50,10 @@ map_mmio_region(const struct range phys_range,
                 const uint8_t prot,
                 const uint64_t flags)
 {
-    struct range in_range = range_create(VMAP_BASE, (VMAP_END - VMAP_BASE));
-    struct mmio_region *const mmio = kmalloc(sizeof(*mmio));
+    struct range in_range =
+        range_create_end(VMAP_BASE + GUARD_PAGE_SIZE, VMAP_END);
 
+    struct mmio_region *const mmio = kmalloc(sizeof(*mmio));
     if (mmio == NULL) {
         printk(LOGLEVEL_WARN,
                "vmap_mmio(): failed to allocate mmio_region to map phys-range "

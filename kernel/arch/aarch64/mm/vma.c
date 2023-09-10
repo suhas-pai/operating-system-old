@@ -83,9 +83,10 @@ arch_unmap_mapping(struct pagemap *pagemap,
     ptwalker_default_for_pagemap(&walker, pagemap, virt_addr);
 
     for (uint64_t i = 0; i != size; i += PAGE_SIZE) {
-        const pte_t entry = walker.tables[0][walker.indices[0]];
-        walker.tables[0][walker.indices[0]] = 0;
+        pte_t *const pte = walker.tables[0] + walker.indices[0];
+        const pte_t entry = pte_read(pte);
 
+        pte_write(pte, /*value=*/0);
         if (pte_is_present(entry)) {
             //pageop_flush(&pageop, virt_addr + i);
         }

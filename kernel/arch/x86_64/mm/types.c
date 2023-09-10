@@ -48,7 +48,7 @@ bool pte_flags_equal(pte_t pte, const pgt_level_t level, const uint64_t flags) {
         __PTE_GLOBAL | __PTE_NOEXEC;
 
     if (level == 1) {
-        mask |= __PTE_PAT;
+        mask |= __PTE_WC;
     } else {
         pte &= ~(uint64_t)__PTE_LARGE;
     }

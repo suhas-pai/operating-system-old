@@ -33,6 +33,14 @@ else
 	EXTRA_QEMU_ARGS += -serial stdio
 endif
 
+ifeq ($(ARCH),aarch64)
+	ifeq ($(shell uname -s),Darwin)
+		ifeq ($(shell uname -p),arm)
+			EXTRA_QEMU_ARGS += -accel hvf
+		endif
+	endif
+endif
+
 .PHONY: all
 all: $(IMAGE_NAME).iso
 

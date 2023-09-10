@@ -895,7 +895,7 @@ pgmap_at(struct pagemap *const pagemap,
                 pte_to_phys(entry) == (phys_range.front - offset) &&
                 pte_flags_equal(entry, walker.level, options->pte_flags))
             {
-                offset += PAGE_SIZE_AT_LEVEL(walker.level);
+                offset = walker_virt_addr + PAGE_SIZE_AT_LEVEL(walker.level);
                 if (!range_has_index(phys_range, offset)) {
                     return OVERRIDE_DONE;
                 }

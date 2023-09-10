@@ -202,7 +202,7 @@ map_into_kernel_pagemap(const struct range phys_range,
                         const uint64_t virt_addr,
                         const uint64_t pte_flags)
 {
-    const bool supports_2mib = (pte_flags & __PTE_PAT) == 0;
+    const bool supports_2mib = (pte_flags & __PTE_WC) == 0;
     const bool supports_1gib =
         supports_2mib && get_cpu_capabilities()->supports_1gib_pages;
 
@@ -276,7 +276,7 @@ static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
         } else {
             uint64_t flags = __PTE_WRITE | __PTE_NOEXEC;
             if (memmap->kind == MM_MEMMAP_KIND_FRAMEBUFFER) {
-                flags |= __PTE_PAT;
+                flags |= __PTE_WC;
             }
 
             map_into_kernel_pagemap(/*phys_range=*/range,

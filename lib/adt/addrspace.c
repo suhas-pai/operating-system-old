@@ -291,16 +291,18 @@ addrspace_find_space_and_add_node(struct address_space *const addrspace,
 
 static void add_node_cb(struct avlnode *const avlnode) {
     struct addrspace_node *const node = addrspace_node_of(avlnode);
-    if (avlnode->parent == NULL) {
+    struct avlnode *const parent = avlnode->parent;
+
+    if (parent == NULL) {
         list_add(&node->addrspace->list, &node->list);
         return;
     }
 
-    if (avlnode == avlnode->parent->right) {
-        list_add(&addrspace_node_of(avlnode->parent)->list, &node->list);
+    if (avlnode == parent->right) {
+        list_add(&addrspace_node_of(parent)->list, &node->list);
     } else {
         struct addrspace_node *const prev =
-            addrspace_node_prev(addrspace_node_of(avlnode->parent));
+            addrspace_node_prev(addrspace_node_of(parent));
 
         list_add(&prev->list, &node->list);
     }

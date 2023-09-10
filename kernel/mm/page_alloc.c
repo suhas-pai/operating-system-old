@@ -11,7 +11,7 @@
 __optimize(3) static void
 add_to_freelist(struct page_freelist *const freelist, struct page *const page) {
     page_set_bit(page, PAGE_IN_FREE_LIST);
-    list_add(&freelist->pages, &page->buddy.freelist);
+    list_add(&freelist->page_list, &page->buddy.freelist);
 
     freelist->count++;
 }
@@ -28,12 +28,12 @@ take_off_freelist(struct page_freelist *const freelist, struct page *const page)
 
 __optimize(3)
 static struct page *get_from_freelist(struct page_freelist *const freelist) {
-    if (__builtin_expect(list_empty(&freelist->pages), 0)) {
+    if (__builtin_expect(list_empty(&freelist->page_list), 0)) {
         return NULL;
     }
 
     struct page *const page =
-        list_head(&freelist->pages, struct page, buddy.freelist);
+        list_head(&freelist->page_list, struct page, buddy.freelist);
 
     return take_off_freelist(freelist, page);
 }

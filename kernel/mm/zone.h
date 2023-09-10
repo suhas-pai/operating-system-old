@@ -7,7 +7,7 @@
 #include "page_alloc.h"
 
 struct page_freelist {
-    struct list pages;
+    struct list page_list;
 
     uint8_t order;
     uint64_t count;

@@ -5,17 +5,23 @@
 
 #pragma once
 
-int isalnum(int c);
-int isalpha(int c);
-int iscntrl(int c);
-int isdigit(int c);
-int isgraph(int c);
-int islower(int c);
-int isprint(int c);
-int ispunct(int c);
-int isspace(int c);
-int isupper(int c);
-int isxdigit(int c);
+#if defined(BUILD_KERNEL)
+    #define C_TYPE char
+#else
+    #define C_TYPE int
+#endif
 
-int tolower(int c);
-int toupper(int c);
+int isalnum(C_TYPE c);
+int isalpha(C_TYPE c);
+int iscntrl(C_TYPE c);
+int isdigit(C_TYPE c);
+int isgraph(C_TYPE c);
+int islower(C_TYPE c);
+int isprint(C_TYPE c);
+int ispunct(C_TYPE c);
+int isspace(C_TYPE c);
+int isupper(C_TYPE c);
+int isxdigit(C_TYPE c);
+
+int tolower(C_TYPE c);
+int toupper(C_TYPE c);

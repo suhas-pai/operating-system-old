@@ -26,7 +26,7 @@ enum cmos_rtc_reg_status_b_masks {
     __CMOS_RTC_REGSTATUS_B_INTR_ON_ALARM_COMP  = 1 << 4,
 
     __CMOS_RTC_REGSTATUS_B_PERIODIC_INT = 1 << 5,
-    __CMOS_RTC_REGSTATUS_B_DISABLE_UPDATE     = 1 << 6
+    __CMOS_RTC_REGSTATUS_B_DISABLE_UPDATE = 1 << 6
 };
 
 #define MAX_ATTEMPTS 10

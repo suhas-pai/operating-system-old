@@ -24,7 +24,7 @@ struct bitmap bitmap_open(void *const buffer, const uint64_t byte_count) {
     };
 }
 
-uint64_t bitmap_capacity(const struct bitmap *const bitmap) {
+__optimize(3) uint64_t bitmap_capacity(const struct bitmap *const bitmap) {
     return bytes_to_bits(gbuffer_capacity(bitmap->gbuffer));
 }
 
@@ -318,7 +318,7 @@ done:
     return bit_index_in_word + bit_index_of_ptr;
 }
 
-uint64_t
+__optimize(3) uint64_t
 bitmap_find(struct bitmap *const bitmap,
             const uint64_t count,
             const uint64_t start_index,
@@ -571,7 +571,7 @@ find_set_at_mult(struct bitmap *const bitmap,
     return FIND_BIT_INVALID;
 }
 
-uint64_t
+__optimize(3) uint64_t
 bitmap_find_at_mult(struct bitmap *const bitmap,
                     const uint64_t count,
                     const uint64_t mult,
@@ -586,6 +586,7 @@ bitmap_find_at_mult(struct bitmap *const bitmap,
     return find_unset_at_mult(bitmap, count, mult, start_index, invert);
 }
 
+__optimize(3)
 bool bitmap_at(const struct bitmap *const bitmap, uint64_t index) {
     void *const begin = bitmap->gbuffer.begin;
     void *ptr = begin + bits_to_bytes_noround(index);
@@ -709,8 +710,8 @@ bitmap_set_range(struct bitmap *const bitmap,
      *     enough.
      *  3. Set values for bits in the last int.
      *
-     * Verify bits in the specified loc-rng are NOT value (if requested), before
-     * writing to the bitmap.
+     * Verify bits in the specified range are NOT of value (if requested),
+     * before writing to the bitmap.
      */
 
     void *ptr = bitmap->gbuffer.begin + bits_to_bytes_noround(bit_index);
@@ -734,8 +735,7 @@ bitmap_set_range(struct bitmap *const bitmap,
         ptr++;
     }
 
-    /* Use memset() if we have streams of bytes. */
-
+    // Use memset() if we have streams of bytes.
     const uint64_t memset_byte_count = bits_to_bytes_noround(bits_left);
     if (memset_byte_count != 0) {
         if (value) {

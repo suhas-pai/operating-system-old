@@ -25,6 +25,7 @@ enum parse_bar_result {
 
     E_PARSE_BAR_UNKNOWN_MEM_KIND,
     E_PARSE_BAR_NO_REG_FOR_UPPER32,
+
     E_PARSE_BAR_MMIO_MAP_FAIL
 };
 

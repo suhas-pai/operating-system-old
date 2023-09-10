@@ -1,5 +1,5 @@
 /*
- * kernel/arch/riscv64/dev/pci/read.c
+ * kernel/arch/riscv64/dev/pci/access.c
  * © suhas pai
  */
 

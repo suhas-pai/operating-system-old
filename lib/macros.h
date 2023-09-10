@@ -50,8 +50,7 @@
 #if !defined(__malloc_dealloc)
     // Clang doesn't support malloc with arguments
     #if __has_attribute(malloc) && !defined(__clang__)
-        #define __malloc_dealloc(func, arg) \
-            __attribute__((malloc(func, arg)))
+        #define __malloc_dealloc(func, arg) __attribute__((malloc(func, arg)))
     #else
         #define __malloc_dealloc(func, arg)
     #endif /* __has_attribute(malloc) */

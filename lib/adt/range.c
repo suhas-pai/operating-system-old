@@ -32,11 +32,9 @@ range_multiply(const struct range range,
                struct range *const result_out)
 {
     struct range result = RANGE_EMPTY();
-    if (!check_mul(range.front, mult, &result.front)) {
-        return false;
-    }
-
-    if (!check_mul(range.size, mult, &result.size)) {
+    if (!check_mul(range.front, mult, &result.front) ||
+        !check_mul(range.size, mult, &result.size))
+    {
         return false;
     }
 
@@ -123,13 +121,11 @@ bool range_has_index(const struct range range, const uint64_t index) {
     return index_in_bounds(index, range.size);
 }
 
-__optimize(3)
-bool range_has_loc(const struct range range, const uint64_t loc) {
+__optimize(3) bool range_has_loc(const struct range range, const uint64_t loc) {
     return (loc >= range.front && (loc - range.front) < range.size);
 }
 
-__optimize(3)
-bool range_has_end(const struct range range, const uint64_t end) {
+__optimize(3) bool range_has_end(const struct range range, const uint64_t end) {
     return (end > range.front && (end - range.front) <= range.size);
 }
 

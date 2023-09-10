@@ -1,13 +1,13 @@
 /*
- * include/kernel/sanitizers/undefined/definitions.h
+ * kernel/san/ubsan.h
  * © suhas pai
  */
 
-#ifndef KERNEL_SANITIZERS_UNDEFINED_DEFINITIONS_H
-#define KERNEL_SANITIZERS_UNDEFINED_DEFINITIONS_H
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
+
 #include "lib/macros.h"
 
 struct source_location {
@@ -169,5 +169,3 @@ enum builtin_check_kind {
     BUILTIN_CHECK_KIND_CTZ_PASSED_ZERO,
     BUILTIN_CHECK_KIND_CLZ_PASSED_ZERO,
 };
-
-#endif /* !KERNEL_SANITIZERS_UNDEFINED_DEFINITIONS_H */
