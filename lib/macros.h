@@ -48,7 +48,7 @@
 #endif /* !defined(__malloclike) */
 
 #if !defined(__malloc_dealloc)
-    // Clang doesn't support malloc with arguments
+    // Clang doesn't support __attribute__((malloc)) with arguments
     #if __has_attribute(malloc) && !defined(__clang__)
         #define __malloc_dealloc(func, arg) __attribute__((malloc(func, arg)))
     #else
@@ -84,6 +84,9 @@
 #define __TO_STRING_IMPL(x) #x
 #define TO_STRING(x) __TO_STRING_IMPL(x)
 
+#define container_of(ptr, type, name) \
+    ((type *)(uint64_t)((const void *)ptr - offsetof(type, name)))
+
 #define h_var(token) VAR_CONCAT(VAR_CONCAT_3(__, token, __), __LINE__)
 #define countof(carr) (sizeof(carr) / sizeof((carr)[0]))
 #define for_each_in_carr(arr, name) \
@@ -118,10 +121,13 @@
 #define distance_incl(begin, end) (distance(begin, end) + 1)
 
 #define RAND_VAR_NAME() VAR_CONCAT(__random__, __LINE__)
-
 #define bits_to_bytes_roundup(bits) \
-    ((((bits) % sizeof_bits(uint8_t)) != 0) ? \
-        ((bits_to_bytes_noround(bits)) + 1) : bits_to_bytes_noround(bits))
+    ({ \
+        const __auto_type __bits__ = (bits); \
+        __bits__ % sizeof_bits(uint8_t) ? \
+            bits_to_bytes_noround(__bits__) + 1 : \
+            bits_to_bytes_noround(__bits__); \
+    })
 
 #define bits_to_bytes_noround(bits) ((bits) / sizeof_bits(uint8_t))
 #define bytes_to_bits(bits) ((bits) * 8)

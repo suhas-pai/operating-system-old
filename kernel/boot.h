@@ -27,8 +27,6 @@ struct mm_memmap {
 const struct mm_memmap *mm_get_memmap_list();
 const struct mm_memmap *mm_get_usable_list();
 
-struct mm_memmap *mm_get_usable_list_mut();
-
 void boot_early_init();
 void boot_init();
 

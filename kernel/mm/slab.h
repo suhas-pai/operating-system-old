@@ -1,5 +1,5 @@
 /*
- * adt/slab.h
+ * kernel/mm/slab.h
  * © suhas pai
  */
 
@@ -7,7 +7,6 @@
 
 #include "cpu/spinlock.h"
 #include "lib/list.h"
-#include "lib/macros.h"
 
 // Structure to represent a slab allocator.
 struct slab_allocator {
@@ -16,7 +15,7 @@ struct slab_allocator {
     struct spinlock lock;
 
     // Statistics about this allocator. These are constant and can be read w/o
-    // the lock.
+    // holding the lock.
     uint32_t object_size;
     uint32_t object_count_per_slab;
     uint16_t slab_order;

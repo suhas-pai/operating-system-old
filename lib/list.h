@@ -60,8 +60,6 @@ __optimize(3) static inline void list_delete(struct list *const elem) {
     elem->next = NULL;
 }
 
-#define container_of(ptr, type, name) \
-    ((type *)(uint64_t)((void *)ptr - offsetof(type, name)))
 #define list_del(type, elem, name) \
     ({ list_delete(elem); container_of(elem, type, name)})
 

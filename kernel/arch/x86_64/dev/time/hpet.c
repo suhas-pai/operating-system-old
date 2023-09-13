@@ -10,6 +10,7 @@
 
 #include "mm/mmio.h"
 #include "hpet.h"
+#include "mmio.h"
 
 struct hpet_addrspace_timer_info {
     volatile uint64_t config_and_capability;
@@ -79,8 +80,8 @@ void hpet_init(const struct acpi_hpet *const hpet) {
 
     hpet_mmio =
         vmap_mmio(range_create(hpet->base_address.address, PAGE_SIZE),
-                               PROT_READ | PROT_WRITE,
-                               /*flags=*/0);
+                  PROT_READ | PROT_WRITE,
+                  /*flags=*/0);
 
     if (hpet_mmio == NULL) {
         printk(LOGLEVEL_WARN, "hpet: failed to mmio-map address-space\n");
@@ -89,7 +90,7 @@ void hpet_init(const struct acpi_hpet *const hpet) {
 
     addrspace = (volatile struct hpet_addrspace *)hpet_mmio->base;
 
-    const uint64_t cap_and_id = addrspace->general_cap_and_id;
+    const uint64_t cap_and_id = mmio_read(&addrspace->general_cap_and_id);
     const uint32_t main_counter_period = cap_and_id >> 32;
 
     printk(LOGLEVEL_INFO,
@@ -97,7 +98,7 @@ void hpet_init(const struct acpi_hpet *const hpet) {
            femto_to_nano(main_counter_period),
            femto_mod_nano(main_counter_period));
 
-    addrspace->general_config = 0;
+    mmio_write(&addrspace->general_config, 0);
 
     const uint8_t timer_count = (cap_and_id >> 8) & 0x1f;
     printk(LOGLEVEL_WARN, "hpet: got %" PRIu8 " timers\n", timer_count);
@@ -108,9 +109,9 @@ void hpet_init(const struct acpi_hpet *const hpet) {
          timer++,
          timer_index++)
     {
-        timer->comparator_value = 0;
+        mmio_write(&timer->comparator_value, 0);
     }
 
-    addrspace->main_counter_value = 1;
-    addrspace->general_config = 1;
+    mmio_write(&addrspace->main_counter_value, 1);
+    mmio_write(&addrspace->general_config, 1);
 }

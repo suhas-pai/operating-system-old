@@ -171,7 +171,7 @@ __optimize(3) int isalnum(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& ALPHA_NUM) ? 1 : 0;
+    return (ctype_array[(int)c] & ALPHA_NUM) ? 1 : 0;
 }
 
 __optimize(3) int isalpha(const C_TYPE c) {
@@ -179,7 +179,7 @@ __optimize(3) int isalpha(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& ALPHA) ? 1 : 0;
+    return (ctype_array[(int)c] & ALPHA) ? 1 : 0;
 }
 
 __optimize(3) int iscntrl(const C_TYPE c) {
@@ -187,7 +187,7 @@ __optimize(3) int iscntrl(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& CNTRL) ? 1 : 0;
+    return (ctype_array[(int)c] & CNTRL) ? 1 : 0;
 }
 
 __optimize(3) int isdigit(const C_TYPE c) {
@@ -195,7 +195,7 @@ __optimize(3) int isdigit(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& DIGIT) ? 1 : 0;
+    return (ctype_array[(int)c] & DIGIT) ? 1 : 0;
 }
 
 __optimize(3) int isgraph(const C_TYPE c) {
@@ -203,7 +203,7 @@ __optimize(3) int isgraph(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& GRAPH) ? 1 : 0;
+    return (ctype_array[(int)c] & GRAPH) ? 1 : 0;
 }
 
 __optimize(3) int islower(const C_TYPE c) {
@@ -211,7 +211,7 @@ __optimize(3) int islower(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& ALPHA_LOWER) ? 1 : 0;
+    return (ctype_array[(int)c] & ALPHA_LOWER) ? 1 : 0;
 }
 
 __optimize(3) int isprint(const C_TYPE c) {
@@ -219,7 +219,7 @@ __optimize(3) int isprint(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& PRINT) ? 1 : 0;
+    return (ctype_array[(int)c] & PRINT) ? 1 : 0;
 }
 
 __optimize(3) int ispunct(const C_TYPE c) {
@@ -227,7 +227,7 @@ __optimize(3) int ispunct(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& PUNCT) ? 1 : 0;
+    return (ctype_array[(int)c] & PUNCT) ? 1 : 0;
 }
 
 __optimize(3) int isspace(const C_TYPE c) {
@@ -235,7 +235,7 @@ __optimize(3) int isspace(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& SPACE) ? 1 : 0;
+    return (ctype_array[(int)c] & SPACE) ? 1 : 0;
 }
 
 __optimize(3) int isupper(const C_TYPE c) {
@@ -243,7 +243,7 @@ __optimize(3) int isupper(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& ALPHA_UPPER) ? 1 : 0;
+    return (ctype_array[(int)c] & ALPHA_UPPER) ? 1 : 0;
 }
 
 __optimize(3) int isxdigit(const C_TYPE c) {
@@ -251,7 +251,7 @@ __optimize(3) int isxdigit(const C_TYPE c) {
         return 0;
     }
 
-    return (ctype_array[(int)c]& HEX_DIGIT) ? 1 : 0;
+    return (ctype_array[(int)c] & HEX_DIGIT) ? 1 : 0;
 }
 
 __optimize(3) int tolower(const C_TYPE c) {

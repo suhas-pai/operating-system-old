@@ -1,5 +1,5 @@
 /*
- * kernel/mm/page_zone.h
+ * kernel/mm/page_alloc.h
  * © suhas pai
  */
 

@@ -27,6 +27,9 @@ struct range {
 #define RANGE_EMPTY() ((struct range){ .front = 0, .size = 0 })
 #define RANGE_MAX() ((struct range){ .front = 0, .size = UINT64_MAX })
 
+#define rangeof_field(type, field) \
+    range_create(offsetof(type, field), sizeof_field(type, field))
+
 struct range range_create(uint64_t front, uint64_t size);
 struct range range_create_upto(uint64_t size);
 struct range range_create_end(uint64_t front, uint64_t size);

@@ -287,13 +287,12 @@ validate_cap_offset(struct array *const prev_cap_offsets,
         return false;
     }
 
-    const struct range data_range =
-        range_create(struct_size,
-                     sizeof_field(struct pci_spec_device_info, data));
     const struct range cap_range =
         range_create(cap_offset, sizeof(struct pci_spec_capability));
 
-    if (!range_has_index_range(data_range, cap_range)) {
+    if (!range_has_index_range(rangeof_field(struct pci_spec_device_info, data),
+                               cap_range))
+    {
         printk(LOGLEVEL_INFO,
                "\t\tinvalid device. pci capability struct is outside device's "
                "data range: " RANGE_FMT "\n",
@@ -324,7 +323,7 @@ validate_cap_offset(struct array *const prev_cap_offsets,
 }
 
 static void pci_parse_capabilities(struct pci_device_info *const dev) {
-    if (!(dev->status & __PCI_DEVSTATUS_CAPABILITIES)) {
+    if ((dev->status & __PCI_DEVSTATUS_CAPABILITIES) == 0) {
         printk(LOGLEVEL_INFO, "\t\thas no capabilities\n");
         return;
     }
@@ -336,6 +335,14 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
         printk(LOGLEVEL_INFO,
                "\t\thas no capabilities, but pci-device is marked as having "
                "some\n");
+        return;
+    }
+
+    if (!range_has_index(rangeof_field(struct pci_spec_device_info, data),
+                         cap_offset))
+    {
+        printk(LOGLEVEL_INFO,
+               "\t\tcapabilities point to within device-info structure\n");
         return;
     }
 

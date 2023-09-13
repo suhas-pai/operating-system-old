@@ -18,9 +18,9 @@ struct page {
             uint8_t order;
         } buddy;
         struct {
+            struct slab_allocator *allocator;
             union {
                 struct {
-                    struct slab_allocator *allocator;
                     struct list slab_list;
 
                     uint32_t free_obj_count;
@@ -38,7 +38,8 @@ struct page {
     };
 };
 
-_Static_assert(sizeof(struct page) == SIZEOF_STRUCTPAGE, "");
+_Static_assert(sizeof(struct page) == SIZEOF_STRUCTPAGE,
+               "SIZEOF_STRUCTPAGE is incorrect");
 
 enum struct_page_flags {
     PAGE_NOT_USABLE = 1 << 0,

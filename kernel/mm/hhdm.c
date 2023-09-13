@@ -1,5 +1,5 @@
 /*
- * kernel/arch/mm/hhdm.c
+ * kernel/mm/hhdm.c
  * © suhas pai
  */
 

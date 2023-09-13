@@ -175,7 +175,7 @@ string_find_string(struct string *const string,
 
 struct string_view string_to_sv(const struct string string) {
     if (string_length(string) == 0) {
-        return sv_create_empty();
+        return SV_EMPTY();
     }
 
     return sv_create_nocheck(string.gbuffer.begin, string_length(string));

@@ -5,7 +5,6 @@
 
 #if defined(__x86_64__)
     #include "apic/ioapic.h"
-    #include "apic/lapic.h"
 #endif
 
 #include "dev/printk.h"
@@ -43,10 +42,6 @@ void isr_handle_interrupt(const uint64_t vector, irq_context_t *const frame) {
     } else {
         printk(LOGLEVEL_INFO, "Got unhandled interrupt %" PRIu64 "\n", vector);
     }
-
-#if defined(__x86_64__)
-    lapic_eoi();
-#endif /* defined(__x86_64__) */
 }
 
 void

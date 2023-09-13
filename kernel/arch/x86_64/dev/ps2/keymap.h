@@ -4,30 +4,11 @@
  */
 
 #pragma once
+#define PS2_KEYMAP_SIZE 58
 
-static const char ps2_key_to_char[] = {
-    '\0', '\e', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
-    '\b', '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']',
-    '\n', '\0', 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',
-    '\0', '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', '\0', '\0',
-    '\0', ' '
-};
-
-static const char ps2_key_to_char_shift[] = {
-    '\0', '\e', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+',
-    '\b', '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
-    '\n', '\0', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',
-    '\0', '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', '\0', '\0',
-    '\0', ' '
-};
-
-static const char ps2_key_to_char_capslock[] = {
-    '\0', '\e', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=',
-    '\b', '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}',
-    '\n', '\0', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',
-    '\0', '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', '\0', '\0',
-    '\0', ' '
-};
+extern const char ps2_key_to_char[PS2_KEYMAP_SIZE];
+extern const char ps2_key_to_char_shift[PS2_KEYMAP_SIZE];
+extern const char ps2_key_to_char_capslock[PS2_KEYMAP_SIZE];
 
 enum ps2_scancode_keys {
     PS2_SCANCODE_CTRL = 0x1d,

@@ -4,9 +4,7 @@
  */
 
 #pragma once
-
 #include <stdint.h>
-#include "lib/macros.h"
 
 #define PML1_SHIFT 12
 #define PML2_SHIFT 21
@@ -19,11 +17,6 @@
 
 #define PGT_LEVEL_COUNT 5
 #define PGT_PTE_COUNT 512
-
-#define L3_SIZE (1ull << L3_SHIFT)
-#define L2_SIZE (1ull << L2_SHIFT)
-#define L1_SIZE (1ull << L1_SHIFT)
-#define L0_SIZE (1ull << L0_SHIFT)
 
 #define PML1_MASK 0x1ff
 #define PML2_MASK PML1_MASK

@@ -157,7 +157,7 @@ void handle_exception(const uint64_t int_no, irq_context_t *const context) {
             break;
         case EXCEPTION_PAGE_FAULT:
             printk(LOGLEVEL_ERROR,
-                   "Page Fault at %p from %p\n",
+                   "Page Fault accessing %p from %p\n",
                    (void *)read_cr2(),
                    (void *)context->rip);
 

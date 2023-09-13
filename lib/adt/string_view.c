@@ -11,7 +11,7 @@ __optimize(3) struct string_view sv_drop_front(const struct string_view sv) {
         return sv_create_nocheck(sv.begin + 1, sv.length - 1);
     }
 
-    return sv_create_empty();
+    return SV_EMPTY();
 }
 
 __optimize(3) char *sv_get_begin_mut(const struct string_view sv) {

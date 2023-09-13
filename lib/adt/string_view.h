@@ -32,10 +32,6 @@ struct string_view {
 #define SV_FMT "%.*s"
 #define SV_FMT_ARGS(sv) (int)(sv).length, (sv).begin
 
-static inline struct string_view sv_create_empty() {
-    return SV_EMPTY();
-}
-
 __optimize(3)
 static inline struct string_view sv_create(const char *const str) {
     return (struct string_view){ .begin = str, .length = strlen(str) };

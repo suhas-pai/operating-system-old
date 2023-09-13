@@ -368,92 +368,92 @@ struct string_view month_to_sv_abbrev_upper(const enum month month) {
 }
 
 __optimize(3) enum weekday sv_to_weekday(const struct string_view sv) {
-#define RETURN_IF_EQUALS(name)                                                 \
+#define RETURN_IF_EQUAL(name)                                                 \
     do {                                                                       \
         if (sv_equals(sv, VAR_CONCAT(SV_, name))) {                            \
             return VAR_CONCAT(WEEKDAY_, name);                                 \
         }                                                                      \
     } while (false)
 
-    RETURN_IF_EQUALS(SUNDAY);
-    RETURN_IF_EQUALS(MONDAY);
-    RETURN_IF_EQUALS(TUESDAY);
-    RETURN_IF_EQUALS(WEDNESDAY);
-    RETURN_IF_EQUALS(THURSDAY);
-    RETURN_IF_EQUALS(FRIDAY);
-    RETURN_IF_EQUALS(SATURDAY);
+    RETURN_IF_EQUAL(SUNDAY);
+    RETURN_IF_EQUAL(MONDAY);
+    RETURN_IF_EQUAL(TUESDAY);
+    RETURN_IF_EQUAL(WEDNESDAY);
+    RETURN_IF_EQUAL(THURSDAY);
+    RETURN_IF_EQUAL(FRIDAY);
+    RETURN_IF_EQUAL(SATURDAY);
 
-#undef RETURN_IF_EQUALS
+#undef RETURN_IF_EQUAL
     return WEEKDAY_INVALID;
 }
 
 __optimize(3) enum month sv_to_month(const struct string_view sv) {
-#define RETURN_IF_EQUALS(name)                                                 \
+#define RETURN_IF_EQUAL(name)                                                 \
     do {                                                                       \
         if (sv_equals(sv, VAR_CONCAT(SV_, name))) {                            \
             return VAR_CONCAT(MONTH_, name);                                   \
         }                                                                      \
     } while (false)
 
-    RETURN_IF_EQUALS(JANUARY);
-    RETURN_IF_EQUALS(FEBRUARY);
-    RETURN_IF_EQUALS(MARCH);
-    RETURN_IF_EQUALS(APRIL);
-    RETURN_IF_EQUALS(MAY);
-    RETURN_IF_EQUALS(JUNE);
-    RETURN_IF_EQUALS(JULY);
-    RETURN_IF_EQUALS(AUGUST);
-    RETURN_IF_EQUALS(SEPTEMBER);
-    RETURN_IF_EQUALS(OCTOBER);
-    RETURN_IF_EQUALS(NOVEMBER);
-    RETURN_IF_EQUALS(DECEMBER);
+    RETURN_IF_EQUAL(JANUARY);
+    RETURN_IF_EQUAL(FEBRUARY);
+    RETURN_IF_EQUAL(MARCH);
+    RETURN_IF_EQUAL(APRIL);
+    RETURN_IF_EQUAL(MAY);
+    RETURN_IF_EQUAL(JUNE);
+    RETURN_IF_EQUAL(JULY);
+    RETURN_IF_EQUAL(AUGUST);
+    RETURN_IF_EQUAL(SEPTEMBER);
+    RETURN_IF_EQUAL(OCTOBER);
+    RETURN_IF_EQUAL(NOVEMBER);
+    RETURN_IF_EQUAL(DECEMBER);
 
-#undef RETURN_IF_EQUALS
+#undef RETURN_IF_EQUAL
     return MONTH_INVALID;
 }
 
 __optimize(3) enum weekday sv_abbrev_to_weekday(const struct string_view sv) {
-#define RETURN_IF_EQUALS(name)                                                 \
+#define RETURN_IF_EQUAL(name)                                                 \
     do {                                                                       \
         if (sv_equals(sv, VAR_CONCAT_3(SV_, name, _ABBREV))) {                 \
             return VAR_CONCAT(WEEKDAY_, name);                                 \
         }                                                                      \
     } while (false)
 
-    RETURN_IF_EQUALS(SUNDAY);
-    RETURN_IF_EQUALS(MONDAY);
-    RETURN_IF_EQUALS(TUESDAY);
-    RETURN_IF_EQUALS(WEDNESDAY);
-    RETURN_IF_EQUALS(THURSDAY);
-    RETURN_IF_EQUALS(FRIDAY);
-    RETURN_IF_EQUALS(SATURDAY);
+    RETURN_IF_EQUAL(SUNDAY);
+    RETURN_IF_EQUAL(MONDAY);
+    RETURN_IF_EQUAL(TUESDAY);
+    RETURN_IF_EQUAL(WEDNESDAY);
+    RETURN_IF_EQUAL(THURSDAY);
+    RETURN_IF_EQUAL(FRIDAY);
+    RETURN_IF_EQUAL(SATURDAY);
 
-#undef RETURN_IF_EQUALS
+#undef RETURN_IF_EQUAL
     return WEEKDAY_INVALID;
 }
 
 __optimize(3) enum month sv_abbrev_to_month(const struct string_view sv) {
-#define RETURN_IF_EQUALS(name)                                                 \
+#define RETURN_IF_EQUAL(name)                                                 \
     do {                                                                       \
         if (sv_equals(sv, VAR_CONCAT_3(SV_, name, _ABBREV))) {                 \
             return VAR_CONCAT(MONTH_, name);                                   \
         }                                                                      \
     } while (false)
 
-    RETURN_IF_EQUALS(JANUARY);
-    RETURN_IF_EQUALS(FEBRUARY);
-    RETURN_IF_EQUALS(MARCH);
-    RETURN_IF_EQUALS(APRIL);
-    RETURN_IF_EQUALS(MAY);
-    RETURN_IF_EQUALS(JUNE);
-    RETURN_IF_EQUALS(JULY);
-    RETURN_IF_EQUALS(AUGUST);
-    RETURN_IF_EQUALS(SEPTEMBER);
-    RETURN_IF_EQUALS(OCTOBER);
-    RETURN_IF_EQUALS(NOVEMBER);
-    RETURN_IF_EQUALS(DECEMBER);
+    RETURN_IF_EQUAL(JANUARY);
+    RETURN_IF_EQUAL(FEBRUARY);
+    RETURN_IF_EQUAL(MARCH);
+    RETURN_IF_EQUAL(APRIL);
+    RETURN_IF_EQUAL(MAY);
+    RETURN_IF_EQUAL(JUNE);
+    RETURN_IF_EQUAL(JULY);
+    RETURN_IF_EQUAL(AUGUST);
+    RETURN_IF_EQUAL(SEPTEMBER);
+    RETURN_IF_EQUAL(OCTOBER);
+    RETURN_IF_EQUAL(NOVEMBER);
+    RETURN_IF_EQUAL(DECEMBER);
 
-#undef RETURN_IF_EQUALS
+#undef RETURN_IF_EQUAL
     return MONTH_INVALID;
 }
 

@@ -30,6 +30,8 @@ void madt_init(const struct acpi_madt *const madt) {
 #endif /* defined(_-x86_64__) */
 
     uint32_t length = madt->sdt.length - sizeof(*madt);
+    bool found_nmi_lint = false;
+
     for (uint32_t offset = 0, index = 0;
          offset + sizeof(struct acpi_madt_entry_header) <= length;
          offset += iter->length, index++)
@@ -194,7 +196,21 @@ void madt_init(const struct acpi_madt *const madt) {
                        hdr->flags,
                        hdr->lint);
 
+                if (found_nmi_lint) {
+                    if (get_acpi_info()->nmi_lint != hdr->lint) {
+                        printk(LOGLEVEL_INFO,
+                               "madt: found multiple differing nmi-lint "
+                               "values (%" PRIu8 " vs %" PRIu8 "\n",
+                               get_acpi_info()->nmi_lint,
+                               hdr->lint);
+                    }
+
+                    break;
+                }
+
                 get_acpi_info_mut()->nmi_lint = hdr->lint;
+                found_nmi_lint = true;
+
                 break;
             }
             case ACPI_MADT_ENTRY_KIND_LOCAL_APIC_ADDR_OVERRIDE: {

@@ -6,6 +6,7 @@
 #include "dev/printk.h"
 
 #include "device.h"
+#include "mmio.h"
 #include "structs.h"
 
 uint32_t pci_device_get_index(const struct pci_device_info *const device) {
@@ -180,10 +181,10 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
         volatile struct pci_spec_cap_msix_table_entry *const table =
             (volatile struct pci_spec_cap_msix_table_entry *)table_addr;
 
-        table[msix_vector].msg_address_lower32 = (uint32_t)address;
-        table[msix_vector].msg_address_upper32 = 0;
-        table[msix_vector].data = vector;
-        table[msix_vector].control = masked;
+        mmio_write(&table[msix_vector].msg_address_lower32, (uint32_t)address);
+        mmio_write(&table[msix_vector].msg_address_upper32, 0);
+        mmio_write(&table[msix_vector].data, vector);
+        mmio_write(&table[msix_vector].control, masked);
 
         /* Enable MSI-X after we setup the table-entry */
         msg_control |= __PCI_MSIX_CAP_CTRL_ENABLE;

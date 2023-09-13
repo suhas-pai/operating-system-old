@@ -52,7 +52,7 @@ alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
 
     while (true) {
         struct page_freelist *const freelist =
-            &zone->freelist_list[alloced_order];
+            zone->freelist_list + alloced_order;
 
         struct page *const result = get_from_freelist(freelist);
         if (result != NULL) {

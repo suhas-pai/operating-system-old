@@ -17,25 +17,28 @@ bool kmalloc_initialized() {
 }
 
 void kmalloc_init() {
-    assert(slab_allocator_init(&kmalloc_slabs[0], 16, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[1], 32, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[2], 64, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[3], 96, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[4], 128, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[5], 192, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[6], 256, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[7], 384, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[8], 512, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[9], 768, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[10], 1024, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[11], 1536, /*alloc_flags=*/0));
-    assert(slab_allocator_init(&kmalloc_slabs[12], 2048, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 0, 16, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 1, 32, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 2, 64, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 3, 96, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 4, 128, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 5, 192, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 6, 256, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 7, 384, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 8, 512, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 9, 768, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 10, 1024, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 11, 1536, /*alloc_flags=*/0));
+    assert(slab_allocator_init(kmalloc_slabs + 12, 2048, /*alloc_flags=*/0));
 
     kmalloc_is_initialized = true;
 }
 
 __optimize(3) __malloclike __malloc_dealloc(kfree, 1) __alloc_size(1)
 void *kmalloc(const uint64_t size) {
+    assert_msg(__builtin_expect(kmalloc_is_initialized, 1),
+               "mm: kmalloc() called before kmalloc_init()");
+
     if (size == 0) {
         printk(LOGLEVEL_WARN, "kmalloc(): got size=0\n");
         return NULL;
@@ -57,8 +60,10 @@ void *kmalloc(const uint64_t size) {
     return slab_alloc(allocator);
 }
 
-__optimize(3)
-void *krealloc(void *const buffer, const uint64_t size) {
+__optimize(3) void *krealloc(void *const buffer, const uint64_t size) {
+    assert_msg(__builtin_expect(kmalloc_is_initialized, 1),
+               "mm: krealloc() called before kmalloc_init()");
+
     // Allow buffer=NULL to call kmalloc().
     if (__builtin_expect(buffer == NULL, 0)) {
         if (__builtin_expect(size == 0, 0)) {
@@ -92,5 +97,8 @@ void *krealloc(void *const buffer, const uint64_t size) {
 }
 
 __optimize(3) void kfree(void *const buffer) {
+    assert_msg(__builtin_expect(kmalloc_is_initialized, 1),
+               "mm: kfree() called before kmalloc_init()");
+
     slab_free(buffer);
 }

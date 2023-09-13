@@ -33,7 +33,7 @@
                   "malformed\n");
         }
 
-        struct string_view clock_freq_string = sv_create_empty();
+        struct string_view clock_freq_string = SV_EMPTY();
         const bool get_clock_freq_result =
             dtb_get_string_prop(dtb,
                                 nodeoff,
@@ -54,7 +54,7 @@
 #endif /* defined(__riscv64) */
 
 static void init_pci_node(const void *const dtb, const int pci_offset) {
-    struct string_view device_type = sv_create_empty();
+    struct string_view device_type = SV_EMPTY();
     const bool get_compat_result =
         dtb_get_string_prop(dtb, pci_offset, "device_type", &device_type);
 

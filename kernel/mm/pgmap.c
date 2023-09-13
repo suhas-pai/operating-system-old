@@ -357,6 +357,9 @@ map_normal(struct pt_walker *const walker,
                 }
 
                 if (walker->indices[0] == 0) {
+                    // Exit if the level above is at index 0, which may mean
+                    // that a large page can be placed at the higher level.
+
                     if (walker->indices[1] == 0) {
                         *offset_in = offset;
                         return MAP_RESTART;
@@ -409,6 +412,9 @@ map_normal(struct pt_walker *const walker,
                     if (ptwalker_result != E_PT_WALKER_OK) {
                         goto panic;
                     }
+
+                    // Exit if the level above is at index 0, which may mean
+                    // that a large page can be placed at the higher level.
 
                     if (walker->indices[1] == 0) {
                         *offset_in = phys_addr - phys_begin;
@@ -609,6 +615,9 @@ map_large_at_level_overwrite(struct pt_walker *const walker,
         }
 
         if (walker->indices[walker->level - 1] == 0) {
+            // Exit if the level above is at index 0, which may mean that a
+            // large page can be placed at the higher level.
+
             if (walker->indices[walker->level] == 0) {
                 *offset_in = offset;
                 return MAP_RESTART;
@@ -689,6 +698,9 @@ map_large_at_level_no_overwrite(struct pt_walker *const walker,
                 if (ptwalker_result != E_PT_WALKER_OK) {
                     goto panic;
                 }
+
+                // Exit if the level above is at index 0, which may mean that a
+                // large page can be placed at the higher level.
 
                 if (walker->indices[walker->level] == 0) {
                     *offset_in = phys_addr - phys_begin;

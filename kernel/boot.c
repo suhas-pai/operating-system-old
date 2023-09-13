@@ -77,10 +77,6 @@ const struct mm_memmap *mm_get_usable_list() {
     return mm_usable_list;
 }
 
-struct mm_memmap *mm_get_usable_list_mut() {
-    return mm_usable_list;
-}
-
 uint8_t mm_get_memmap_count() {
     return mm_memmap_count;
 }
@@ -222,22 +218,21 @@ void boot_init() {
 }
 
 void boot_merge_usable_memmaps() {
-    for (uint64_t index = 1; index != mm_usable_count;) {
-        const struct mm_memmap *const memmap = mm_usable_list + index;
+    for (uint64_t index = 1; index != mm_usable_count; index++) {
+        struct mm_memmap *const memmap = mm_usable_list + index;
         do {
-            const uint64_t prev_end =
-                range_get_end_assert(mm_get_usable_list()[index - 1].range);
+            struct mm_memmap *const prev_memmap = memmap - 1;
+            const uint64_t prev_end = range_get_end_assert(prev_memmap->range);
 
             if (prev_end != memmap->range.front) {
-                index++;
                 break;
             }
 
-            mm_usable_list[index - 1].range.size += memmap->range.size;
+            prev_memmap->range.size += memmap->range.size;
 
             // Remove the current memmap.
-            memmove(mm_usable_list + index,
-                    mm_usable_list + index + 1,
+            memmove(memmap,
+                    memmap + 1,
                     (mm_usable_count - (index + 1)) * sizeof(struct mm_memmap));
 
             mm_usable_count--;

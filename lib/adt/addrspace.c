@@ -262,7 +262,7 @@ addrspace_find_space_and_add_node(struct address_space *const addrspace,
         find_from_start(addrspace, in_range, node->range.size, align, &prev);
 
     if (addr == ADDRSPACE_INVALID_ADDR) {
-        return addr;
+        return ADDRSPACE_INVALID_ADDR;
     }
 
     node->range.front = addr;

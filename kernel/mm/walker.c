@@ -666,7 +666,7 @@ ptwalker_virt_get_phys(struct pagemap *const pagemap, const uint64_t virt) {
 }
 
 bool ptwalker_points_to_largepage(const struct pt_walker *const walker) {
-    if (walker->level < 1 || !pte_level_can_have_large(walker->level)) {
+    if (walker->level <= 1 || !pte_level_can_have_large(walker->level)) {
         return false;
     }
 

@@ -356,7 +356,7 @@ void run_str_to_num_test(const struct str_to_num_test *const test) {
             assert(end == (test->string + test->expected_end_index));
         }
 
-        struct string_view sv_end = sv_create_empty();
+        struct string_view sv_end = SV_EMPTY();
         result =
             sv_to_signed(sv_create(test->string),
                          test->options,
@@ -381,7 +381,7 @@ void run_str_to_num_test(const struct str_to_num_test *const test) {
             assert(end == (test->string + test->expected_end_index));
         }
 
-        struct string_view sv_end = sv_create_empty();
+        struct string_view sv_end = SV_EMPTY();
         result =
             sv_to_unsigned(sv_create(test->string),
                            test->options,

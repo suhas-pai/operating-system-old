@@ -367,7 +367,7 @@ convert_sv_to_64int(struct string_view sv,
     bool found_digit = found_zero;
     for (;; sv = sv_drop_front(sv)) {
         if (sv.length == 0) {
-            *end_out = sv_create_empty();
+            *end_out = SV_EMPTY();
             break;
         }
 

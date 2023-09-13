@@ -105,13 +105,13 @@ enum pci_spec_device_command_register_flags {
 };
 
 enum pci_spec_device_status_flags {
-    __PCI_DEVSTATUS_INT = 1ull << 3,
-    __PCI_DEVSTATUS_CAPABILITIES  = 1ull << 4,
+    __PCI_DEVSTATUS_INTERRUPT = 1ull << 3,
+    __PCI_DEVSTATUS_CAPABILITIES = 1ull << 4,
     __PCI_DEVSTATUS_66MHZ_SUPPORT = 1ull << 5,
-    __PCI_DEVSTATUS_UDF_SUPPORT   = 1ull << 6,
-    __PCI_DEVSTATUS_FAST_BACKTOBACK    = 1ull << 7,
+    __PCI_DEVSTATUS_UDF_SUPPORT = 1ull << 6,
+    __PCI_DEVSTATUS_FAST_BACKTOBACK = 1ull << 7,
     __PCI_DEVSTATUS_DATA_PARITY_DETECT = 1ull << 8,
-    __PCI_DEVSTATUS_DEVSEL_TIMING      = 1ull << 9,
+    __PCI_DEVSTATUS_DEVSEL_TIMING = 1ull << 9,
     __PCI_DEVSTATUS_SIGNAL_TARGET_ABORT = 1ull << 10,
     __PCI_DEVSTATUS_RECEIVED_TARGET_ABORT = 1ull << 11,
     __PCI_DEVSTATUS_RECEIVED_MASTER_ABORT = 1ull << 12,
@@ -129,11 +129,6 @@ enum pci_spec_device_bar_flags {
     __PCI_DEVBAR_MEMKIND_MASK = 0b11 << 1,
     __PCI_DEVBAR_PREFETCHABLE = 1ull << 3,
 };
-
-/*
- * Unused, but this is the structure of the PCI Device Information structure as
- * specificed in the PCI Specification.
- */
 
 struct pci_spec_device_info_base {
     uint16_t vendor_id;

@@ -1,5 +1,7 @@
 section .text
+
 extern isr_handle_interrupt
+extern lapic_eoi
 
 %macro push_all 0
     push rax
@@ -48,6 +50,7 @@ idt_func_%1:
     mov rdi, %1
     mov rsi, rsp
     call isr_handle_interrupt
+    call lapic_eoi
     pop_all
     add rsp, 8
     iretq

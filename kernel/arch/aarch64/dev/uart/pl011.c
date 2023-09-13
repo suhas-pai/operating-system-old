@@ -1,5 +1,5 @@
 /*
- * kernel/arch/aarch64/dev/uart/p1011.c
+ * kernel/arch/aarch64/dev/uart/pl011.c
  * © suhas pai
  */
 
@@ -73,10 +73,12 @@ pl011_send_char(struct terminal *const term,
                 const char ch,
                 const uint32_t amount)
 {
-    struct pl011_device_info *const info = (struct pl011_device_info *)term;
-    volatile struct pl011_device *const device = info->device;
+    struct pl011_device_info *const info =
+        container_of(term, struct pl011_device_info, term);
 
+    volatile struct pl011_device *const device = info->device;
     wait_tx_complete(device);
+
     if (ch == '\n') {
         for (uint64_t i = 0; i != amount; i++) {
             mmio_write(&device->dr_offset, '\r');
@@ -95,10 +97,12 @@ pl011_send_char(struct terminal *const term,
 
 __optimize(3) static void
 pl011_send_sv(struct terminal *const term, const struct string_view sv) {
-    struct pl011_device_info *const info = (struct pl011_device_info *)term;
-    volatile struct pl011_device *const device = info->device;
+    struct pl011_device_info *const info =
+        container_of(term, struct pl011_device_info, term);
 
+    volatile struct pl011_device *const device = info->device;
     wait_tx_complete(device);
+
     sv_foreach(sv, iter) {
         char ch = *iter;
         if (ch == '\n') {

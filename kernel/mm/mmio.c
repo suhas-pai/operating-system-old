@@ -13,7 +13,7 @@
 #include "pagemap.h"
 
 static struct address_space mmio_space = ADDRSPACE_INIT(mmio_space);
-static struct spinlock mmio_space_lock = {};
+static struct spinlock mmio_space_lock = SPINLOCK_INIT();
 
 enum mmio_region_flags {
     MMIO_REGION_LOW4G = 1 << 0

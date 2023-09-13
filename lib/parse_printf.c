@@ -253,7 +253,7 @@ parse_length(struct printf_spec_info *const curr_spec,
             break;
         }
         default:
-            curr_spec->length_sv = sv_create_empty();
+            curr_spec->length_sv = SV_EMPTY();
             return true;
     }
 
@@ -656,7 +656,7 @@ parse_printf(const char *const fmt,
         }
 
         // Parse specifier
-        struct string_view parsed = sv_create_empty();
+        struct string_view parsed = SV_EMPTY();
         bool is_null = false;
 
         curr_spec.spec = *iter;

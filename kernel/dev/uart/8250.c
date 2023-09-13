@@ -220,7 +220,7 @@ bool init_from_dtb(const void *const dtb, const int nodeoff) {
         return false;
     }
 
-    struct string_view clock_freq_string = sv_create_empty();
+    struct string_view clock_freq_string = SV_EMPTY();
     const bool get_clock_freq_result =
         dtb_get_string_prop(dtb,
                             nodeoff,

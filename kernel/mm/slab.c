@@ -15,7 +15,6 @@
 
 #include "slab.h"
 
-// Use space inside free slab objects to create a singly-linked list.
 struct free_slab_object {
     uint32_t next;
 };
@@ -27,7 +26,7 @@ slab_allocator_init(struct slab_allocator *const slab_alloc,
 {
     uint64_t object_size = object_size_arg;
 
-    // To store free_page_objects, every object must be at least 8 bytes large.
+    // To store free_page_objects, every object must be at least 16 bytes.
     // We also make this the required minimum alignment.
 
     if (!align_up(object_size, /*boundary=*/16, &object_size)) {
@@ -56,18 +55,19 @@ static struct page *alloc_slab_page(struct slab_allocator *const alloc) {
     struct page *const head =
         alloc_pages(__ALLOC_SLAB_HEAD | __ALLOC_ZERO, alloc->slab_order);
 
-    if (head == NULL) {
+    if (__builtin_expect(head == NULL, 0)) {
         return NULL;
     }
 
-    const struct page *const end = head + alloc->slab_order;
+    const struct page *const end = head + ((1 << alloc->slab_order) - 1);
     for (struct page *page = head + 1; page < end; page++) {
+        page->slab.allocator = alloc;
         page->slab.tail.head = head;
     }
 
     list_add(&alloc->slab_head_list, &head->slab.head.slab_list);
 
-    head->slab.head.allocator = alloc;
+    head->slab.allocator = alloc;
     head->slab.head.first_free_index = 0;
     head->slab.head.free_obj_count = alloc->object_count_per_slab;
 
@@ -153,7 +153,7 @@ __optimize(3) static inline struct page *slab_head_of(const void *const mem) {
 
 void slab_free(void *const mem) {
     struct page *const head = slab_head_of(mem);
-    struct slab_allocator *const alloc = head->slab.head.allocator;
+    struct slab_allocator *const alloc = head->slab.allocator;
 
     bzero(mem, alloc->object_size);
     const int flag = spin_acquire_with_irq(&alloc->lock);
@@ -189,12 +189,12 @@ void slab_free(void *const mem) {
 }
 
 __optimize(3) uint32_t slab_object_size(void *const mem) {
-    if (mem == NULL) {
+    if (__builtin_expect(mem == NULL, 0)) {
         panic("slab_object_size(): Got mem=NULL");
     }
 
-    struct page *const head = slab_head_of(mem);
-    struct slab_allocator *const allocator = head->slab.head.allocator;
+    struct page *const page = virt_to_page(mem);
+    struct slab_allocator *const allocator = page->slab.allocator;
 
     return allocator->object_size;
 }

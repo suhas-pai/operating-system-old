@@ -4,9 +4,7 @@
  */
 
 #pragma once
-
 #include <stdint.h>
-#include "lib/macros.h"
 
 #define PML1_SHIFT 12
 #define PML2_SHIFT 21
