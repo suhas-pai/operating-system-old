@@ -52,7 +52,7 @@ void *kmalloc(const uint64_t size) {
         return NULL;
     }
 
-    struct slab_allocator *allocator = &kmalloc_slabs[0];
+    struct slab_allocator *allocator = kmalloc_slabs + 0;
     while (allocator->object_size < size) {
         allocator++;
     }

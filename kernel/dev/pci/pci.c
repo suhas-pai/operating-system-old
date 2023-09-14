@@ -186,7 +186,7 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
 
     if (!range_align_out(phys_range, PAGE_SIZE, &aligned_range)) {
         printk(LOGLEVEL_WARN,
-               "pcie: failed to align map bar, range couldn't be aligned\n");
+               "pcie: failed to align mmio bar, range couldn't be aligned\n");
         return false;
     }
 

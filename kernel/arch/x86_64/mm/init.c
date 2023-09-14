@@ -124,7 +124,7 @@ try_2mib:
                 early_alloc_large_page(/*amount=*/PGT_PTE_COUNT);
 
             if (page == INVALID_PHYS) {
-                // We failed to alloc a 1gib page, so try 2mib pages next.
+                // We failed to alloc a 2mib page, so try 4kib pages next.
                 break;
             }
 
@@ -186,14 +186,14 @@ try_normal:
             }
 
             *pte = phys_create_pte(page) | PTE_LEAF_FLAGS | pte_flags;
-            pte++;
-
             map_size -= PAGE_SIZE;
-            if (pte == end) {
-                if (map_size == 0) {
-                    return;
-                }
 
+            if (map_size == 0) {
+                return;
+            }
+
+            pte++;
+            if (pte == end) {
                 pt_walker.indices[0] = PGT_PTE_COUNT - 1;
                 walker_result =
                     ptwalker_next_with_options(&pt_walker,
@@ -211,8 +211,6 @@ try_normal:
                 table = pt_walker.tables[0];
                 pte = table;
                 end = table + PGT_PTE_COUNT;
-            } else if (map_size == 0) {
-                return;
             }
 
             virt_addr += PAGE_SIZE;

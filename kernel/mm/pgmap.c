@@ -90,7 +90,9 @@ finish_split_info(struct pt_walker *const walker,
     const uint64_t walker_virt_addr = ptwalker_get_virt_addr(walker);
     if (walker_virt_addr >= virt_end) {
         if (curr_split->phys_range.front != 0) {
-            free_page(phys_to_page(curr_split->phys_range.front));
+            if (options->free_pages) {
+                free_page(phys_to_page(curr_split->phys_range.front));
+            }
         }
 
         return;
@@ -894,7 +896,7 @@ pgmap_at(struct pagemap *const pagemap,
      */
 
     struct current_split_info curr_split = CURRENT_SPLIT_INFO_INIT();
-    if (ptwalker_points_to_largepage(&walker)) {
+    if (options->is_overwrite && ptwalker_points_to_largepage(&walker)) {
         const uint64_t walker_virt_addr = ptwalker_get_virt_addr(&walker);
         if (walker_virt_addr < virt_addr) {
             uint64_t offset = virt_addr - walker_virt_addr;

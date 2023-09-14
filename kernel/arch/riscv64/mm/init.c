@@ -126,7 +126,7 @@ try_2mib:
                 early_alloc_large_page(/*amount=*/PGT_PTE_COUNT);
 
             if (page == INVALID_PHYS) {
-                // We failed to alloc a 1gib page, so try 2mib pages next.
+                // We failed to alloc a 2mib page, so try 4kib pages next.
                 break;
             }
 
@@ -190,17 +190,15 @@ try_normal:
             }
 
             *pte =
-                phys_create_pte(page) | PTE_LEAF_FLAGS | __PTE_READ |
-                pte_flags;
+                phys_create_pte(page) | PTE_LEAF_FLAGS | __PTE_READ | pte_flags;
+
+            map_size -= PAGE_SIZE;
+            if (map_size == 0) {
+                return;
+            }
 
             pte++;
-            map_size -= PAGE_SIZE;
-
             if (pte == end) {
-                if (map_size == 0) {
-                    return;
-                }
-
                 pt_walker.indices[0] = PGT_PTE_COUNT - 1;
                 walker_result =
                     ptwalker_next_with_options(&pt_walker,
@@ -218,8 +216,6 @@ try_normal:
                 table = pt_walker.tables[0];
                 pte = table;
                 end = table + PGT_PTE_COUNT;
-            } else if (map_size == 0) {
-                return;
             }
 
             virt_addr += PAGE_SIZE;
@@ -249,10 +245,14 @@ static void setup_pagestructs_table() {
 static void
 map_into_kernel_pagemap(const struct range phys_range,
                         const uint64_t virt_addr,
-                        const uint64_t pte_flags)
+                        uint64_t pte_flags)
 {
+    assert_msg(pte_flags & (__PTE_READ | __PTE_WRITE | __PTE_EXEC),
+               "mm: map_into_kernel_pagemap() got flags w/o any rwx "
+               "permissions");
+
     const struct pgmap_options options = {
-        .pte_flags = __PTE_READ | __PTE_GLOBAL | pte_flags,
+        .pte_flags = __PTE_GLOBAL | pte_flags,
 
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,
@@ -295,16 +295,20 @@ static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
             continue;
         }
 
-        struct range range = memmap->range;
         if (memmap->kind == MM_MEMMAP_KIND_KERNEL_AND_MODULES) {
-            kernel_memmap_size = range.size;
-            map_into_kernel_pagemap(/*phys_range=*/range,
+            kernel_memmap_size = memmap->range.size;
+            map_into_kernel_pagemap(/*phys_range=*/memmap->range,
                                     /*virt_addr=*/KERNEL_BASE,
-                                    __PTE_WRITE | __PTE_EXEC);
+                                    __PTE_READ | __PTE_WRITE | __PTE_EXEC);
         } else {
-            map_into_kernel_pagemap(/*phys_range=*/range,
-                                    (uint64_t)phys_to_virt(range.front),
-                                    __PTE_WRITE);
+            uint64_t pte_flags = __PTE_READ | __PTE_WRITE;
+            if (memmap->kind == MM_MEMMAP_KIND_FRAMEBUFFER) {
+                pte_flags |= __PTE_NC;
+            }
+
+            map_into_kernel_pagemap(/*phys_range=*/memmap->range,
+                                    (uint64_t)phys_to_virt(memmap->range.front),
+                                    pte_flags);
         }
     }
 

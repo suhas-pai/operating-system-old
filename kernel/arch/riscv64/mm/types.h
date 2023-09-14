@@ -62,18 +62,25 @@ static const uint8_t LARGEPAGE_SHIFTS[] = {
     })
 
 enum pte_flags {
-    __PTE_VALID    = 1 << 0,
-    __PTE_READ     = 1 << 1,
-    __PTE_WRITE    = 1 << 2,
-    __PTE_EXEC     = 1 << 3,
-    __PTE_USER     = 1 << 4,
-    __PTE_GLOBAL   = 1 << 5,
-    __PTE_ACCESSED = 1 << 6,
-    __PTE_DIRTY    = 1 << 7,
+    __PTE_VALID    = 1ull << 0,
+    __PTE_READ     = 1ull << 1,
+    __PTE_WRITE    = 1ull << 2,
+    __PTE_EXEC     = 1ull << 3,
+    __PTE_USER     = 1ull << 4,
+    __PTE_GLOBAL   = 1ull << 5,
+    __PTE_ACCESSED = 1ull << 6,
+    __PTE_DIRTY    = 1ull << 7,
+
+    // In the "Svpbmt" RISC-V extension
+    // Non-cacheable, idempotent, weakly-ordered (RVWMO), main memory
+    __PTE_NC = 0b1ull << 61,
+
+    // Non-cacheable, non-idempotent, strongly-ordered (I/O ordering), I/O
+    __PTE_IO = 0b10ull << 61
 };
 
 #define PGT_FLAGS __PTE_VALID
-#define PTE_LARGE_FLAGS(level) ({ (void)(level); (uint64_t)__PTE_VALID; })
+#define PTE_LARGE_FLAGS(level) ({ (void)(level); __PTE_VALID; })
 #define PTE_LEAF_FLAGS (__PTE_VALID | __PTE_ACCESSED | __PTE_DIRTY)
 
 struct page;

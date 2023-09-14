@@ -17,7 +17,7 @@
     } else {                                                      \
         __result__ =                                              \
             sizeof(__number__) >= 8 ?                             \
-                (typeof(__number__))__builtin_ctzll(__number__) :\
+                (typeof(__number__))__builtin_ctzll(__number__) : \
                 (typeof(__number__))__builtin_ctz(__number__);    \
     }                                                             \
     __result__;                                                   \

@@ -415,7 +415,7 @@ void mm_early_post_arch_init() {
     init_table_page(virt_to_page(kernel_pagemap.root));
 #endif
 
-    // Claim bootloader-reclaimable memmaps once we've switched to our own
+    // Claim bootloader-reclaimable memmaps now that we've switched to our own
     // pagemap.
 
     for (uint64_t index = 0; index != mm_get_usable_count(); index++) {

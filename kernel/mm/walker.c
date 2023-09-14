@@ -246,7 +246,7 @@ alloc_single_pte(struct pt_walker *const walker,
                  void *const alloc_pgtable_cb_info,
                  void *const free_pgtable_cb_info,
                  const pgt_level_t level,
-                 pte_t *const pte)
+                 pte_t *const pte_in_parent)
 {
     const uint64_t phys =
         walker->alloc_pgtable(walker, alloc_pgtable_cb_info);
@@ -259,7 +259,7 @@ alloc_single_pte(struct pt_walker *const walker,
     }
 
     walker->tables[level - 1] = phys_to_virt(phys);
-    pte_write(pte, phys_create_pte(phys) | PGT_FLAGS);
+    pte_write(pte_in_parent, phys_create_pte(phys) | PGT_FLAGS);
 
     return true;
 }
@@ -286,14 +286,14 @@ alloc_levels_down_to(struct pt_walker *const walker,
 
     do {
         // Get pte in (level + 1), where the index would be ((level + 1) - 1)
-        pte_t *table = walker->tables[level];
-        pte_t *const pte = table + walker->indices[level];
+        pte_t *parent_table = walker->tables[level];
+        pte_t *const pte_in_parent = parent_table + walker->indices[level];
 
         if (!alloc_single_pte(walker,
                               alloc_pgtable_cb_info,
                               free_pgtable_cb_info,
                               level,
-                              pte))
+                              pte_in_parent))
         {
             walker->level = level + 1;
             ptwalker_drop_lowest(walker, free_pgtable_cb_info);
@@ -302,7 +302,7 @@ alloc_levels_down_to(struct pt_walker *const walker,
         }
 
         if (should_ref) {
-            ref_up(&virt_to_page(table)->table.refcount);
+            ref_up(&virt_to_page(parent_table)->table.refcount);
         }
 
         level--;

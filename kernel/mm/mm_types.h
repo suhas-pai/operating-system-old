@@ -86,6 +86,8 @@ enum prot_flags {
 
 #if defined(__aarch64__)
     PROT_DEVICE = 1 << 4
+#elif defined(__riscv64)
+    PROT_IO = 1 << 4
 #endif
 };
 
@@ -97,7 +99,7 @@ enum vma_cachekind {
     VMA_CACHEKIND_WRITECOMBINING,
     VMA_CACHEKIND_NO_CACHE,
 
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(__riscv64)
     VMA_CACHEKIND_MMIO,
 #else
     VMA_CACHEKIND_MMIO = VMA_CACHEKIND_NO_CACHE,

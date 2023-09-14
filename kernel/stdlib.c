@@ -148,12 +148,7 @@ DECL_MEM_CMP_FUNC(uint64_t)
     DECL_MEM_COPY_FUNC(uint64_t)
 #endif /* !defined(__x86_64__) */
 
-__optimize(3)
-int
-memcmp(const void *left,
-       const void *right,
-       size_t len)
-{
+__optimize(3) int memcmp(const void *left, const void *right, size_t len) {
     int res = _memcmp_uint64_t(left, right, len, &left, &right, &len);
     if (res != 0) {
         return res;

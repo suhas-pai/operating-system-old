@@ -64,7 +64,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
             do {
                 const uint64_t page =
                     early_alloc_large_page(
-                        /*order=*/PGT_PTE_COUNT * PGT_PTE_COUNT);
+                        /*amount=*/PGT_PTE_COUNT * PGT_PTE_COUNT);
 
                 if (page == INVALID_PHYS) {
                     // We failed to alloc a 1gib page, so try 2mib pages next.
@@ -126,10 +126,10 @@ try_2mib:
 
             do {
                 const uint64_t page =
-                    early_alloc_large_page(/*order=*/PGT_PTE_COUNT);
+                    early_alloc_large_page(/*amount=*/PGT_PTE_COUNT);
 
                 if (page == INVALID_PHYS) {
-                    // We failed to alloc a 1gib page, so try 2mib pages next.
+                    // We failed to alloc a 2mib page, so try 4kib pages next.
                     break;
                 }
 
@@ -199,11 +199,11 @@ try_normal:
             pte++;
             map_size -= PAGE_SIZE;
 
-            if (pte == end) {
-                if (map_size == 0) {
-                    return;
-                }
+            if (map_size == 0) {
+                return;
+            }
 
+            if (pte == end) {
                 pt_walker.indices[0] = PGT_PTE_COUNT - 1;
                 walker_result =
                     ptwalker_next_with_options(
@@ -222,14 +222,13 @@ try_normal:
                 table = pt_walker.tables[0];
                 pte = table;
                 end = table + PGT_PTE_COUNT;
-            } else if (map_size == 0) {
-                return;
             }
 
             virt_addr += PAGE_SIZE;
         } while (true);
     }
 }
+
 extern uint64_t structpage_page_count;
 
 static void setup_pagestructs_table() {
@@ -309,10 +308,9 @@ static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
             continue;
         }
 
-        struct range range = memmap->range;
         if (memmap->kind == MM_MEMMAP_KIND_KERNEL_AND_MODULES) {
-            kernel_memmap_size = range.size;
-            map_into_kernel_pagemap(/*phys_range=*/range,
+            kernel_memmap_size = memmap->range.size;
+            map_into_kernel_pagemap(/*phys_range=*/memmap->range,
                                     /*virt_addr=*/KERNEL_BASE,
                                     /*pte_flags=*/0);
         } else {
@@ -321,8 +319,8 @@ static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
                 flags |= __PTE_WC;
             }
 
-            map_into_kernel_pagemap(/*phys_range=*/range,
-                                    (uint64_t)phys_to_virt(range.front),
+            map_into_kernel_pagemap(/*phys_range=*/memmap->range,
+                                    (uint64_t)phys_to_virt(memmap->range.front),
                                     flags);
         }
     }

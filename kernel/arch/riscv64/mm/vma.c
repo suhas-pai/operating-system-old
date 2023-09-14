@@ -15,8 +15,12 @@ flags_from_info(struct pagemap *const pagemap,
                 const uint8_t prot,
                 const enum vma_cachekind cachekind)
 {
+    uint64_t sanitized_prot = prot & PROT_RWX;
+    assert_msg(sanitized_prot != 0,
+               "mm: arch_make_mapping(): got protections w/o any of rwx");
+
     uint64_t result =
-        __PTE_VALID | __PTE_ACCESSED | __PTE_DIRTY | (uint64_t)(prot << 1);
+        __PTE_VALID | __PTE_ACCESSED | __PTE_DIRTY | (sanitized_prot << 1);
 
     if (pagemap == &kernel_pagemap) {
         result |= __PTE_GLOBAL;
@@ -24,8 +28,19 @@ flags_from_info(struct pagemap *const pagemap,
         result |= __PTE_USER;
     }
 
-    // TODO:
-    (void)cachekind;
+    switch (cachekind) {
+        case VMA_CACHEKIND_WRITEBACK:
+            break;
+        case VMA_CACHEKIND_WRITETHROUGH:
+        case VMA_CACHEKIND_WRITECOMBINING:
+        case VMA_CACHEKIND_NO_CACHE:
+            result |= __PTE_NC;
+            break;
+        case VMA_CACHEKIND_MMIO:
+            result |= __PTE_IO;
+            break;
+    }
+
     return result;
 }
 
@@ -43,7 +58,7 @@ arch_make_mapping(struct pagemap *const pagemap,
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,
 
-        .supports_largepage_at_level_mask = 1 << 2 | 1 << 3,
+        .supports_largepage_at_level_mask = 1 << 2 | 1 << 3 | 1 << 4,
 
         .free_pages = true,
         .is_in_early = false,
