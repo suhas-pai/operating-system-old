@@ -160,7 +160,7 @@ free_pages_to_zone(struct page *page,
             break;
         }
 
-        take_off_freelist(&zone->freelist_list[order], buddy);
+        take_off_freelist(zone->freelist_list + order, buddy);
         if (page_to_pfn(buddy) < page_to_pfn(page)) {
             swap(page, buddy);
         }
@@ -168,7 +168,7 @@ free_pages_to_zone(struct page *page,
 
     page->buddy.order = order;
 
-    add_to_freelist(&zone->freelist_list[order], page);
+    add_to_freelist(zone->freelist_list + order, page);
     spin_release_with_irq(&zone->lock, flag);
 }
 

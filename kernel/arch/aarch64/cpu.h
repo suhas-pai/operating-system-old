@@ -16,6 +16,8 @@ struct cpu_info {
     uint64_t spur_int_count;
 };
 
+void cpu_init();
+
 const struct cpu_info *get_base_cpu_info();
 const struct cpu_info *get_cpu_info();
 struct cpu_info *get_cpu_info_mut();

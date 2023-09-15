@@ -17,7 +17,6 @@ static struct cpu_capabilities g_cpu_capabilities = {
     .supports_avx512 = false,
     .supports_x2apic = false,
     .supports_1gib_pages = false,
-    .xsave_store_size = false
 };
 
 static struct cpu_info g_base_cpu_info = {

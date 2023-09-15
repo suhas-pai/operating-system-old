@@ -123,6 +123,7 @@ else ifeq ($(ARCH),aarch64)
 	endif
 
 	override CFLAGS += \
+		-march=armv9-a \
 		-mgeneral-regs-only
 	override LDFLAGS += \
 		-m aarch64elf

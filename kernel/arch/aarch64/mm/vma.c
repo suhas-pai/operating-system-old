@@ -14,9 +14,7 @@ flags_from_info(struct pagemap *const pagemap,
                 const uint8_t prot,
                 const enum vma_cachekind cachekind)
 {
-    uint64_t result =
-        __PTE_VALID | __PTE_INNER_SH | __PTE_ACCESS | __PTE_4KPAGE;
-
+    uint64_t result = __PTE_VALID | __PTE_INNER_SH | __PTE_ACCESS;
     if (pagemap != &kernel_pagemap) {
         result |= __PTE_NONGLOBAL | __PTE_USER;
     }

@@ -15,8 +15,6 @@ struct cpu_capabilities {
     bool supports_avx512 : 1;
     bool supports_x2apic : 1;
     bool supports_1gib_pages : 1;
-
-    uint64_t xsave_store_size;
 };
 
 struct pagemap;
