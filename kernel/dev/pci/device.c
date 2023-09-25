@@ -3,7 +3,12 @@
  * © suhas pai
  */
 
+#if defined(__x86_64__)
+    #include "asm/msr.h"
+#endif /* defined(__x86_64__) */
+
 #include "dev/printk.h"
+#include "lib/util.h"
 
 #include "device.h"
 #include "mmio.h"
@@ -201,7 +206,8 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
                                   const isr_vector_t vector,
                                   const bool masked)
     {
-        const uint64_t msi_address = 0xFEE00000 | cpu->lapic_id << 12;
+        const uint64_t msi_address =
+            (read_msr(IA32_MSR_APIC_BASE) & PAGE_SIZE) | cpu->lapic_id << 12;
         switch (device->msi_support) {
             case PCI_DEVICE_MSI_SUPPORT_NONE:
                 printk(LOGLEVEL_WARN,

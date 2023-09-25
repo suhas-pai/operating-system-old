@@ -462,3 +462,16 @@ __ubsan_handle_invalid_builtin(struct invalid_builtin_info *const info,
            kind == BUILTIN_CHECK_KIND_CLZ_PASSED_ZERO ?
             "__builtin_ctz" : "__builtin_clz");
 }
+
+void
+__ubsan_handle_function_type_mismatch(
+    struct function_type_mismatch_info *const info,
+    const uint64_t value)
+{
+    printk(LOGLEVEL_ERROR,
+           "ubsan: [" SOURCE_LOCATION_FMT "] call to function at address %p "
+           "through pointer "
+           "with incorrect function type\n",
+           SOURCE_LOCATION_FMT_ARGS(&info->location),
+           (void *)value);
+}

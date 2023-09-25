@@ -6,6 +6,8 @@
 #pragma once
 
 #include "lib/refcount.h"
+
+#include "mm/section.h"
 #include "mm/slab.h"
 
 #include "mm_types.h"
@@ -55,4 +57,6 @@ bool page_has_bit(const struct page *page, enum struct_page_flags flag);
 void page_clear_bit(struct page *page, enum struct_page_flags flag);
 
 page_section_t page_get_section(const struct page *page);
+struct mm_section *page_to_mm_section(const struct page *page);
+
 struct page *alloc_table();

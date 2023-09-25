@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include "../device.h"
+#include "dev/virtio/device.h"
 
 struct virtio_scsi_host_device {
 

@@ -1,16 +1,14 @@
 /*
- * kernel/cpu/isr.c
+ * kernel/arch/x86_64/sys/isr.c
  * © suhas pai
  */
 
-#if defined(__x86_64__)
-    #include "apic/ioapic.h"
-#endif
+#include "apic/ioapic.h"
 
+#include "cpu/isr.h"
 #include "dev/printk.h"
 
 #include "cpu.h"
-#include "isr.h"
 
 static isr_func_t g_funcs[256] = {0};
 
@@ -44,20 +42,6 @@ void isr_handle_interrupt(const uint64_t vector, irq_context_t *const frame) {
     }
 }
 
-void
-isr_set_vector(const isr_vector_t vector,
-               const isr_func_t func,
-               const uint8_t ist)
-{
-    g_funcs[vector] = func;
-
-#if defined(__x86_64__)
-    idt_set_vector(vector, ist, IDT_DEFAULT_FLAGS);
-#else
-    (void)ist;
-#endif /* defined(__x86_64__) */
-}
-
 __optimize(3)
 static void spur_tick(const uint64_t int_no, irq_context_t *const frame) {
     (void)int_no;
@@ -73,23 +57,20 @@ void isr_init() {
     /* Setup Spurious Interrupt */
     g_spur_vector = isr_alloc_vector();
 
-#if defined(__x86_64__)
-    const uint8_t spur_ist = IST_NONE;
-#else
-    const uint8_t spur_ist = 0;
-#endif
+    isr_set_vector(g_spur_vector,
+                   spur_tick,
+                   &(struct arch_isr_info){ .ist = IST_NONE });
 
-    isr_set_vector(g_spur_vector, spur_tick, spur_ist);
-
-#if defined(__x86_64__)
     idt_register_exception_handlers();
-#endif /* defined(__x86_64__) */
 }
 
 void
-isr_register_for_vector(const isr_vector_t vector, const isr_func_t handler) {
-    assert(g_funcs[vector] == NULL);
+isr_set_vector(const isr_vector_t vector,
+               const isr_func_t handler,
+               struct arch_isr_info *const info)
+{
     g_funcs[vector] = handler;
+    idt_set_vector(vector, info->ist, IDT_DEFAULT_FLAGS);
 
     printk(LOGLEVEL_INFO,
            "isr: registered handler for vector %" PRIu8 "\n",
@@ -97,19 +78,10 @@ isr_register_for_vector(const isr_vector_t vector, const isr_func_t handler) {
 }
 
 void
-isr_assign_irq_to_self_cpu(const uint8_t irq,
-                           const isr_vector_t vector,
-                           const isr_func_t handler,
-                           const bool masked)
+isr_assign_irq_to_cpu(struct cpu_info *const cpu,
+                      const uint8_t irq,
+                      const isr_vector_t vector,
+                      const bool masked)
 {
-    isr_register_for_vector(vector, handler);
-
-#if defined(__x86_64__)
-    ioapic_redirect_irq(get_cpu_info()->lapic_id, irq, vector, masked);
-#else
-    (void)irq;
-    (void)vector;
-    (void)handler;
-    (void)masked;
-#endif /* defiend(__x86_64__)*/
+    ioapic_redirect_irq(cpu->lapic_id, irq, vector, masked);
 }

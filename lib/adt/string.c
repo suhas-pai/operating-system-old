@@ -1,10 +1,12 @@
 /*
- * adt/string.c
+ * lib/adt/string.c
  * © suhas pai
  */
 
-#include "lib/adt/growable_buffer.h"
 #include "lib/format.h"
+#include "lib/string.h"
+
+#include "growable_buffer.h"
 
 static inline void set_null_terminator(const struct string *const string) {
     /*

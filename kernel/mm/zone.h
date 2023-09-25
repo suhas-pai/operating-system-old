@@ -17,6 +17,9 @@ struct page_zone {
     struct spinlock lock;
     struct page_freelist freelist_list[MAX_ORDER];
     struct page_zone *const fallback_zone;
+
+    // Smallest non-empty order;
+    _Atomic uint8_t min_order;
 };
 
 struct page_zone *page_zone_iterstart();

@@ -3,8 +3,6 @@
  * © suhas pai
  */
 
-#include "lib/align.h"
-
 #include "mm/pagemap.h"
 #include "mm/pageop.h"
 #include "mm/pgmap.h"
@@ -34,10 +32,8 @@ flags_from_info(struct pagemap *const pagemap,
         case VMA_CACHEKIND_WRITETHROUGH:
         case VMA_CACHEKIND_WRITECOMBINING:
         case VMA_CACHEKIND_NO_CACHE:
-            result |= __PTE_NC;
             break;
         case VMA_CACHEKIND_MMIO:
-            result |= __PTE_IO;
             break;
     }
 
@@ -58,7 +54,8 @@ arch_make_mapping(struct pagemap *const pagemap,
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,
 
-        .supports_largepage_at_level_mask = 1 << 2 | 1 << 3 | 1 << 4,
+        .supports_largepage_at_level_mask =
+            PAGING_MODE > 3 ? (1 << 2 | 1 << 3 | 1 << 4) : (1 << 2 | 1 << 3),
 
         .free_pages = true,
         .is_in_early = false,

@@ -13,6 +13,8 @@ struct bitmap {
 };
 
 #define BITMAP_INIT() ((struct bitmap){ .gbuffer = GBUFFER_INIT() })
+#define BITMAP_PTR(ptr, capacity) \
+    ((struct bitmap){ .gbuffer = GBUFFER_FROM_PTR(ptr, capacity) })
 
 struct bitmap bitmap_alloc(uint64_t bit_count);
 struct bitmap bitmap_open(void *buffer, uint64_t byte_count);

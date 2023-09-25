@@ -8,6 +8,7 @@
 #include "lib/align.h"
 
 #include "ioapic.h"
+#include "mmio.h"
 
 static struct array ioapic_list = ARRAY_INIT(sizeof(struct ioapic_info));
 
@@ -128,8 +129,8 @@ uint32_t
 ioapic_read(const struct ioapic_info *const ioapic, const enum ioapic_reg reg) {
     volatile struct ioapic_registers *const regs = ioapic->regs_mmio->base;
 
-    regs->selector = (uint32_t)reg;
-    return regs->data;
+    mmio_write(&regs->selector, (uint32_t)reg);
+    return mmio_read(&regs->data);
 }
 
 void
@@ -139,8 +140,8 @@ ioapic_write(const struct ioapic_info *const ioapic,
 {
     volatile struct ioapic_registers *const regs = ioapic->regs_mmio->base;
 
-    regs->selector = (uint32_t)reg;
-    regs->data = value;
+    mmio_write(&regs->selector, (uint32_t)reg);
+    mmio_write(&regs->data, value);
 }
 
 void

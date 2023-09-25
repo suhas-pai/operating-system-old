@@ -10,6 +10,10 @@
 
 #include "cpu.h"
 
+void arch_early_init() {
+
+}
+
 void arch_init() {
     gdt_load();
     idt_init();

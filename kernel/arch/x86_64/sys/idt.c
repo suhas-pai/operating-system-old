@@ -197,6 +197,8 @@ void handle_exception(const uint64_t int_no, irq_context_t *const context) {
 
 void idt_register_exception_handlers() {
     for (idt_vector_t vector = 0; vector != 0x20; vector++) {
-        isr_register_for_vector(vector, handle_exception);
+        isr_set_vector(vector,
+                       handle_exception,
+                       &(struct arch_isr_info){ .ist = IST_NONE });
     }
 }

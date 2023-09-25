@@ -3,15 +3,16 @@
  * © suhas pai
  */
 
+#include "lib/util.h"
 #include "array.h"
 
-void array_init(struct array *const array, const uint64_t object_size) {
+void array_init(struct array *const array, const uint32_t object_size) {
     array->gbuffer = GBUFFER_INIT();
     array->object_size = object_size;
 }
 
 __optimize(3)
-struct array array_alloc(const uint64_t obj_size, const uint64_t item_cap) {
+struct array array_alloc(const uint32_t obj_size, const uint32_t item_cap) {
     return (struct array){
         .gbuffer = gbuffer_alloc(check_mul_assert(obj_size, item_cap)),
         .object_size = obj_size
@@ -25,7 +26,7 @@ bool array_append(struct array *const array, const void *const item) {
 }
 
 __optimize(3)
-void array_remove_index(struct array *const array, const uint64_t index) {
+void array_remove_index(struct array *const array, const uint32_t index) {
     const uint64_t byte_index = check_mul_assert(index, array->object_size);
     const uint64_t end = check_add_assert(byte_index, array->object_size);
 
@@ -56,6 +57,16 @@ __optimize(3) void *array_at(const struct array array, const uint64_t index) {
     const uint64_t byte_index = check_mul_assert(index, array.object_size);
 
     return array.gbuffer.begin + byte_index;
+}
+
+__optimize(3) void *array_front(const struct array array) {
+    assert(!array_empty(array));
+    return array_begin(array);
+}
+
+__optimize(3) void *array_back(const struct array array) {
+    assert(!array_empty(array));
+    return gbuffer_current_ptr(array.gbuffer) - array.object_size;
 }
 
 __optimize(3) uint64_t array_item_count(const struct array array) {

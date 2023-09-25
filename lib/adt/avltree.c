@@ -22,8 +22,8 @@ void avlnode_verify(struct avlnode *const node, struct avlnode *const parent) {
     avlnode_verify(node->left, node);
     avlnode_verify(node->right, node);
 #else
-    (void)(node);
-    (void)(parent);
+    (void)node;
+    (void)parent;
 #endif /* defined(BUILD_TEST ) */
 }
 

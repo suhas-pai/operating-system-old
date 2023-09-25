@@ -3,9 +3,7 @@
  * © suhas pai
  */
 
-#if defined(__x86_64__)
-    #include "asm/regs.h"
-#elif defined(__aarch64__)
+#if defined(__aarch64__)
     #include "asm/ttbr.h"
 #endif /* defined(__x86_64__) */
 
@@ -198,11 +196,11 @@ reset_levels_lower_than(struct pt_walker *const walker, pgt_level_t level) {
 
 __optimize(3) static void
 setup_levels_lower_than(struct pt_walker *const walker,
-                        const pgt_level_t lower_than_level,
+                        const pgt_level_t parent_level,
                         pte_t *const first_pte,
                         const pte_t first_entry)
 {
-    pgt_level_t level = lower_than_level - 1;
+    pgt_level_t level = parent_level - 1;
 
     pte_t *pte = first_pte;
     pte_t entry = first_entry;
@@ -244,7 +242,6 @@ ptwalker_drop_lowest(struct pt_walker *const walker,
 __optimize(3) static inline bool
 alloc_single_pte(struct pt_walker *const walker,
                  void *const alloc_pgtable_cb_info,
-                 void *const free_pgtable_cb_info,
                  const pgt_level_t level,
                  pte_t *const pte_in_parent)
 {
@@ -252,9 +249,6 @@ alloc_single_pte(struct pt_walker *const walker,
         walker->alloc_pgtable(walker, alloc_pgtable_cb_info);
 
     if (phys == INVALID_PHYS) {
-        walker->level = level + 1;
-        ptwalker_drop_lowest(walker, free_pgtable_cb_info);
-
         return false;
     }
 
@@ -291,7 +285,6 @@ alloc_levels_down_to(struct pt_walker *const walker,
 
         if (!alloc_single_pte(walker,
                               alloc_pgtable_cb_info,
-                              free_pgtable_cb_info,
                               level,
                               pte_in_parent))
         {
@@ -331,7 +324,9 @@ ptwalker_next_with_options(struct pt_walker *const walker,
     // Bad increment as tables+indices haven't been filled down to the level
     // requested.
 
-    if (walker->level > level || level > walker->top_level) {
+    if (__builtin_expect(
+            walker->level > level || level > walker->top_level, 0))
+    {
         return E_PT_WALKER_BAD_INCR;
     }
 
@@ -371,7 +366,7 @@ ptwalker_next_with_options(struct pt_walker *const walker,
         return E_PT_WALKER_OK;
     }
 
-    // Start tables from level + 1, which is incremented soon anyways.
+    // Start tables from level + 1, as level incremented soon anyways.
     pte_t **tables_ptr = walker->tables + level;
     const pgt_level_t orig_level = level;
 
@@ -454,7 +449,9 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
     // Bad increment as tables+indices haven't been filled down to the level
     // requested.
 
-    if (walker->level > level || level > walker->top_level) {
+    if (__builtin_expect(
+            walker->level > level || level > walker->top_level, 0))
+    {
         return E_PT_WALKER_BAD_INCR;
     }
 
@@ -561,7 +558,9 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
 }
 
 void
-ptwalker_fill_in_lowest(struct pt_walker *const walker, struct page *const page)
+ptwalker_fill_in_lowest(struct pt_walker *const walker,
+                        struct page *const page,
+                        const bool should_ref)
 {
     if (walker->level < 1) {
         return;
@@ -574,9 +573,9 @@ ptwalker_fill_in_lowest(struct pt_walker *const walker, struct page *const page)
     pte_t *const pte = table + walker->indices[level];
 
     pte_write(pte, page_to_phys(page) | PGT_FLAGS);
-
-    ref_up(&virt_to_page(table)->table.refcount);
-    ref_up(&page->table.refcount);
+    if (should_ref) {
+        ref_up(&virt_to_page(table)->table.refcount);
+    }
 }
 
 enum pt_walker_result
@@ -627,9 +626,7 @@ ptwalker_deref_from_level(struct pt_walker *const walker,
 
 uint64_t ptwalker_get_virt_addr(const struct pt_walker *const walker) {
     uint64_t result = 0;
-    for (pgt_level_t level = walker->level;
-         level <= walker->top_level;
-         level++)
+    for (pgt_level_t level = walker->level; level <= walker->top_level; level++)
     {
         const uint64_t index = (uint64_t)walker->indices[level - 1];
         result |= (index & PT_LEVEL_MASKS[level]) << PAGE_SHIFTS[level - 1];

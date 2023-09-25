@@ -3,15 +3,11 @@
  * © suhas pai
  */
 
-#include "dev/dtb/dtb.h"
-
 #include "dev/driver.h"
 #include "dev/printk.h"
 
 #include "drivers/scsi.h"
-
-#include "lib/align.h"
-#include "mm/kmalloc.h"
+#include "lib/util.h"
 
 #include "device.h"
 #include "mmio.h"
@@ -55,9 +51,9 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
     const uint64_t features =
         select_64_bits(&cfg->device_feature_select, &cfg->device_feature);
 
-    if (!(features & VIRTIO_DEVFEATURE_VERSION_1)) {
+    if ((features & VIRTIO_DEVFEATURE_VERSION_1) == 0) {
         mmio_write(&cfg->device_status, VIRTIO_DEVSTATUS_FEATURES_OK);
-        if (!(features & VIRTIO_DEVSTATUS_FEATURES_OK)) {
+        if ((features & VIRTIO_DEVSTATUS_FEATURES_OK) == 0) {
             printk(LOGLEVEL_WARN, "virtio-pci: failed to accept features\n");
             return NULL;
         }

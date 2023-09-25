@@ -99,7 +99,7 @@ uart8250_putc(const port_t base,
               const char ch)
 {
     for (uint64_t i = 0; i != MAX_ATTEMPTS; i++) {
-        if ((get_reg(base, info, UART_LSR_OFFSET) & UART_LSR_THRE) != 0) {
+        if (get_reg(base, info, UART_LSR_OFFSET) & UART_LSR_THRE) {
             set_reg(base, info, UART_THR_OFFSET, ch);
             return;
         }

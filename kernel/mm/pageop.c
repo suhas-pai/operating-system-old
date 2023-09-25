@@ -6,10 +6,6 @@
 #include "lib/adt/array.h"
 
 #if defined(__x86_64__)
-    #include "asm/regs.h"
-#endif /* defined(__x86_64__) */
-
-#if defined(__x86_64__)
     #include "mm/tlb.h"
 #endif /* defined(__x86_64__) */
 

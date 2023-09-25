@@ -3,13 +3,15 @@
  * © suhas pai
  */
 
+#include "dev/ps2/keymap.h"
+#include "lib/adt/string.h"
+
 #include "asm/irqs.h"
 #include "cpu/isr.h"
 
-#include "dev/ps2/keymap.h"
 #include "dev/printk.h"
+#include "lib/util.h"
 
-#include "lib/adt/string.h"
 #include "keyboard.h"
 
 const char ps2_key_to_char[PS2_KEYMAP_SIZE] = {
@@ -159,8 +161,7 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
         return;
     }
 
-    // Key release
-    if ((scan_code & (1 << 7)) != 0) {
+    if (scan_code & __PS2_KBD_KEY_RELEASE) {
         return;
     }
 
@@ -231,10 +232,14 @@ void ps2_keyboard_init(const enum ps2_port_id device_id) {
     }
 
     g_ps2_vector = isr_alloc_vector();
-    isr_assign_irq_to_self_cpu(IRQ_KEYBOARD,
-                               g_ps2_vector,
-                               ps2_keyboard_interrupt,
-                               /*masked=*/false);
+    isr_set_vector(g_ps2_vector,
+                   ps2_keyboard_interrupt,
+                   &(struct arch_isr_info){ .ist = IST_NONE });
+
+    isr_assign_irq_to_cpu(get_cpu_info_mut(),
+                          IRQ_KEYBOARD,
+                          g_ps2_vector,
+                          /*masked=*/false);
 
     ps2_read_input_byte();
     printk(LOGLEVEL_INFO, "ps2: keyboard initialized\n");

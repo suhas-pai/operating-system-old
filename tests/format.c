@@ -68,7 +68,7 @@ void test_format() {
             format_to_buffer(buffer, countof(buffer), "%5ll");
             format_to_buffer(buffer, countof(buffer), "%l");
             format_to_buffer(buffer, countof(buffer), "%*", 0);
-        #pragma GCC diagnostic pop "-Wformat"
+        #pragma GCC diagnostic pop
     }
 
     test_format_to_buffer(countof(buffer), "test", "test");

@@ -4,7 +4,7 @@
  */
 
 #pragma once
-#include "lib/parse_strftime.h"
+#include "time.h"
 
 uint64_t
 time_format_to_string_buffer(char *buffer_in,

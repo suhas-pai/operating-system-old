@@ -56,8 +56,8 @@ struct pl011_device_info {
 };
 
 // for use when initializing serial before mm/kmalloc
-static struct pl011_device_info early_infos[8] = {};
-static uint16_t early_info_count = 0;
+static struct pl011_device_info early_infos[8] = {0};
+static uint8_t early_info_count = 0;
 
 __optimize(3)
 static void wait_tx_complete(volatile const struct pl011_device *const dev) {

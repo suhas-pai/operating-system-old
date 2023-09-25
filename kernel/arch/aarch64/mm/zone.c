@@ -9,15 +9,18 @@
 #include "mm/zone.h"
 
 static struct page_zone zone_low4G = {
-    .fallback_zone = NULL
+    .fallback_zone = NULL,
+    .min_order = MAX_ORDER,
 };
 
 static struct page_zone zone_default = {
-    .fallback_zone = &zone_low4G
+    .fallback_zone = &zone_low4G,
+    .min_order = MAX_ORDER,
 };
 
 static struct page_zone zone_highmem = {
-    .fallback_zone = &zone_default
+    .fallback_zone = &zone_default,
+    .min_order = MAX_ORDER,
 };
 
 __optimize(3) struct page_zone *page_to_zone(struct page *const page) {

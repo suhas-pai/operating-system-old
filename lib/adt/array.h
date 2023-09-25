@@ -4,11 +4,14 @@
  */
 
 #pragma once
-#include "lib/adt/growable_buffer.h"
+#include "lib/assert.h"
+
+#include "growable_buffer.h"
+#include "range.h"
 
 struct array {
     struct growable_buffer gbuffer;
-    uint64_t object_size;
+    uint32_t object_size;
 };
 
 #define array_foreach(array, type, item) \
@@ -21,17 +24,20 @@ struct array {
 #define ARRAY_INIT(size) \
     ((struct array){ .gbuffer = GBUFFER_INIT(), .object_size = (size)})
 
-void array_init(struct array *array, uint64_t object_size);
-struct array array_alloc(uint64_t object_size, uint64_t item_capacity);
+void array_init(struct array *array, uint32_t object_size);
+struct array array_alloc(uint32_t object_size, uint32_t item_capacity);
 
 bool array_append(struct array *array, const void *item);
-void array_remove_index(struct array *array, uint64_t index);
+void array_remove_index(struct array *array, uint32_t index);
 bool array_remove_range(struct array *array, struct range range);
 
 void *array_begin(struct array array);
 const void *array_end(struct array array);
 
 void *array_at(struct array array, uint64_t index);
+
+void *array_front(struct array array);
+void *array_back(struct array array);
 
 uint64_t array_item_count(struct array array);
 uint64_t array_free_count(struct array array);

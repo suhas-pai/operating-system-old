@@ -7,6 +7,8 @@
 #include "dev/pci/structs.h"
 
 #include "dev/printk.h"
+#include "lib/util.h"
+
 #include "mmio.h"
 
 __optimize(3) uint32_t

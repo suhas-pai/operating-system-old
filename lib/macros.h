@@ -95,20 +95,20 @@
          name++)
 
 #define swap(a, b) ({      \
-    __auto_type __tmp = b; \
+    const __auto_type __tmp = b; \
     b = a;                 \
     a = __tmp;             \
 })
 
 #define max(a, b) ({       \
-    __auto_type __a = (a); \
-    __auto_type __b = (b); \
+    const __auto_type __a = (a); \
+    const __auto_type __b = (b); \
     __a > __b ? __a : __b; \
 })
 
 #define min(a, b) ({       \
-    __auto_type __a = (a); \
-    __auto_type __b = (b); \
+    const __auto_type __a = (a); \
+    const __auto_type __b = (b); \
     __a < __b ? __a : __b; \
 })
 
@@ -141,3 +141,11 @@
         *(ptr) &= (typeof(mask))~(mask); \
     }                                    \
 })
+
+#define div_round_up(a, b) ({\
+    const __auto_type __a = (a); \
+    const __auto_type __b = (b); \
+    __a % __b != 0 ? (__a / __b) + 1 : (__a / __b); \
+})
+
+#define carr_end(arr) ((arr) + countof(arr))

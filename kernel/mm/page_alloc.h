@@ -10,7 +10,7 @@
 
 #include "page.h"
 
-#define MAX_ORDER 11
+#define MAX_ORDER 20
 
 #define alloc_page(flags) alloc_pages((flags), /*order=*/0)
 #define free_page(page) free_pages((page), /*order=*/0)
@@ -30,6 +30,9 @@ void free_pages(struct page *page, uint8_t order);
 
 __malloclike __malloc_dealloc(free_pages, 1)
 struct page *alloc_pages(uint64_t alloc_flags, uint8_t order);
+
+__malloclike __malloc_dealloc(free_pages, 1)
+struct page *alloc_large_page(uint64_t alloc_flags, pgt_level_t level);
 struct page_zone;
 
 void

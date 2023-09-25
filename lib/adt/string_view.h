@@ -8,11 +8,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "lib/assert.h"
 #include "lib/overflow.h"
 #include "lib/string.h"
-
-#include "../util.h"
 
 struct string_view {
     const char *begin;

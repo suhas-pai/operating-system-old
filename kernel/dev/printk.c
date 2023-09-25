@@ -3,6 +3,8 @@
  * © suhas pai
  */
 
+#include <stdatomic.h>
+
 #include "cpu/spinlock.h"
 #include "lib/parse_printf.h"
 
@@ -26,7 +28,7 @@ void printk(const enum log_level loglevel, const char *const string, ...) {
 }
 
 // FIXME: Allocate a formatted-string over this approach
-static uint64_t
+__optimize(3) static uint64_t
 write_char(struct printf_spec_info *const spec_info,
            void *const cb_info,
            const char ch,
@@ -47,7 +49,7 @@ write_char(struct printf_spec_info *const spec_info,
     return amount;
 }
 
-static uint64_t
+__optimize(3) static uint64_t
 write_sv(struct printf_spec_info *const spec_info,
          void *const cb_info,
          const struct string_view sv,

@@ -3,9 +3,6 @@
  * © suhas pai
  */
 
-#include "dev/printk.h"
-#include "lib/time.h"
-
 #include "boot.h"
 
 uint64_t nsec_since_boot() {
@@ -13,4 +10,5 @@ uint64_t nsec_since_boot() {
 }
 
 void arch_init_time() {
+
 }

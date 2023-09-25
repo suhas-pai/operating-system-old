@@ -4,7 +4,6 @@
  */
 
 #include "dev/printk.h"
-#include "lib/string.h"
 #include "mm/slab.h"
 
 #include "kmalloc.h"
@@ -39,12 +38,12 @@ void *kmalloc(const uint64_t size) {
     assert_msg(__builtin_expect(kmalloc_is_initialized, 1),
                "mm: kmalloc() called before kmalloc_init()");
 
-    if (size == 0) {
+    if (__builtin_expect(size == 0, 0)) {
         printk(LOGLEVEL_WARN, "kmalloc(): got size=0\n");
         return NULL;
     }
 
-    if (size > 2048) {
+    if (__builtin_expect(size > 2048, 0)) {
         printk(LOGLEVEL_WARN,
                "kmalloc(): Can't allocate %" PRIu64 " bytes, max is 2048 "
                "bytes\n",
@@ -86,7 +85,7 @@ __optimize(3) void *krealloc(void *const buffer, const uint64_t size) {
     }
 
     void *const ret = kmalloc(size);
-    if (ret == NULL) {
+    if (__builtin_expect(ret == NULL, 0)) {
         return NULL;
     }
 

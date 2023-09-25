@@ -4,7 +4,6 @@
  */
 
 #include "lib/macros.h"
-#include "mm/page.h"
 
 #include "cpu.h"
 #include "limine.h"

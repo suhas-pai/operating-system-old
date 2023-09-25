@@ -3,7 +3,9 @@
  * © suhas pai
  */
 
-#include "dev/printk.h"
+#include <stdatomic.h>
+
+#include "assert.h"
 #include "refcount.h"
 
 __optimize(3) void refcount_init(struct refcount *const ref) {

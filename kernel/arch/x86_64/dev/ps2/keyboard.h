@@ -42,6 +42,9 @@ enum ps2_keyboard_special_byte {
     PS2_KBD_SPECIAL_BYTE_ERROR_2 = 0xFF,
 };
 
+enum ps2_keyboard_byte_flags {
+    __PS2_KBD_KEY_RELEASE = 1ull << 7
+};
 
 void ps2_keyboard_init(const enum ps2_port_id device_id);
 void ps2_keyboard_interrupt(uint64_t int_no, irq_context_t *context);

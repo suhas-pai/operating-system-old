@@ -1402,3 +1402,10 @@ __optimize(3) static inline uint64_t read_id_aa64dfr1_el1() {
 
     return result;
 }
+
+__optimize(3) static inline uint64_t read_mpidr_el1() {
+    uint64_t result = 0;
+    asm volatile("mrs %0, MPIDR_EL1" : "=r"(result));
+
+    return result;
+}

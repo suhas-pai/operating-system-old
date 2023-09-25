@@ -3,8 +3,8 @@
  * © suhas pai
  */
 
-#include "port.h"
 #include "mmio.h"
+#include "port.h"
 
 __optimize(3) uint8_t port_in8(const port_t port) {
     return mmio_read_8(port);

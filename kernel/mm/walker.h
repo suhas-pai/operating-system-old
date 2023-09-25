@@ -106,7 +106,10 @@ ptwalker_next_with_options(struct pt_walker *walker,
                            void *alloc_pgtable_cb_info,
                            void *const free_pgtable_cb_info);
 
-void ptwalker_fill_in_lowest(struct pt_walker *walker, struct page *page);
+void
+ptwalker_fill_in_lowest(struct pt_walker *walker,
+                        struct page *page,
+                        bool should_ref);
 
 void
 ptwalker_deref_from_level(struct pt_walker *walker,
@@ -127,5 +130,5 @@ uint64_t ptwalker_get_virt_addr(const struct pt_walker *walker);
  * held.
  */
 
-uint64_t ptwalker_virt_get_phys(struct pagemap *kernel_pagemap, uint64_t virt);
+uint64_t ptwalker_virt_get_phys(struct pagemap *pagemap, uint64_t virt);
 bool ptwalker_points_to_largepage(const struct pt_walker *walker);

@@ -3,10 +3,7 @@
  * © suhas pai
  */
 
-#include "acpi/api.h"
-
 #include "apic/lapic.h"
-#include "apic/structs.h"
 
 #include "asm/irqs.h"
 #include "asm/msr.h"
@@ -15,7 +12,6 @@
 #include "dev/printk.h"
 #include "sys/pic.h"
 
-#include "cpu.h"
 #include "ioapic.h"
 
 void lapic_timer_irq_callback() {
@@ -56,8 +52,7 @@ void apic_init(const uint64_t local_apic_base) {
     uint64_t apic_msr = read_msr(IA32_MSR_APIC_BASE);
 
     printk(LOGLEVEL_INFO, "apic: msr: 0x%" PRIx64 "\n", apic_msr);
-    assert_msg((apic_msr & IA32_MSR_APIC_BASE_IS_BSP) != 0,
-               "apic: cpu is not bsp");
+    assert_msg(apic_msr & IA32_MSR_APIC_BASE_IS_BSP, "apic: cpu is not bsp");
 
     /* Use the x2apic if available */
     if (get_cpu_capabilities()->supports_x2apic) {
@@ -68,10 +63,14 @@ void apic_init(const uint64_t local_apic_base) {
     }
 
     write_msr(IA32_MSR_APIC_BASE, apic_msr | IA32_MSR_APIC_BASE_ENABLE);
-
     lapic_init();
-    isr_assign_irq_to_self_cpu(IRQ_TIMER,
-                               isr_get_timer_vector(),
-                               lapic_timer_irq_callback,
-                               /*masked=*/false);
+
+    isr_set_vector(isr_get_timer_vector(),
+                   lapic_timer_irq_callback,
+                   &(struct arch_isr_info){ .ist = IST_NONE });
+
+    isr_assign_irq_to_cpu(get_cpu_info_mut(),
+                          IRQ_TIMER,
+                          isr_get_timer_vector(),
+                          /*masked=*/false);
 }

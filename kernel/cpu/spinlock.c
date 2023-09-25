@@ -22,6 +22,8 @@ __optimize(3) void spin_acquire(struct spinlock *const lock) {
         if (front == ticket) {
             return;
         }
+
+        cpu_pause();
     }
 }
 

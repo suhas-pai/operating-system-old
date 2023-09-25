@@ -165,7 +165,9 @@ static void init_pci_drivers(const void *const dtb) {
 void dtb_init_early() {
 #if defined(__riscv64)
     const void *const dtb = boot_get_dtb();
-    init_riscv_serial_devices(dtb);
+    if (dtb != NULL) {
+        init_riscv_serial_devices(dtb);
+    }
 
     printk(LOGLEVEL_INFO, "dtb: finished early init\n");
 #endif /* defined(__riscv64) */
@@ -192,12 +194,8 @@ dtb_init_nodes_for_driver(const void *const dtb,
 void dtb_init() {
     const void *const dtb = boot_get_dtb();
     if (dtb == NULL) {
-    #if defined(__riscv64)
-        panic("dtb: device tree not found");
-    #else
         printk(LOGLEVEL_WARN, "dev: dtb not found\n");
         return;
-    #endif /* defined(__riscv64) */
     }
 
     init_pci_drivers(dtb);

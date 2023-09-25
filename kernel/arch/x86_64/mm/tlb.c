@@ -4,7 +4,6 @@
  */
 
 #include "asm/tlb.h"
-#include "lib/assert.h"
 #include "mm/page_alloc.h"
 
 #include "tlb.h"

@@ -10,8 +10,6 @@
 #include "cpu/util.h"
 #include "dev/printk.h"
 
-#include "lib/parse_printf.h"
-
 __optimize(3) void panic(const char *const fmt, ...) {
     va_list list;
     va_start(list, fmt);

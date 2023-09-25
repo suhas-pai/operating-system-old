@@ -7,6 +7,8 @@
     #include "dev/uart/com1.h"
 #elif defined(__aarch64__)
     #include "dev/uart/pl011.h"
+#elif defined(__riscv64)
+    #include "dev/uart/8250.h"
 #endif /* defined(__x86_64__) */
 
 #include "acpi/api.h"
@@ -15,8 +17,6 @@
 #include "dev/printk.h"
 #include "pci/pci.h"
 #include "time/time.h"
-
-#include "driver.h"
 
 void serial_init() {
 #if defined(__x86_64__)

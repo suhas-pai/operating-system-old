@@ -6,7 +6,6 @@
 #pragma once
 
 #include <stdarg.h>
-#include <stdatomic.h>
 
 #include "lib/adt/string_view.h"
 #include "lib/inttypes.h"

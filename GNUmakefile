@@ -13,9 +13,17 @@ define DEFAULT_VAR =
 	endif
 endef
 
-# Compiler for building the 'limine' executable for the host.
+# Toolchain for building the 'limine' executable for the host.
 override DEFAULT_HOST_CC := cc
 $(eval $(call DEFAULT_VAR,HOST_CC,$(DEFAULT_HOST_CC)))
+override DEFAULT_HOST_CFLAGS := -g -O2 -pipe
+$(eval $(call DEFAULT_VAR,HOST_CFLAGS,$(DEFAULT_HOST_CFLAGS)))
+override DEFAULT_HOST_CPPFLAGS :=
+$(eval $(call DEFAULT_VAR,HOST_CPPFLAGS,$(DEFAULT_HOST_CPPFLAGS)))
+override DEFAULT_HOST_LDFLAGS :=
+$(eval $(call DEFAULT_VAR,HOST_LDFLAGS,$(DEFAULT_HOST_LDFLAGS)))
+override DEFAULT_HOST_LIBS :=
+$(eval $(call DEFAULT_VAR,HOST_LIBS,$(DEFAULT_HOST_LIBS)))
 
 # Target architecture to build for. Default to x86_64.
 override DEFAULT_ARCH := x86_64
@@ -23,6 +31,9 @@ $(eval $(call DEFAULT_VAR,ARCH,$(DEFAULT_ARCH)))
 
 override DEFAULT_MEM := 4G
 $(eval $(call DEFAULT_VAR,MEM,$(DEFAULT_MEM)))
+
+override DEFAULT_SMP := 4
+$(eval $(call DEFAULT_VAR,SMP,$(DEFAULT_SMP)))
 
 EXTRA_QEMU_ARGS=-d guest_errors -d unimp -d int -D ./log.txt -rtc base=localtime
 ifeq ($(DEBUG), 1)
@@ -33,10 +44,12 @@ else
 	EXTRA_QEMU_ARGS += -serial stdio
 endif
 
-ifeq ($(ARCH),aarch64)
-	ifeq ($(shell uname -s),Darwin)
-		ifeq ($(shell uname -p),arm)
-			EXTRA_QEMU_ARGS += -accel hvf
+ifneq ($(DEBUG), 1)
+	ifeq ($(ARCH),aarch64)
+		ifeq ($(shell uname -s),Darwin)
+			ifeq ($(shell uname -p),arm)
+				EXTRA_QEMU_ARGS += -accel hvf
+			endif
 		endif
 	endif
 endif
@@ -55,35 +68,35 @@ run-hdd: run-hdd-$(ARCH)
 
 .PHONY: run-x86_64
 run-x86_64: ovmf-x86_64 $(IMAGE_NAME).iso
-	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -bios ovmf-x86_64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -bios ovmf-x86_64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: run-hdd-x86_64
 run-hdd-x86_64: ovmf-x86_64 $(IMAGE_NAME).hdd
-	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -bios ovmf-x86_64/OVMF.fd -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -bios ovmf-x86_64/OVMF.fd -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: run-aarch64
 run-aarch64: ovmf-aarch64 $(IMAGE_NAME).iso
-	qemu-system-aarch64 -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -bios ovmf-aarch64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
+	qemu-system-aarch64 -M virt -cpu max -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -bios ovmf-aarch64/OVMF.fd -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: run-hdd-aarch64
 run-hdd-aarch64: ovmf-aarch64 $(IMAGE_NAME).hdd
-	qemu-system-aarch64 -M virt -cpu cortex-a72 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -bios ovmf-aarch64/OVMF.fd -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-aarch64 -M virt -cpu max -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -bios ovmf-aarch64/OVMF.fd -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: run-riscv64
 run-riscv64: ovmf-riscv64 $(IMAGE_NAME).iso
-	qemu-system-riscv64 -M virt,acpi=off -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -drive if=pflash,unit=1,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-cd,drive=cd0 -drive id=cd0,format=raw,file=$(IMAGE_NAME).iso $(EXTRA_QEMU_ARGS)
+	qemu-system-riscv64 -M virt -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -drive if=pflash,unit=0,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-cd,drive=cd0 -drive id=cd0,format=raw,file=$(IMAGE_NAME).iso $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: run-hdd-riscv64
 run-hdd-riscv64: ovmf-riscv64 $(IMAGE_NAME).hdd
-	qemu-system-riscv64 -M virt,acpi=off -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -drive if=pflash,unit=1,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,format=raw,file=$(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-riscv64 -M virt -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -drive if=pflash,unit=0,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-hd,drive=hd0 -drive id=hd0,format=raw,file=$(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: run-bios
 run-bios: $(IMAGE_NAME).iso
-	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -cdrom $(IMAGE_NAME).iso -boot d $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: run-hdd-bios
 run-hdd-bios: $(IMAGE_NAME).hdd
-	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS)
+	qemu-system-x86_64 -M q35 -cpu max -m $(MEM) -hda $(IMAGE_NAME).hdd $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: ovmf
 ovmf: ovmf-$(ARCH)
@@ -98,11 +111,16 @@ ovmf-aarch64:
 
 ovmf-riscv64:
 	mkdir -p ovmf-riscv64
-	cd ovmf-riscv64 && curl -o OVMF.fd https://retrage.github.io/edk2-nightly/bin/RELEASERISCV64_VIRT.fd && dd if=/dev/zero of=OVMF.fd bs=1 count=0 seek=33554432
+	cd ovmf-riscv64 && curl -o OVMF.fd https://retrage.github.io/edk2-nightly/bin/RELEASERISCV64_VIRT_CODE.fd && dd if=/dev/zero of=OVMF.fd bs=1 count=0 seek=33554432
 
 limine:
 	git clone https://github.com/limine-bootloader/limine.git --branch=v5.x-branch-binary --depth=1
-	unset CC; unset CFLAGS; unset CPPFLAGS; unset LDFLAGS; unset LIBS; $(MAKE) -C limine CC="$(HOST_CC)"
+	$(MAKE) -C limine \
+		CC="$(HOST_CC)" \
+		CFLAGS="$(HOST_CFLAGS)" \
+		CPPFLAGS="$(HOST_CPPFLAGS)" \
+		LDFLAGS="$(HOST_LDFLAGS)" \
+		LIBS="$(HOST_LIBS)"
 
 .PHONY: kernel
 kernel:

@@ -31,5 +31,13 @@ void fadt_init(const struct acpi_fadt *const fadt) {
     printk(LOGLEVEL_INFO,
            "fadt: flags: 0x%" PRIx32 "\n",
            fadt->arm_boot_arch_flags);
+
+    if (fadt->arm_boot_arch_flags & __ACPI_FADT_ARM_BOOT_PSCI_COMPLIANT) {
+        printk(LOGLEVEL_INFO, "fadt: system is psci compliant\n");
+    }
+
+    if (fadt->arm_boot_arch_flags & __ACPI_FADT_ARM_BOOT_PSCI_USE_HVC) {
+        printk(LOGLEVEL_INFO, "fadt: psci needs hvc\n");
+    }
 #endif /* defined(__x86_64__) */
 }

@@ -521,7 +521,9 @@ map_large_at_top_level_no_overwrite(struct pt_walker *const walker,
     uint64_t phys_addr = phys_begin + offset;
 
     const uint64_t pte_flags = options->pte_flags;
-    pte_t *pte = walker->tables[level - 1] + walker->indices[level - 1];
+
+    pte_t *const table = walker->tables[level - 1];
+    pte_t *pte = table + walker->indices[level - 1];
 
     do {
         const pte_t new_pte_value =
@@ -531,14 +533,15 @@ map_large_at_top_level_no_overwrite(struct pt_walker *const walker,
         phys_addr += largepage_size;
 
         if (phys_addr == phys_end) {
-            *offset_in = phys_addr - phys_begin;
-            return MAP_CONTINUE;
+            break;
         }
 
         pte++;
     } while (phys_addr + largepage_size <= phys_end);
 
+    walker->indices[level - 1] = pte - table;
     *offset_in = phys_addr - phys_begin;
+
     return MAP_CONTINUE;
 }
 
@@ -732,15 +735,6 @@ map_large_at_level(struct pt_walker *const walker,
                    const pgt_level_t level,
                    const struct pgmap_options *const options)
 {
-    const uint64_t largepage_size = PAGE_SIZE_AT_LEVEL(level);
-    uint64_t offset = *offset_in;
-
-    if (!has_align(phys_begin + offset, largepage_size) ||
-        offset + largepage_size > size)
-    {
-        return MAP_CONTINUE;
-    }
-
     if (level != pgt_get_top_level()) {
         if (!options->is_overwrite) {
             return map_large_at_level_no_overwrite(walker,
@@ -799,7 +793,14 @@ pgmap_with_ptwalker(struct pt_walker *const walker,
                 continue;
             }
 
-            if (!(supports_largepage_at_level_mask & (1ull << level))) {
+            if ((supports_largepage_at_level_mask & (1ull << level)) == 0) {
+                continue;
+            }
+
+            const uint64_t largepage_size = PAGE_SIZE_AT_LEVEL(level);
+            if (!has_align(phys_range.front + offset, largepage_size) ||
+                offset + largepage_size > phys_range.size)
+            {
                 continue;
             }
 
@@ -909,7 +910,11 @@ pgmap_at(struct pagemap *const pagemap,
                 pte_to_phys(entry) == (phys_range.front - offset) &&
                 pte_flags_equal(entry, walker.level, options->pte_flags))
             {
-                offset = walker_virt_addr + PAGE_SIZE_AT_LEVEL(walker.level);
+                offset =
+                    walker_virt_addr +
+                    PAGE_SIZE_AT_LEVEL(walker.level) -
+                    virt_addr;
+
                 if (!range_has_index(phys_range, offset)) {
                     return OVERRIDE_DONE;
                 }

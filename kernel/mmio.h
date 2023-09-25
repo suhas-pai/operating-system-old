@@ -22,16 +22,16 @@ void mmio_write_64(volatile void *ptr, uint64_t value);
     __auto_type __result__ = (typeof(*(ptr)))0; \
     switch (sizeof(*(ptr))) { \
         case sizeof(uint8_t): \
-            __result__ = (typeof(*(ptr)))mmio_read_8(ptr); \
+            __result__ = mmio_read_8(ptr); \
             break; \
         case sizeof(uint16_t): \
-            __result__ = (typeof(*(ptr)))mmio_read_16(ptr); \
+            __result__ = mmio_read_16(ptr); \
             break; \
         case sizeof(uint32_t): \
-            __result__ = (typeof(*(ptr)))mmio_read_32(ptr); \
+            __result__ = mmio_read_32(ptr); \
             break; \
         case sizeof(uint64_t): \
-            __result__ = (typeof(*(ptr)))mmio_read_64(ptr); \
+            __result__ = mmio_read_64(ptr); \
             break; \
         default: \
             verify_not_reached(); \

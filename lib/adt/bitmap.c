@@ -5,6 +5,7 @@
 
 #include "lib/math.h"
 #include "lib/memory.h"
+#include "lib/util.h"
 
 #include "bitmap.h"
 

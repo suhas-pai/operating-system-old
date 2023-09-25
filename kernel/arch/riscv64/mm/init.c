@@ -19,10 +19,6 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
     (void)walker;
     (void)cb_info;
 
-    // We don't have a structpage-table setup yet when this function is called,
-    // but because ptwalker never dereferences the page, we can return a pointer
-    // to where the page would've been.
-
     const uint64_t phys = early_alloc_page();
     if (phys != INVALID_PHYS) {
         return phys;
@@ -257,7 +253,8 @@ map_into_kernel_pagemap(const struct range phys_range,
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,
 
-        .supports_largepage_at_level_mask = 1 << 2 | 1 << 3 | 1 << 4,
+        .supports_largepage_at_level_mask =
+            PAGING_MODE > 3 ? (1 << 2 | 1 << 3 | 1 << 4) : (1 << 2 | 1 << 3),
 
         .free_pages = false,
         .is_in_early = true,
@@ -289,9 +286,7 @@ static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
     uint64_t kernel_memmap_size = 0;
     for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
-        if (memmap->kind == MM_MEMMAP_KIND_BAD_MEMORY ||
-            memmap->kind == MM_MEMMAP_KIND_RESERVED)
-        {
+        if (memmap->kind == MM_MEMMAP_KIND_BAD_MEMORY) {
             continue;
         }
 
@@ -302,10 +297,6 @@ static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
                                     __PTE_READ | __PTE_WRITE | __PTE_EXEC);
         } else {
             uint64_t pte_flags = __PTE_READ | __PTE_WRITE;
-            if (memmap->kind == MM_MEMMAP_KIND_FRAMEBUFFER) {
-                pte_flags |= __PTE_NC;
-            }
-
             map_into_kernel_pagemap(/*phys_range=*/memmap->range,
                                     (uint64_t)phys_to_virt(memmap->range.front),
                                     pte_flags);
@@ -368,7 +359,7 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
 
     struct vm_area *const hhdm =
         vma_alloc(&kernel_pagemap,
-                  range_create(HHDM_OFFSET, tib(64)),
+                  range_create(HHDM_OFFSET, gib(64)),
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_DEFAULT);
 

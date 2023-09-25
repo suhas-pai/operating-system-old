@@ -9,6 +9,7 @@
 #include "lib/time.h"
 
 #include "mm/mmio.h"
+
 #include "hpet.h"
 #include "mmio.h"
 
@@ -33,16 +34,16 @@ enum hpet_addrspace_timer_flags {
 
 struct hpet_addrspace {
     volatile const uint64_t general_cap_and_id;
-    uint64_t padding_1;
+    volatile uint64_t padding_1;
 
     volatile uint64_t general_config;
-    uint64_t padding_2;
+    volatile uint64_t padding_2;
 
     volatile uint64_t general_int_status;
-    char padding_3[200];
+    volatile char padding_3[200];
 
     volatile uint64_t main_counter_value;
-    uint64_t padding_4[2];
+    volatile uint64_t padding_4[2];
 
     struct hpet_addrspace_timer_info timers[31];
 } __packed;
@@ -52,7 +53,7 @@ static volatile struct hpet_addrspace *addrspace = NULL;
 
 uint64_t hpet_get_femto() {
     assert_msg(addrspace != NULL, "hpet: hpet_get_femto() called before init");
-    return addrspace->main_counter_value;
+    return mmio_read(&addrspace->main_counter_value);
 }
 
 void hpet_init(const struct acpi_hpet *const hpet) {
@@ -103,11 +104,9 @@ void hpet_init(const struct acpi_hpet *const hpet) {
     const uint8_t timer_count = (cap_and_id >> 8) & 0x1f;
     printk(LOGLEVEL_WARN, "hpet: got %" PRIu8 " timers\n", timer_count);
 
-    uint8_t timer_index = 0;
     for (volatile struct hpet_addrspace_timer_info *timer = addrspace->timers;
          timer != addrspace->timers + timer_count;
-         timer++,
-         timer_index++)
+         timer++)
     {
         mmio_write(&timer->comparator_value, 0);
     }

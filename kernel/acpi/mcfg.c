@@ -6,11 +6,6 @@
 #include "dev/pci/pci.h"
 #include "dev/printk.h"
 
-#include "lib/align.h"
-
-#include "mm/kmalloc.h"
-#include "mm/vma.h"
-
 #include "mcfg.h"
 
 void mcfg_init(const struct acpi_mcfg *const mcfg) {

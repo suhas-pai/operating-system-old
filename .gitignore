@@ -4,6 +4,8 @@
 *.dtb
 .cache/
 .vscode/
+.clangd
+
 compile_commands.json
 
 qemu.log

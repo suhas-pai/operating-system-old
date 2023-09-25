@@ -13,20 +13,23 @@
 #endif /* defined(__x86_64__) */
 
 #include "dev/printk.h"
-#include "lib/align.h"
 
 #if defined(__aarch64__)
     #include "mm/mmio.h"
 #endif /* defined(__aarch64__) */
 
-#include "mm/page.h"
-#include "mm/pagemap.h"
+#if defined(__aarch64__)
+    #include "sys/gic.h"
+    #include "cpu.h"
+#endif /* defined(__aarch64__) */
 
 void madt_init(const struct acpi_madt *const madt) {
     const struct acpi_madt_entry_header *iter = NULL;
 
 #if defined(__x86_64__)
     uint64_t local_apic_base = madt->local_apic_base;
+#elif defined(__aarch64__)
+    const struct acpi_madt_entry_gic_distributor *gic_dist = NULL;
 #endif /* defined(_-x86_64__) */
 
     uint32_t length = madt->sdt.length - sizeof(*madt);
@@ -331,7 +334,7 @@ void madt_init(const struct acpi_madt *const madt) {
                        "\tgic virt ctrl block address: 0x%" PRIx64 "\n"
                        "\tvgic maintenance interrupt: %" PRIu32 "\n"
                        "\tgicr phys base address: 0x%" PRIx64 "\n"
-                       "\tmpidr: 0x%" PRIx64 "\n"
+                       "\tmpidr: %" PRIu64 "\n"
                        "\tprocessor power efficiency class: %" PRIu8 "\n"
                        "\tspe overflow interrupt: %" PRIu16 "\n",
                        cpu->cpu_interface_number,
@@ -356,6 +359,8 @@ void madt_init(const struct acpi_madt *const madt) {
                        cpu->mpidr,
                        cpu->processor_power_efficiency_class,
                        cpu->spe_overflow_interrupt);
+
+                cpu_add_gic_interface(cpu);
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found gic cpu-interface entry. ignoring\n");
@@ -388,14 +393,7 @@ void madt_init(const struct acpi_madt *const madt) {
                        dist->sys_vector_base,
                        dist->gic_version);
 
-                if (!has_align(dist->phys_base_address, PAGE_SIZE)) {
-                    printk(LOGLEVEL_WARN,
-                           "madt: gic msi frame's physical base address %p is "
-                           "not aligned to the page-size (%" PRIu32 ")\n",
-                           (void *)dist->phys_base_address,
-                           (uint32_t)PAGE_SIZE);
-                    continue;
-                }
+                gic_dist = dist;
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found gic distributor entry. ignoring\n");
@@ -417,37 +415,7 @@ void madt_init(const struct acpi_madt *const madt) {
                 const struct acpi_madt_entry_gic_msi_frame *const frame =
                     (const struct acpi_madt_entry_gic_msi_frame *)iter;
 
-                if (!has_align(frame->phys_base_address, PAGE_SIZE)) {
-                    printk(LOGLEVEL_WARN,
-                           "madt: gic msi frame's physical base address (%p) "
-                           "is not aligned to the page-size (%" PRIu32 ")\n",
-                           (void *)frame->phys_base_address,
-                           (uint32_t)PAGE_SIZE);
-                    continue;
-                }
-
-                const struct range mmio_range =
-                    range_create(frame->phys_base_address, PAGE_SIZE);
-                struct mmio_region *const mmio =
-                    vmap_mmio(mmio_range, PROT_READ | PROT_WRITE, /*flags=*/0);
-
-                if (mmio == NULL) {
-                    printk(LOGLEVEL_WARN,
-                           "madt: failed to mmio-map msi-frame at phys "
-                           "address %p\n",
-                           (void *)frame->phys_base_address);
-                    continue;
-                }
-
-                const struct acpi_msi_frame msi_frame = {
-                    .mmio = mmio,
-                    .overriden_msi_typerr =
-                        (frame->flags &
-                           __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR) != 0,
-                    .spi_base = frame->spi_base,
-                    .spi_count = frame->spi_count
-                };
-
+                struct gic_msi_frame *const gic_frame = gic_dist_add_msi(frame);
                 printk(LOGLEVEL_INFO,
                        "madt: found msi-frame\n"
                        "\tmsi frame id: %" PRIu32 "\n"
@@ -459,7 +427,10 @@ void madt_init(const struct acpi_madt *const madt) {
                        "\tspi base: %" PRIu16 "\n",
                        frame->msi_frame_id,
                        frame->phys_base_address,
-                       RANGE_FMT_ARGS(mmio_region_get_range(mmio)),
+                       RANGE_FMT_ARGS(
+                            gic_frame != NULL ?
+                                mmio_region_get_range(gic_frame->mmio) :
+                                RANGE_EMPTY()),
                        frame->flags,
                        (frame->flags &
                         __ACPI_MADT_GICMSI_FRAME_OVERR_MSI_TYPERR) != 0 ?
@@ -467,10 +438,6 @@ void madt_init(const struct acpi_madt *const madt) {
                        frame->spi_count,
                        frame->spi_base);
 
-
-                assert_msg(array_append(&get_acpi_info_mut()->msi_frame_list,
-                                        &msi_frame),
-                           "madt: failed to append msi-frame to array");
             #else
                 printk(LOGLEVEL_WARN,
                        "madt: found gic msi-frame entry. ignoring\n");
@@ -528,5 +495,10 @@ void madt_init(const struct acpi_madt *const madt) {
                "madt: failed to find local-apic registers");
 
     apic_init(local_apic_base);
+#elif defined(__aarch64__)
+    assert_msg(gic_dist != NULL, "madt: failed to find gic-distributor");
+
+    gic_dist_init(gic_dist);
+    gic_cpu_init(get_cpu_info()->interface);
 #endif /* defined(__x86_64__) */
 }

@@ -3,14 +3,17 @@
  * © suhas pai
  */
 
-#include "../alloc.h"
+#include "lib/alloc.h"
+#include "lib/util.h"
+
 #include "growable_buffer.h"
 
 /******* PRIVATE APIs *******/
 
-struct growable_buffer gbuffer_alloc(const uint64_t init_cap) {
+struct growable_buffer gbuffer_alloc(const uint32_t init_cap) {
     const struct growable_buffer gbuffer = {
         .begin = malloc(init_cap),
+        .end = gbuffer.begin + init_cap,
         .is_alloc = true
     };
 
@@ -18,7 +21,7 @@ struct growable_buffer gbuffer_alloc(const uint64_t init_cap) {
 }
 
 struct growable_buffer
-gbuffer_alloc_copy(void *const data, const uint64_t size) {
+gbuffer_alloc_copy(void *const data, const uint32_t size) {
     const struct growable_buffer gbuffer = gbuffer_alloc(size);
     if (gbuffer.begin != NULL) {
         memcpy(gbuffer.begin, data, size);
@@ -29,8 +32,8 @@ gbuffer_alloc_copy(void *const data, const uint64_t size) {
 
 struct growable_buffer
 gbuffer_open(void *const buffer,
-             const uint64_t used,
-             const uint64_t capacity,
+             const uint32_t used,
+             const uint32_t capacity,
              const bool is_alloc)
 {
     const struct growable_buffer gbuffer = {
@@ -54,15 +57,15 @@ gbuffer_open_mbuffer(const struct mutable_buffer mbuffer, const bool is_alloc) {
 }
 
 bool
-gbuffer_ensure_can_add_capacity(struct growable_buffer *const gb, uint64_t add)
+gbuffer_ensure_can_add_capacity(struct growable_buffer *const gb, uint32_t add)
 {
-    const uint64_t free_space = gbuffer_free_space(*gb);
+    const uint32_t free_space = gbuffer_free_space(*gb);
     if (add <= free_space) {
         return true;
     }
 
     void *new_alloc = NULL;
-    const uint64_t realloc_size = check_add_assert(gbuffer_capacity(*gb), add);
+    const uint32_t realloc_size = check_add_assert(gbuffer_capacity(*gb), add);
 
     if (gb->is_alloc) {
         new_alloc = realloc(gb->begin, realloc_size);
@@ -81,7 +84,7 @@ gbuffer_ensure_can_add_capacity(struct growable_buffer *const gb, uint64_t add)
 
 __optimize(3) struct mutable_buffer
 gbuffer_get_mutable_buffer(const struct growable_buffer gbuffer) {
-    const uint64_t cap = gbuffer_capacity(gbuffer);
+    const uint32_t cap = gbuffer_capacity(gbuffer);
     return mbuffer_open(gbuffer.begin, gbuffer.index, cap);
 }
 
@@ -90,26 +93,27 @@ __optimize(3) void *gbuffer_current_ptr(const struct growable_buffer gbuffer) {
 }
 
 __optimize(3) void *
-gbuffer_at(const struct growable_buffer gbuffer, const uint64_t byte_index) {
+gbuffer_at(const struct growable_buffer gbuffer, const uint32_t byte_index) {
     void *const result = gbuffer.begin + byte_index;
     assert_msg(index_in_bounds(byte_index, gbuffer_capacity(gbuffer)),
-               "Attempting to access past end of buffer, at byte-index: %"
-               PRIu64,
+               "gbuffer: Attempting to access past end of buffer, at "
+               "byte-index: %"
+               PRIu32,
                byte_index);
 
     return result;
 }
 
 __optimize(3)
-uint64_t gbuffer_free_space(const struct growable_buffer gbuffer) {
+uint32_t gbuffer_free_space(const struct growable_buffer gbuffer) {
     return distance(gbuffer.begin + gbuffer.index, gbuffer.end);
 }
 
-__optimize(3) uint64_t gbuffer_used_size(const struct growable_buffer gbuffer) {
+__optimize(3) uint32_t gbuffer_used_size(const struct growable_buffer gbuffer) {
     return gbuffer.index;
 }
 
-__optimize(3) uint64_t gbuffer_capacity(const struct growable_buffer gbuffer) {
+__optimize(3) uint32_t gbuffer_capacity(const struct growable_buffer gbuffer) {
     return distance(gbuffer.begin, gbuffer.end);
 }
 
@@ -117,28 +121,28 @@ __optimize(3) bool gbuffer_empty(const struct growable_buffer gbuffer) {
     return gbuffer_used_size(gbuffer) == 0;
 }
 
-__optimize(3) uint64_t
-gbuffer_increment_ptr(struct growable_buffer *const gbuffer, const uint64_t amt)
+__optimize(3) uint32_t
+gbuffer_increment_ptr(struct growable_buffer *const gbuffer, const uint32_t amt)
 {
-    const uint64_t delta = min(gbuffer_free_space(*gbuffer), amt);
+    const uint32_t delta = min(gbuffer_free_space(*gbuffer), amt);
     gbuffer->index = delta;
 
     return delta;
 }
 
-__optimize(3) uint64_t
-gbuffer_decrement_ptr(struct growable_buffer *const gbuffer, const uint64_t amt)
+__optimize(3) uint32_t
+gbuffer_decrement_ptr(struct growable_buffer *const gbuffer, const uint32_t amt)
 {
-    const uint64_t delta = min(gbuffer->index, amt);
+    const uint32_t delta = min(gbuffer->index, amt);
     gbuffer->index -= delta;
 
     return delta;
 }
 
-__optimize(3) uint64_t
+__optimize(3) uint32_t
 gbuffer_append_data(struct growable_buffer *const gbuffer,
                     const void *const data,
-                    const uint64_t length)
+                    const uint32_t length)
 {
     if (!gbuffer_ensure_can_add_capacity(gbuffer, length)) {
         return 0;
@@ -150,10 +154,10 @@ gbuffer_append_data(struct growable_buffer *const gbuffer,
     return length;
 }
 
-__optimize(3) uint64_t
+__optimize(3) uint32_t
 gbuffer_append_byte(struct growable_buffer *const gbuffer,
                     const uint8_t byte,
-                    const uint64_t count)
+                    const uint32_t count)
 {
     if (!gbuffer_ensure_can_add_capacity(gbuffer, count)) {
         return 0;
@@ -173,7 +177,7 @@ gbuffer_append_gbuffer_data(struct growable_buffer *const gbuffer,
            append->index;
 }
 
-__optimize(3) uint64_t
+__optimize(3) uint32_t
 gbuffer_append_sv(struct growable_buffer *const gbuffer,
                   const struct string_view sv)
 {
@@ -182,9 +186,9 @@ gbuffer_append_sv(struct growable_buffer *const gbuffer,
 
 __optimize(3) void
 gbuffer_remove_index(struct growable_buffer *const gbuffer,
-                     const uint64_t index)
+                     const uint32_t index)
 {
-    const uint64_t used = gbuffer->index;
+    const uint32_t used = gbuffer->index;
     assert(index_in_bounds(index, used));
 
     if (index != used - 1) {
@@ -199,10 +203,10 @@ __optimize(3) void
 gbuffer_remove_range(struct growable_buffer *const gbuffer,
                      const struct range range)
 {
-    const uint64_t used = gbuffer->index;
+    const uint32_t used = gbuffer->index;
     assert(index_range_in_bounds(range, used));
 
-    const uint64_t end = range_get_end_assert(range);
+    const uint32_t end = range_get_end_assert(range);
     if (end != used - 1) {
         memmove(gbuffer->begin + range.front, gbuffer->begin + end, used - end);
     }
@@ -212,7 +216,7 @@ gbuffer_remove_range(struct growable_buffer *const gbuffer,
 
 __optimize(3) void
 gbuffer_truncate(struct growable_buffer *const gbuffer,
-                 const uint64_t byte_index)
+                 const uint32_t byte_index)
 {
     gbuffer->index = min(gbuffer->index, byte_index);
 }

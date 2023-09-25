@@ -36,6 +36,7 @@ static void hcf(void) {
 }
 
 void arch_init();
+void arch_early_init();
 
 // The following will be our kernel's entry point.
 void _start(void) {
@@ -51,12 +52,13 @@ void _start(void) {
         framebuffer_request.response->framebuffers[0];
 
     // Note: we assume the framebuffer model is RGB with 32-bit pixels.
-    uint32_t *const fb_ptr = framebuffer->address;
+    volatile uint32_t *const fb_ptr = framebuffer->address;
     for (size_t i = 0; i < 100; i++) {
         fb_ptr[i * (framebuffer->pitch / 4) + i] = 0xffffff;
     }
 
     boot_early_init();
+    arch_early_init();
 
     // We're done, just hang...
     serial_init();

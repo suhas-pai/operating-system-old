@@ -429,7 +429,7 @@ struct virtio_mmio_device_legacy {
      * QueueSel.
      */
 
-    volatile uint32_t queue_num;              // Write-only
+    volatile uint32_t queue_num; // Write-only
 
     /*
      * Used Ring alignment in the virtual queue
@@ -456,7 +456,7 @@ struct virtio_mmio_device_legacy {
 
     volatile uint32_t queue_pfn;
 
-    _Alignas(16) volatile uint32_t queue_notify;           // Write-only
+    _Alignas(16) volatile uint32_t queue_notify; // Write-only
     _Alignas(16) volatile const uint32_t interrupt_status;
 
     volatile uint32_t interrupt_ack; // Write-only
@@ -467,8 +467,9 @@ struct virtio_mmio_device_legacy {
      * Reading from this register returns the current device status flags.
      * Writing non-zero values to this register sets the status flags,
      * indicating the OS/driver progress.
+     *
      * Writing zero (0x0) to this register triggers a device reset. The device
-     * sets QueuePFN to zero (0x0) for all queues in the device. Also see
+     * sets QueuePFN to zero (0x0) for all queues in the device.
      */
 
     _Alignas(16) volatile uint32_t status;

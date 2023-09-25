@@ -10,8 +10,9 @@
 
 struct mutable_buffer {
     void *begin;
-    void *ptr;
     const void *end;
+
+    uint32_t index;
 };
 
 #define MBUFFER_STATIC_STACK(name, size) \
@@ -21,37 +22,36 @@ struct mutable_buffer {
         mbuffer_open_static(RAND_VAR_NAME(), /*used=*/0, (size))
 
 struct mutable_buffer
-mbuffer_open(void *buffer, uint64_t used, uint64_t capacity);
+mbuffer_open(void *buffer, uint32_t used, uint32_t capacity);
 
 struct mutable_buffer
-mbuffer_open_static(void *buffer, uint64_t used, uint64_t capacity);
+mbuffer_open_static(void *buffer, uint32_t used, uint32_t capacity);
 
 void *mbuffer_get_current_ptr(struct mutable_buffer mbuffer);
 
-uint64_t mbuffer_get_free_space(struct mutable_buffer mbuffer);
-uint64_t mbuffer_used_size(struct mutable_buffer mbuffer);
-uint64_t mbuffer_capacity(struct mutable_buffer mbuffer);
+uint32_t mbuffer_get_free_space(struct mutable_buffer mbuffer);
+uint32_t mbuffer_used_size(struct mutable_buffer mbuffer);
+uint32_t mbuffer_capacity(struct mutable_buffer mbuffer);
 
-bool mbuffer_can_add_size(struct mutable_buffer mbuffer, uint64_t size);
+bool mbuffer_can_add_size(struct mutable_buffer mbuffer, uint32_t size);
 
 bool mbuffer_empty(struct mutable_buffer mbuffer);
 bool mbuffer_full(struct mutable_buffer mbuffer);
 
-uint64_t mbuffer_incr_ptr(struct mutable_buffer *mbuffer, uint64_t amt);
-uint64_t mbuffer_decr_ptr(struct mutable_buffer *mbuffer, uint64_t amt);
+uint32_t mbuffer_incr_ptr(struct mutable_buffer *mbuffer, uint32_t amt);
+uint32_t mbuffer_decr_ptr(struct mutable_buffer *mbuffer, uint32_t amt);
 
-uint64_t
+uint32_t
 mbuffer_append_data(struct mutable_buffer *mbuffer,
                     const void *data,
-                    uint64_t length);
+                    uint32_t length);
 
-uint64_t
+uint32_t
 mbuffer_append_byte(struct mutable_buffer *mbuffer,
                     const uint8_t byte,
-                    uint64_t count);
+                    uint32_t count);
 
-uint64_t
-mbuffer_append_sv(struct mutable_buffer *mbuffer,
-                  struct string_view sv);
+uint32_t
+mbuffer_append_sv(struct mutable_buffer *mbuffer, struct string_view sv);
 
-bool mbuffer_truncate(struct mutable_buffer *mbuffer, uint64_t used_size);
+bool mbuffer_truncate(struct mutable_buffer *mbuffer, uint32_t used_size);

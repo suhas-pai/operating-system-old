@@ -3,7 +3,10 @@
  * © suhas pai
  */
 
-#include "dev/printk.h"
+#include <stdint.h>
+
+#include "lib/macros.h"
+#include "lib/string.h"
 
 __optimize(3) size_t strlen(const char *const str) {
     size_t result = 0;
@@ -348,7 +351,7 @@ void *memchr(const void *const ptr, const int ch, const size_t count) {
 __optimize(3) void bzero(void *dst, unsigned long n) {
 #if defined(__x86_64__)
     if (n >= 32) {
-        asm volatile ("rep stosb" :: "D"(dst), "al"(0), "c"(n) : "memory");
+        asm volatile ("cld; rep stosb" : "+D"(dst), "+c" (n) : "a"(0) : "memory");
         return;
     }
 #endif

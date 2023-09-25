@@ -26,7 +26,7 @@ enum prot_fail {
     PROT_FAIL_PROT_USER
 };
 
-static enum prot_fail verify_prot(const uint8_t prot) {
+__optimize(3) static inline enum prot_fail verify_prot(const uint8_t prot) {
     if (prot == PROT_NONE) {
         return PROT_FAIL_PROT_NONE;
     }

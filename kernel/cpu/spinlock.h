@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
 

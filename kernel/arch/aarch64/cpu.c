@@ -7,6 +7,7 @@
 #include "asm/tcr.h"
 
 #include "dev/printk.h"
+#include "mm/kmalloc.h"
 
 #include "cpu.h"
 #include "features.h"
@@ -14,10 +15,19 @@
 static struct cpu_info g_base_cpu_info = {
     .pagemap = &kernel_pagemap,
     .pagemap_node = LIST_INIT(g_base_cpu_info.pagemap_node),
-    .spur_int_count = 0
+
+    .cpu_list = LIST_INIT(g_base_cpu_info.cpu_list),
+    .spur_int_count = 0,
+
+    .cpu_interface_number = 0,
+    .acpi_processor_id = 0,
+
+    .spe_overflow_interrupt = 0,
+    .mpidr = 0,
 };
 
 static struct cpu_features g_cpu_features = {0};
+struct list g_cpu_list = LIST_INIT(g_cpu_list);
 
 __optimize(3) const struct cpu_info *get_base_cpu_info() {
     return &g_base_cpu_info;
@@ -1401,4 +1411,44 @@ void print_cpu_features() {
 void cpu_init() {
     collect_cpu_features();
     print_cpu_features();
+
+    g_base_cpu_info.mpidr = read_mpidr_el1();
+    g_base_cpu_info.mpidr &= ~(1ull << 31);
+}
+
+void
+cpu_add_gic_interface(
+    const struct acpi_madt_entry_gic_cpu_interface *const intr)
+{
+    struct cpu_info *cpu = &g_base_cpu_info;
+    if (intr->mpidr != g_base_cpu_info.mpidr) {
+        cpu = kmalloc(sizeof(struct cpu_info));
+        if (cpu == NULL) {
+            printk(LOGLEVEL_WARN,
+                   "cpu: failed to alloc cpu-info for info created from "
+                   "gic-cpu-interface\n");
+            return;
+        }
+
+        list_init(&cpu->cpu_list);
+        list_add(&g_cpu_list, &cpu->cpu_list);
+    }
+
+    cpu->spur_int_count = 0;
+    cpu->acpi_processor_id = intr->acpi_processor_id;
+    cpu->cpu_interface_number = intr->cpu_interface_number;
+    cpu->spe_overflow_interrupt = intr->spe_overflow_interrupt;
+    cpu->mpidr = intr->mpidr;
+
+    cpu->cpu_interface_region =
+        vmap_mmio(range_create(intr->phys_base_address, PAGE_SIZE),
+                  PROT_READ | PROT_WRITE,
+                  /*flags=*/0);
+
+    assert_msg(cpu->cpu_interface_region != NULL,
+               "cpu: failed to allocate mmio-region for gic-cpu-interface for "
+               "cpu with mpidr %" PRIu64 "\n",
+               cpu->mpidr);
+
+    cpu->interface = cpu->cpu_interface_region->base;
 }

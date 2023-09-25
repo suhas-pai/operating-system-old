@@ -10,6 +10,8 @@
 #include "dev/printk.h"
 
 #include "lib/align.h"
+#include "lib/util.h"
+
 #include "mmio.h"
 
 __optimize(3) uint32_t

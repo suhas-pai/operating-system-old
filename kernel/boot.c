@@ -4,8 +4,7 @@
  */
 
 #include "dev/printk.h"
-#include "lib/assert.h"
-#include "mm/mm_types.h"
+#include "mm/section.h"
 
 #include "boot.h"
 #include "limine.h"
@@ -61,8 +60,10 @@ static uint8_t mm_memmap_count = 0;
 // entire memmap-list, which is made up mostly of memmaps not mapped into the
 // structpage-table
 
-static struct mm_memmap mm_usable_list[255] = {0};
+static struct mm_section mm_usable_list[255] = {0};
 static uint8_t mm_usable_count = 0;
+
+struct list largepage_memmap_lists[countof(LARGEPAGE_LEVELS)] = {0};
 
 static const void *rsdp = NULL;
 static const void *dtb = NULL;
@@ -73,7 +74,7 @@ const struct mm_memmap *mm_get_memmap_list() {
     return mm_memmap_list;
 }
 
-const struct mm_memmap *mm_get_usable_list() {
+struct mm_section *mm_get_usable_list() {
     return mm_usable_list;
 }
 
@@ -98,14 +99,8 @@ int64_t boot_get_time() {
 }
 
 void boot_early_init() {
-    if (dtb_request.response == NULL ||
-        dtb_request.response->dtb_ptr == NULL)
-    {
-    #if defined(__riscv64)
-        panic("boot: device tree not found");
-    #else
+    if (dtb_request.response == NULL || dtb_request.response->dtb_ptr == NULL) {
         printk(LOGLEVEL_WARN, "boot: device tree is missing\n");
-    #endif /* defined(__riscv64) */
     } else {
         dtb = dtb_request.response->dtb_ptr;
     }
@@ -120,6 +115,10 @@ void boot_init() {
     HHDM_OFFSET = hhdm_request.response->offset;
     KERNEL_BASE = kern_addr_request.response->virtual_base;
     PAGING_MODE = paging_mode_request.response->mode;
+
+    for (pgt_level_t i = 0; i != countof(LARGEPAGE_LEVELS); i++) {
+        list_init(&largepage_memmap_lists[i]);
+    }
 
     const struct limine_memmap_response *const resp = memmap_request.response;
 
@@ -174,14 +173,15 @@ void boot_init() {
 
         mm_memmap_list[memmap_index] = (struct mm_memmap){
             .range = range,
-            .kind = (enum mm_memmap_kind)(memmap->type + 1)
+            .kind = (enum mm_memmap_kind)(memmap->type + 1),
         };
 
         if (memmap->type == LIMINE_MEMMAP_USABLE ||
             memmap->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE)
         {
-            mm_memmap_list[memmap_index].pfn = pfn;
-            mm_usable_list[usable_index] = mm_memmap_list[memmap_index];
+            mm_usable_list[usable_index].pfn = pfn;
+            mm_usable_list[usable_index].range =
+                mm_memmap_list[memmap_index].range;
 
             pfn += PAGE_COUNT(range.size);
             usable_index++;
@@ -219,9 +219,9 @@ void boot_init() {
 
 void boot_merge_usable_memmaps() {
     for (uint64_t index = 1; index != mm_usable_count; index++) {
-        struct mm_memmap *const memmap = mm_usable_list + index;
+        struct mm_section *const memmap = mm_usable_list + index;
         do {
-            struct mm_memmap *const prev_memmap = memmap - 1;
+            struct mm_section *const prev_memmap = memmap - 1;
             const uint64_t prev_end = range_get_end_assert(prev_memmap->range);
 
             if (prev_end != memmap->range.front) {
@@ -231,14 +231,39 @@ void boot_merge_usable_memmaps() {
             prev_memmap->range.size += memmap->range.size;
 
             // Remove the current memmap.
-            memmove(memmap,
-                    memmap + 1,
-                    (mm_usable_count - (index + 1)) * sizeof(struct mm_memmap));
+            const uint64_t move_amount =
+                (mm_usable_count - (index + 1)) * sizeof(struct mm_section);
 
+            memmove(memmap, memmap + 1, move_amount);
             mm_usable_count--;
+
             if (index == mm_usable_count) {
                 return;
             }
         } while (true);
     }
+
+    for (uint64_t index = 0; index != mm_usable_count; index++) {
+        struct mm_section *const memmap = mm_usable_list + index;
+        for (pgt_level_t i = 0; i != countof(LARGEPAGE_LEVELS); i++) {
+            list_init(&memmap->largepage_list[i]);
+            const uint64_t largepage_size =
+                PAGE_SIZE_AT_LEVEL(LARGEPAGE_LEVELS[i]);
+
+            if (memmap->range.size >= largepage_size) {
+                list_add(&largepage_memmap_lists[i],
+                         &memmap->largepage_list[i]);
+            }
+        }
+    }
+}
+
+struct list *mm_get_largepage_memmap_list(const pgt_level_t level) {
+    for (pgt_level_t i = 0; i != countof(LARGEPAGE_LEVELS); i++) {
+        if (LARGEPAGE_LEVELS[i] == level) {
+            return &largepage_memmap_lists[i];
+        }
+    }
+
+    return NULL;
 }

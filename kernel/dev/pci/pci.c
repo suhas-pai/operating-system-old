@@ -9,6 +9,8 @@
 #include "dev/printk.h"
 
 #include "lib/align.h"
+#include "lib/util.h"
+
 #include "mm/kmalloc.h"
 
 #include "mmio.h"
@@ -877,6 +879,7 @@ void pci_init_drivers() {
 }
 
 void pci_init() {
+#if defined(__x86_64__)
     if (list_empty(&domain_list)) {
         struct pci_domain *const root_domain = kmalloc(sizeof(*root_domain));
         assert_msg(root_domain != NULL, "failed to allocate pci root domain");
@@ -896,11 +899,14 @@ void pci_init() {
 
         pci_parse_domain(root_domain);
     } else {
+#endif /* defined(__x86_64__) */
         struct pci_domain *domain = NULL;
         list_foreach(domain, &domain_list, list) {
             pci_parse_domain(domain);
         }
+#if defined(__x86_64__)
     }
+#endif /* defined(__x86_64__) */
 
     pci_init_drivers();
 }
