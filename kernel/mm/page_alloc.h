@@ -9,8 +9,7 @@
 #include "lib/list.h"
 
 #include "page.h"
-
-#define MAX_ORDER 21
+#include "mm/types.h"
 
 #define alloc_page(flags) alloc_pages((flags), /*order=*/0)
 #define free_page(page) free_pages((page), /*order=*/0)

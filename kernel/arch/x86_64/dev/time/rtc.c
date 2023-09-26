@@ -34,7 +34,7 @@ enum cmos_rtc_reg_status_b_masks {
 static inline bool rtc_wait_until_available() {
     for (uint64_t i = 0; i != MAX_ATTEMPTS; i++) {
         const uint8_t reg_a = cmos_read(CMOS_REGISTER_RTC_STATUS_A);
-        if (!(reg_a & __CMOS_RTC_REGSTATUS_A_UPDATE_IN_PROG)) {
+        if ((reg_a & __CMOS_RTC_REGSTATUS_A_UPDATE_IN_PROG) == 0) {
             return true;
         }
     }

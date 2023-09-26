@@ -7,7 +7,9 @@
 #include "asm/tcr.h"
 
 #include "dev/printk.h"
+
 #include "mm/kmalloc.h"
+#include "mm/mmio.h"
 
 #include "cpu.h"
 #include "features.h"

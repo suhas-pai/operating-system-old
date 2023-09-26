@@ -13,7 +13,7 @@
 struct growable_buffer gbuffer_alloc(const uint32_t init_cap) {
     const struct growable_buffer gbuffer = {
         .begin = malloc(init_cap),
-        .end = gbuffer.begin + init_cap,
+        .end = gbuffer.begin != NULL ? gbuffer.begin + init_cap : NULL,
         .is_alloc = true
     };
 

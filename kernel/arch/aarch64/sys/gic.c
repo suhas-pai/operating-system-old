@@ -183,7 +183,7 @@ static void init_with_regs() {
          i < g_dist.interrupt_lines_count;
          i += 32)
     {
-        const uint16_t index = i / (4 * 8);
+        const uint16_t index = i / (sizeof(uint32_t) * 8);
         mmio_write(&g_regs->interrupt_group[index], /*value=*/0);
     }
 
@@ -192,7 +192,7 @@ static void init_with_regs() {
              i <  g_dist.interrupt_lines_count;
              i += 32)
         {
-            const uint32_t index = i / sizeof(uint64_t);
+            const uint32_t index = i / (2 * sizeof(uint32_t));
             mmio_write(g_regs->interrupt_clear_enable + index, 0xFFFFFFFF);
         }
     } else {
@@ -200,7 +200,7 @@ static void init_with_regs() {
              i <  g_dist.interrupt_lines_count;
              i += 32)
         {
-            const uint32_t index = i / sizeof(uint64_t);
+            const uint32_t index = i / (2 * sizeof(uint32_t));
             mmio_write(g_regs->interrupt_clear_active_enable + index,
                        0xFFFFFFFF);
         }

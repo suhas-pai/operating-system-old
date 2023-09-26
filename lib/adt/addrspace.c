@@ -26,6 +26,7 @@ addrspace_node_init(struct address_space *const addrspace,
 }
 
 struct addrspace_node *addrspace_node_prev(struct addrspace_node *const node) {
+    assert(node->list.prev != NULL);
     if (node->list.prev == &node->addrspace->list) {
         return NULL;
     }

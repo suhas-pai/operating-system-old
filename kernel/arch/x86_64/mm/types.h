@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include "lib/macros.h"
 
+#define MAX_ORDER 21
+
 #define PML1_SHIFT 12
 #define PML2_SHIFT 21
 #define PML3_SHIFT 30
@@ -59,8 +61,8 @@ struct largepage_level_info {
 };
 
 __unused static struct largepage_level_info largepage_level_info_list[] = {
-    { .order = 10, .level = LARGEPAGE_LEVEL_2MIB, .size = PAGE_SIZE_2MIB },
-    { .order = 20, .level = LARGEPAGE_LEVEL_1GIB, .size = PAGE_SIZE_1GIB }
+    { .order = 9, .level = LARGEPAGE_LEVEL_2MIB, .size = PAGE_SIZE_2MIB },
+    { .order = 18, .level = LARGEPAGE_LEVEL_1GIB, .size = PAGE_SIZE_1GIB }
 };
 
 #define PAGE_SIZE_AT_LEVEL(level) \
@@ -83,8 +85,8 @@ enum pte_flags {
     __PTE_PWT      = 1ull << 3,
     __PTE_PCD      = 1ull << 4,
     __PTE_ACCESSED = 1ull << 5,
-    __PTE_LARGE    = 1ull << 7,
-    __PTE_WC       = 1ull << 7, // Only on PML1 pages
+    __PTE_LARGE    = 1ull << 7, // Not valid on PML1 pages
+    __PTE_WC       = 1ull << 7, // Only valid on PML1 pages
     __PTE_GLOBAL   = 1ull << 8,
 
     __PTE_NOEXEC = 1ull << 63

@@ -26,7 +26,7 @@ flags_from_info(struct pagemap *const pagemap,
         result |= __PTE_WRITE;
     }
 
-    if (!(prot & PROT_EXEC)) {
+    if ((prot & PROT_EXEC) == 0) {
         result |= __PTE_NOEXEC;
     }
 

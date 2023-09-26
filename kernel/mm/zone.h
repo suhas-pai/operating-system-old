@@ -22,7 +22,7 @@ struct page_zone {
     uint64_t total_free;
 
     // Smallest non-empty order;
-    _Atomic uint8_t min_order;
+    uint8_t min_order;
 };
 
 struct page_zone *page_zone_iterstart();

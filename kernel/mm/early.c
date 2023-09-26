@@ -35,9 +35,6 @@ static uint64_t total_free_pages_remaining = 0;
 static void claim_pages(const struct mm_memmap *const memmap) {
     const uint64_t page_count = PAGE_COUNT(memmap->range.size);
 
-    // Check if the we can combine this entry and the prior one.
-    // Store structure in the first page in list.
-
     struct freepages_info *const info = phys_to_virt(memmap->range.front);
     list_init(&info->list);
 
@@ -157,7 +154,7 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
     const uint64_t free_page =
         virt_to_phys(info) + (info->avail_page_count * PAGE_SIZE);
 
-    zero_page(phys_to_virt(free_page));
+    zero_multiple_pages(phys_to_virt(free_page), alloc_amount);
     total_free_pages_remaining -= alloc_amount;
 
     return free_page;
@@ -484,7 +481,7 @@ void mark_last_part_of_structpage_table() {
         pfn_to_page(last_section->pfn + PAGE_COUNT(last_section->range.size));
 
     const struct page *const end = (struct page *)PAGE_END;
-    for (; page < end; page++) {
+    for (; page + sizeof(*page) <= end; page++) {
         page->flags = PAGE_NOT_USABLE;
     }
 }
@@ -570,8 +567,8 @@ void mm_early_post_arch_init() {
 
     // Iterate over the usable-memmaps (sections) three times.
     //  1. Iterate over the used-pages first. This must be done first because
-    //     it needs to be before memmaps are merged, as before the merge, its
-    //     obvious which pages are used.
+    //     it needs to be done before memmaps are merged, as before the merge,
+    //     its obvious which pages are used.
     //  2. Set the section mask in page->flags.
     //  3. Setup the bitmap for each memmap. This needs to be separately, and
     //     last, because it needs to call phys_to_page(), which only works after
@@ -643,7 +640,7 @@ void mm_early_post_arch_init() {
         uint64_t avail = iter->avail_page_count;
 
         struct page *page = phys_to_page(phys);
-        while (avail != 0) {
+        do {
             for (int8_t order = MAX_ORDER - 1; order >= 0; order--) {
                 if (avail < (1ull << order)) {
                     continue;
@@ -663,7 +660,7 @@ void mm_early_post_arch_init() {
                 page += 1ull << order;
                 phys += PAGE_SIZE << order;
             }
-        }
+        } while (avail != 0);
 
         list_delete(&iter->list);
         free_page_count += iter->avail_page_count;

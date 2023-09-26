@@ -121,35 +121,33 @@ DECL_MEM_CMP_FUNC(uint16_t)
 DECL_MEM_CMP_FUNC(uint32_t)
 DECL_MEM_CMP_FUNC(uint64_t)
 
-#if !defined(__x86_64__)
-    #define DECL_MEM_COPY_FUNC(type) \
-        __optimize(3) static inline unsigned long  \
-        VAR_CONCAT(_memcpy_, type)(void *dst,                  \
-                                   const void *src,            \
-                                   unsigned long n,            \
-                                   void **const dst_out,       \
-                                   const void **const src_out) \
-        {                                                                      \
-            while (n >= sizeof(type)) {                                        \
-                *(type *)dst = *(const type *)src;                             \
-                                                                               \
-                dst += sizeof(type);                                           \
-                src += sizeof(type);                                           \
-                                                                               \
-                n -= sizeof(type);                                             \
-            }                                                                  \
-                                                                               \
-            *dst_out = dst;                                                    \
-            *src_out = src;                                                    \
-                                                                               \
-            return n;                                                          \
-        }
+#define DECL_MEM_COPY_FUNC(type) \
+    __optimize(3) static inline unsigned long  \
+    VAR_CONCAT(_memcpy_, type)(void *dst,                  \
+                                const void *src,            \
+                                unsigned long n,            \
+                                void **const dst_out,       \
+                                const void **const src_out) \
+    {                                                                      \
+        while (n >= sizeof(type)) {                                        \
+            *(type *)dst = *(const type *)src;                             \
+                                                                            \
+            dst += sizeof(type);                                           \
+            src += sizeof(type);                                           \
+                                                                            \
+            n -= sizeof(type);                                             \
+        }                                                                  \
+                                                                            \
+        *dst_out = dst;                                                    \
+        *src_out = src;                                                    \
+                                                                            \
+        return n;                                                          \
+    }
 
-    DECL_MEM_COPY_FUNC(uint8_t)
-    DECL_MEM_COPY_FUNC(uint16_t)
-    DECL_MEM_COPY_FUNC(uint32_t)
-    DECL_MEM_COPY_FUNC(uint64_t)
-#endif /* !defined(__x86_64__) */
+DECL_MEM_COPY_FUNC(uint8_t)
+DECL_MEM_COPY_FUNC(uint16_t)
+DECL_MEM_COPY_FUNC(uint32_t)
+DECL_MEM_COPY_FUNC(uint64_t)
 
 __optimize(3) int memcmp(const void *left, const void *right, size_t len) {
     int res = _memcmp_uint64_t(left, right, len, &left, &right, &len);
@@ -173,10 +171,12 @@ __optimize(3) int memcmp(const void *left, const void *right, size_t len) {
 
 __optimize(3) void *memcpy(void *dst, const void *src, unsigned long n) {
     void *ret = dst;
-
 #if defined(__x86_64__)
-    asm volatile ("rep movsb" :: "D"(dst), "S"(src), "c"(n) : "memory");
-#else
+    if (n >= 32) {
+        asm volatile ("rep movsb" :: "D"(dst), "S"(src), "c"(n) : "memory");
+        return ret;
+    }
+#endif
     if (n >= sizeof(uint64_t)) {
         n = _memcpy_uint64_t(dst, src, n, &dst, &src);
         n = _memcpy_uint32_t(dst, src, n, &dst, &src);
@@ -198,7 +198,6 @@ __optimize(3) void *memcpy(void *dst, const void *src, unsigned long n) {
     } else {
         _memcpy_uint8_t(dst, src, n, &dst, &src);
     }
-#endif /* defined(__x86_64__) */
 
     return ret;
 }

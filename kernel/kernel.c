@@ -60,7 +60,6 @@ void _start(void) {
     boot_early_init();
     arch_early_init();
 
-    // We're done, just hang...
     serial_init();
     printk(LOGLEVEL_INFO, "Console is working?\n");
 
@@ -74,5 +73,6 @@ void _start(void) {
     enable_all_interrupts();
     printk(LOGLEVEL_INFO, "kernel: finished initializing\n");
 
+    // We're done, just hang...
     hcf();
 }

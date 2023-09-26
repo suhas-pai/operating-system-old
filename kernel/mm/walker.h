@@ -107,11 +107,6 @@ ptwalker_next_with_options(struct pt_walker *walker,
                            void *const free_pgtable_cb_info);
 
 void
-ptwalker_fill_in_lowest(struct pt_walker *walker,
-                        struct page *page,
-                        bool should_ref);
-
-void
 ptwalker_deref_from_level(struct pt_walker *walker,
                           pgt_level_t level,
                           void *free_pgtable_cb_info);

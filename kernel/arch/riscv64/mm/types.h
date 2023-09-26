@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include "lib/macros.h"
 
+#define MAX_ORDER 31
+
 #define PML1_SHIFT 12
 #define PML2_SHIFT 21
 #define PML3_SHIFT 30
@@ -62,9 +64,9 @@ struct largepage_level_info {
 };
 
 __unused static struct largepage_level_info largepage_level_info_list[] = {
-    { .order = 10, .level = LARGEPAGE_LEVEL_2MIB, .size = PAGE_SIZE_2MIB },
-    { .order = 20, .level = LARGEPAGE_LEVEL_1GIB, .size = PAGE_SIZE_1GIB },
-    { .order = 30, .level = LARGEPAGE_LEVEL_512GIB, .size = PAGE_SIZE_512GIB }
+    { .order = 9, .level = LARGEPAGE_LEVEL_2MIB, .size = PAGE_SIZE_2MIB },
+    { .order = 18, .level = LARGEPAGE_LEVEL_1GIB, .size = PAGE_SIZE_1GIB },
+    { .order = 27, .level = LARGEPAGE_LEVEL_512GIB, .size = PAGE_SIZE_512GIB }
 };
 
 #define PAGE_SIZE_AT_LEVEL(level) \

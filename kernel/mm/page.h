@@ -47,7 +47,7 @@ enum struct_page_flags {
     PAGE_NOT_USABLE = 1 << 0,
     PAGE_IN_FREE_LIST = 1 << 1,
     PAGE_IS_SLAB_HEAD = 1 << 2,
-    PAGE_IS_LARGE_HEAD = 1 << 3,
+    PAGE_IN_LARGE_PAGE = 1 << 3,
 };
 
 uint32_t page_get_flags(const struct page *page);

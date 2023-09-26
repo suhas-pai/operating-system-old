@@ -6,9 +6,7 @@
 #pragma once
 
 #include "acpi/structs.h"
-#include "lib/list.h"
 #include "mm/pagemap.h"
-#include "sys/gic.h"
 
 struct pagemap;
 struct cpu_info {

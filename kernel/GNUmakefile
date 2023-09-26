@@ -49,6 +49,10 @@ ifeq ($(ARCH), riscv64)
 	override COMMON_FLAGS += -D__riscv64
 endif
 
+ifeq ($(IN_QEMU), 1)
+	override COMMON_FLAGS += -DIN_QEMU
+endif
+
 # User controllable C flags.
 override DEFAULT_CFLAGS := $(COMMON_FLAGS)
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))

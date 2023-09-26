@@ -557,27 +557,6 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
                                 free_pgtable_cb_info);
 }
 
-void
-ptwalker_fill_in_lowest(struct pt_walker *const walker,
-                        struct page *const page,
-                        const bool should_ref)
-{
-    if (walker->level < 1) {
-        return;
-    }
-
-    const pgt_level_t level = walker->level - 1;
-
-    // Get pte for (level + 1), whose index is (level + 1) - 1 == level
-    pte_t *const table = walker->tables[level];
-    pte_t *const pte = table + walker->indices[level];
-
-    pte_write(pte, page_to_phys(page) | PGT_FLAGS);
-    if (should_ref) {
-        ref_up(&virt_to_page(table)->table.refcount);
-    }
-}
-
 enum pt_walker_result
 ptwalker_fill_in_to(struct pt_walker *const walker,
                     const pgt_level_t level,

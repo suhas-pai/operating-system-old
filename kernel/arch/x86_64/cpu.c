@@ -204,17 +204,17 @@ static void init_cpuid_features() {
 }
 
 __optimize(3) const struct cpu_info *get_base_cpu_info() {
-    assert(g_base_cpu_init);
+    assert(__builtin_expect(g_base_cpu_init, 1));
     return &g_base_cpu_info;
 }
 
 __optimize(3) const struct cpu_info *get_cpu_info() {
-    assert(g_base_cpu_init);
+    assert(__builtin_expect(g_base_cpu_init, 1));
     return (const struct cpu_info *)read_gsbase();
 }
 
 __optimize(3) struct cpu_info *get_cpu_info_mut() {
-    assert(g_base_cpu_init);
+    assert(__builtin_expect(g_base_cpu_init, 1));
     return (struct cpu_info *)read_gsbase();
 }
 

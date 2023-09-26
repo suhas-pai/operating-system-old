@@ -19,11 +19,11 @@ flags_from_info(struct pagemap *const pagemap,
         result |= __PTE_NONGLOBAL | __PTE_USER;
     }
 
-    if (!(prot & PROT_WRITE)) {
+    if ((prot & PROT_WRITE) == 0) {
         result |= __PTE_RO;
     }
 
-    if (!(prot & PROT_EXEC)) {
+    if ((prot & PROT_EXEC) == 0) {
         result |= __PTE_UXN | __PTE_PXN;
     }
 
