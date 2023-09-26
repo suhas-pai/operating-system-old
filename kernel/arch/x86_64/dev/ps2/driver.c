@@ -91,14 +91,10 @@ int16_t ps2_send_to_port(const enum ps2_port_id device, const uint8_t byte) {
     return PS2_RESPONSE_FAIL;
 }
 
-// FIXME: ps2_get_device_kind() will not properly re-enable scanning.
-
 static bool
 ps2_get_device_kind(const enum ps2_port_id device_id,
                     enum ps2_device_kind *const result_out)
 {
-    // NOTE: TODO: This system of verification isn't verified.
-
     /*
      * Stage 1:
      *  Send the "disable scanning" command 0xF5 to the device
@@ -130,8 +126,8 @@ ps2_get_device_kind(const enum ps2_port_id device_id,
 
     /* NOTE: This is a hack. We're not supposed to have to have these checks. */
 
-    int16_t first = ps2_read_input_byte();
-    int16_t second = ps2_read_input_byte();
+    const int16_t first = ps2_read_input_byte();
+    const int16_t second = ps2_read_input_byte();
 
     printk(LOGLEVEL_INFO,
            "ps2: port %" PRIu8 " identity: 0x%" PRIx16 " 0x%" PRIx16 "\n",

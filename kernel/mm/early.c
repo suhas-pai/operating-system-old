@@ -27,7 +27,7 @@ _Static_assert(sizeof(struct freepages_info) <= PAGE_SIZE,
                "freepages_info struct must be small enough to store on a "
                "single page");
 
-static struct list freepages_list = LIST_INIT(freepages_list);
+static struct list g_freepage_list = LIST_INIT(g_freepage_list);
 static uint64_t freepages_list_count = 0;
 static uint64_t total_free_pages = 0;
 static uint64_t total_free_pages_remaining = 0;
@@ -50,13 +50,13 @@ static void claim_pages(const struct mm_memmap *const memmap) {
     freepages_list_count++;
     if (freepages_list_count != 1) {
         struct freepages_info *prev =
-            list_tail(&freepages_list, struct freepages_info, list);
+            list_tail(&g_freepage_list, struct freepages_info, list);
 
         if (prev > info) {
-            prev = container_of(&freepages_list, struct freepages_info, list);
+            prev = container_of(&g_freepage_list, struct freepages_info, list);
             struct freepages_info *iter = NULL;
 
-            list_foreach(iter, &freepages_list, list) {
+            list_foreach(iter, &g_freepage_list, list) {
                 if (info < iter) {
                     break;
                 }
@@ -64,7 +64,7 @@ static void claim_pages(const struct mm_memmap *const memmap) {
                 prev = iter;
             }
 
-            if (prev->list.next != &freepages_list) {
+            if (prev->list.next != &g_freepage_list) {
                 // Use avail_page_count so we don't merge two memmaps that seem
                 // to connect but actually have a block of allocated pages
                 // separating them.
@@ -81,7 +81,7 @@ static void claim_pages(const struct mm_memmap *const memmap) {
             }
         }
 
-        if (&prev->list != &freepages_list) {
+        if (&prev->list != &g_freepage_list) {
             // Use avail_page_count so we don't merge two memmaps that seem to
             // connect but actually have a block of allocated pages separating
             // them.
@@ -99,17 +99,17 @@ static void claim_pages(const struct mm_memmap *const memmap) {
         return;
     }
 
-    list_add(&freepages_list, &info->list);
+    list_add(&g_freepage_list, &info->list);
 }
 
 uint64_t early_alloc_page() {
-    if (__builtin_expect(list_empty(&freepages_list), 0)) {
+    if (__builtin_expect(list_empty(&g_freepage_list), 0)) {
         printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
         return INVALID_PHYS;
     }
 
     struct freepages_info *const info =
-        list_head(&freepages_list, struct freepages_info, list);
+        list_head(&g_freepage_list, struct freepages_info, list);
 
     // Take last page out of list, because first page stores the freepage_info
     // struct.
@@ -129,13 +129,13 @@ uint64_t early_alloc_page() {
 }
 
 uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
-    if (__builtin_expect(list_empty(&freepages_list), 0)) {
+    if (__builtin_expect(list_empty(&g_freepage_list), 0)) {
         printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
         return INVALID_PHYS;
     }
 
     struct freepages_info *info = NULL;
-    list_foreach(info, &freepages_list, list) {
+    list_foreach(info, &g_freepage_list, list) {
         const uint64_t avail_page_count = info->avail_page_count;
         if (avail_page_count >= alloc_amount) {
             break;
@@ -164,7 +164,7 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
 }
 
 uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
-    if (__builtin_expect(list_empty(&freepages_list), 0)) {
+    if (__builtin_expect(list_empty(&g_freepage_list), 0)) {
         printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
         return INVALID_PHYS;
     }
@@ -174,7 +174,7 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
     uint64_t free_page = INVALID_PHYS;
     bool is_in_middle = false;
 
-    list_foreach(info, &freepages_list, list) {
+    list_foreach(info, &g_freepage_list, list) {
         const uint64_t avail_page_count = info->avail_page_count;
         if (avail_page_count < alloc_amount) {
             continue;
@@ -286,7 +286,7 @@ void mm_early_init() {
                 // Because we're claiming this kind of memmap later, they are
                 // still represented in the structpage table.
 
-                structpage_page_count += PAGE_COUNT(memmap->range.size);
+                //structpage_page_count += PAGE_COUNT(memmap->range.size);
                 break;
             case MM_MEMMAP_KIND_KERNEL_AND_MODULES:
                 type_desc = "kernel-and-modules";
@@ -406,13 +406,14 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
 
 void mark_used_pages(const struct mm_section *const memmap) {
     struct freepages_info *iter = NULL;
-    list_foreach(iter, &freepages_list, list) {
+    list_foreach(iter, &g_freepage_list, list) {
         uint64_t iter_phys = virt_to_phys(iter);
         if (!range_has_loc(memmap->range, iter_phys)) {
             continue;
         }
 
-        struct page *page = phys_to_page(memmap->range.front);
+        struct page *const start = phys_to_page(memmap->range.front);
+        struct page *page = start;
         struct page *const unusable_end = virt_to_page(iter);
 
         for (; page != unusable_end; page++) {
@@ -422,7 +423,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
         while (true) {
             page += iter->avail_page_count;
 
-            // Mark all pages as non-usable that exist from after iter.
+            // Mark all pages after iter as non-usable.
             for (uint64_t i = iter->avail_page_count;
                  i != iter->total_page_count;
                  i++, page++)
@@ -431,12 +432,26 @@ void mark_used_pages(const struct mm_section *const memmap) {
             }
 
             iter = list_next(iter, list);
-            if (&iter->list == &freepages_list) {
+            if (&iter->list == &g_freepage_list) {
+                const struct page *const memmap_end =
+                    start + PAGE_COUNT(memmap->range.size);
+
+                for (; page != memmap_end; page++) {
+                    page->flags = PAGE_NOT_USABLE;
+                }
+
                 return;
             }
 
             iter_phys = virt_to_phys(iter);
             if (!range_has_loc(memmap->range, iter_phys)) {
+                const struct page *const memmap_end =
+                    start + PAGE_COUNT(memmap->range.size);
+
+                for (; page != memmap_end; page++) {
+                    page->flags = PAGE_NOT_USABLE;
+                }
+
                 return;
             }
 
@@ -457,6 +472,19 @@ void mark_used_pages(const struct mm_section *const memmap) {
     struct page *page = phys_to_page(memmap->range.front);
 
     for (uint64_t i = 0; i != memmap_page_count; i++, page++) {
+        page->flags = PAGE_NOT_USABLE;
+    }
+}
+
+void mark_last_part_of_structpage_table() {
+    const struct mm_section *const last_section =
+        &mm_get_usable_list()[mm_get_usable_count() - 1];
+
+    struct page *page =
+        pfn_to_page(last_section->pfn + PAGE_COUNT(last_section->range.size));
+
+    const struct page *const end = (struct page *)PAGE_END;
+    for (; page < end; page++) {
         page->flags = PAGE_NOT_USABLE;
     }
 }
@@ -500,7 +528,7 @@ set_section_for_pages(const struct mm_section *const memmap,
                       const page_section_t section)
 {
     struct freepages_info *iter = NULL;
-    list_foreach(iter, &freepages_list, list) {
+    list_foreach(iter, &g_freepage_list, list) {
         const uint64_t iter_phys = virt_to_phys(iter);
         if (!range_has_loc(memmap->range, iter_phys)) {
             continue;
@@ -510,10 +538,11 @@ set_section_for_pages(const struct mm_section *const memmap,
             PAGE_COUNT(memmap->range.size -
                        range_index_for_loc(memmap->range, iter_phys));
 
+        assert(iter->avail_page_count <= pages_in_this_section);
+
         // Mark all usable pages that exist from in iter.
         struct page *page = virt_to_page(iter);
-        struct page *const end =
-            page + min(iter->avail_page_count, pages_in_this_section);
+        struct page *const end = page + iter->avail_page_count;
 
         for (; page != end; page++) {
             page->flags = (section & SECTION_MASK) << SECTION_SHIFT;
@@ -535,7 +564,7 @@ void mm_early_post_arch_init() {
     for (uint64_t index = 0; index != mm_get_memmap_count(); index++) {
         const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
         if (memmap->kind == MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE) {
-            claim_pages(memmap);
+            //claim_pages(memmap);
         }
     }
 
@@ -553,7 +582,9 @@ void mm_early_post_arch_init() {
         mark_used_pages(mm_get_usable_list() + index);
     }
 
+    mark_last_part_of_structpage_table();
     boot_merge_usable_memmaps();
+
     for (uint64_t index = 0; index != mm_get_usable_count(); index++) {
         struct mm_section *const section = mm_get_usable_list() + index;
         set_section_for_pages(section, /*section=*/index);
@@ -607,17 +638,42 @@ void mm_early_post_arch_init() {
     struct freepages_info *tmp = NULL;
 
     uint64_t free_page_count = 0;
-    list_foreach_mut(iter, tmp, &freepages_list, list) {
-        list_delete(&iter->list);
+    list_foreach_mut(iter, tmp, &g_freepage_list, list) {
+        uint64_t phys = virt_to_phys(iter);
+        uint64_t avail = iter->avail_page_count;
 
-        struct page *page = virt_to_page(iter);
-        const struct page *const page_end = page + iter->avail_page_count;
+        struct page *page = phys_to_page(phys);
+        while (avail != 0) {
+            for (int8_t order = MAX_ORDER - 1; order >= 0; order--) {
+                if (avail < (1ull << order)) {
+                    continue;
+                }
 
-        for (; page != page_end; page++) {
-            early_free_pages_to_zone(page, page_to_zone(page), /*order=*/0);
+                struct page_zone *const zone = phys_to_zone(phys);
+                const uint64_t back_phys =
+                    phys + ((PAGE_SIZE << order) - PAGE_SIZE);
+
+                if (zone != phys_to_zone(back_phys)) {
+                    continue;
+                }
+
+                early_free_pages_to_zone(page, zone, (uint8_t)order);
+
+                avail -= 1ull << order;
+                page += 1ull << order;
+                phys += PAGE_SIZE << order;
+            }
         }
 
+        list_delete(&iter->list);
         free_page_count += iter->avail_page_count;
+    }
+
+    for_each_page_zone(zone) {
+        printk(LOGLEVEL_INFO,
+               "mm: zone %s has %" PRIu64 " pages\n",
+               zone->name,
+               zone->total_free);
     }
 
     printk(LOGLEVEL_INFO,

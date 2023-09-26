@@ -10,7 +10,7 @@
 
 #include "page.h"
 
-#define MAX_ORDER 20
+#define MAX_ORDER 21
 
 #define alloc_page(flags) alloc_pages((flags), /*order=*/0)
 #define free_page(page) free_pages((page), /*order=*/0)

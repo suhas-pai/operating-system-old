@@ -12,7 +12,7 @@
 #include "cpu.h"
 #include "pagemap.h"
 
-struct pagemap kernel_pagemap = {
+__hidden struct pagemap kernel_pagemap = {
 #if defined(__aarch64__)
     .lower_root = NULL, // setup later
     .higher_root = NULL, // setup later

@@ -4,7 +4,9 @@
  */
 
 #pragma once
+
 #include <stdint.h>
+#include "lib/macros.h"
 
 #define PML1_SHIFT 12
 #define PML2_SHIFT 21
@@ -48,6 +50,22 @@ static const uint8_t LARGEPAGE_SHIFTS[] = {
 #define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
 #define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
 #define PAGE_SIZE_512GIB (1ull << LARGEPAGE_SHIFTS[2])
+
+#define LARGEPAGE_LEVEL_2MIB LARGEPAGE_LEVELS[0]
+#define LARGEPAGE_LEVEL_1GIB LARGEPAGE_LEVELS[1]
+#define LARGEPAGE_LEVEL_512GIB LARGEPAGE_LEVELS[2]
+
+struct largepage_level_info {
+    uint8_t order;
+    uint8_t level; // can't use pgt_level_t
+    uint64_t size;
+};
+
+__unused static struct largepage_level_info largepage_level_info_list[] = {
+    { .order = 10, .level = LARGEPAGE_LEVEL_2MIB, .size = PAGE_SIZE_2MIB },
+    { .order = 20, .level = LARGEPAGE_LEVEL_1GIB, .size = PAGE_SIZE_1GIB },
+    { .order = 30, .level = LARGEPAGE_LEVEL_512GIB, .size = PAGE_SIZE_512GIB }
+};
 
 #define PAGE_SIZE_AT_LEVEL(level) \
     ({\

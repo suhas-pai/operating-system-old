@@ -18,9 +18,6 @@ struct mm_section {
     /*
      * Store memmap large enough to store a large page in a linked-list for each
      * supported large page level.
-     *
-     * Note that this field is only valid on memmaps from the usable-memmap
-     * list.
      */
 
     struct list largepage_list[countof(LARGEPAGE_LEVELS)];

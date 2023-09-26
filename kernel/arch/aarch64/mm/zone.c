@@ -9,22 +9,36 @@
 #include "mm/zone.h"
 
 static struct page_zone zone_low4G = {
+    .lock = SPINLOCK_INIT(),
+    .name = "low4g",
+
+    .freelist_list = {},
     .fallback_zone = NULL,
+
     .min_order = MAX_ORDER,
 };
 
 static struct page_zone zone_default = {
+    .lock = SPINLOCK_INIT(),
+    .name = "default",
+
+    .freelist_list = {},
     .fallback_zone = &zone_low4G,
+
     .min_order = MAX_ORDER,
 };
 
 static struct page_zone zone_highmem = {
+    .lock = SPINLOCK_INIT(),
+    .name = "highmem",
+
+    .freelist_list = {},
     .fallback_zone = &zone_default,
+
     .min_order = MAX_ORDER,
 };
 
-__optimize(3) struct page_zone *page_to_zone(struct page *const page) {
-    const uint64_t phys = page_to_phys(page);
+__optimize(3) struct page_zone *phys_to_zone(const uint64_t phys) {
     if (phys < gib(4)) {
         return &zone_low4G;
     }

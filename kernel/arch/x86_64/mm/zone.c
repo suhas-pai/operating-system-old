@@ -10,35 +10,49 @@
 #include "mm/zone.h"
 
 static struct page_zone zone_low4g = {
+    .lock = SPINLOCK_INIT(),
+    .name = "low4g",
+
+    .freelist_list = {},
     .fallback_zone = NULL,
+
     .min_order = MAX_ORDER,
 };
 
 static struct page_zone zone_default = {
+    .lock = SPINLOCK_INIT(),
+    .name = "default",
+
+    .freelist_list = {},
     .fallback_zone = &zone_low4g,
+
     .min_order = MAX_ORDER,
 };
 
-static struct page_zone zone_high_896gib = {
+static struct page_zone zone_highmem = {
+    .lock = SPINLOCK_INIT(),
+    .name = "highmem",
+
+    .freelist_list = {},
     .fallback_zone = &zone_default,
+
     .min_order = MAX_ORDER,
 };
 
-__optimize(3) struct page_zone *page_to_zone(struct page *const page) {
-    const uint64_t phys = page_to_phys(page);
+__optimize(3) struct page_zone *phys_to_zone(const uint64_t phys) {
     if (phys < gib(4)) {
         return &zone_low4g;
     }
 
     if (phys >= gib(896)) {
-        return &zone_high_896gib;
+        return &zone_highmem;
     }
 
     return &zone_default;
 }
 
 __optimize(3) struct page_zone *page_zone_iterstart() {
-    return &zone_high_896gib;
+    return &zone_highmem;
 }
 
 __optimize(3)
@@ -48,7 +62,7 @@ struct page_zone *page_zone_iternext(struct page_zone *const zone) {
 
 __optimize(3) struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
     if (flags & __ALLOC_HIGHMEM) {
-        return &zone_high_896gib;
+        return &zone_highmem;
     }
 
     if (flags & __ALLOC_LOW4G) {

@@ -14,6 +14,7 @@ __hidden const uint64_t VMAP_BASE = 0xffffffe000000000;
 __hidden const uint64_t VMAP_END = 0xfffffff000000000;
 
 __hidden uint64_t PAGING_MODE = 0;
+__hidden uint64_t PAGE_END = 0;
 
 __optimize(3) pgt_level_t pgt_get_top_level() {
     switch (PAGING_MODE) {

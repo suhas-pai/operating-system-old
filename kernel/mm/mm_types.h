@@ -18,7 +18,7 @@
 
 #define PAGE_COUNT(size) (((uint64_t)(size) / PAGE_SIZE))
 
-#define SECTION_SHIFT (sizeof(uint32_t) - sizeof(uint8_t))
+#define SECTION_SHIFT (sizeof_bits(uint32_t) - sizeof_bits(uint8_t))
 #define SECTION_MASK 0xFF
 
 #define __page_aligned __aligned(PAGE_SIZE)
@@ -75,6 +75,7 @@ extern const uint64_t PAGE_OFFSET;
 extern const uint64_t VMAP_BASE;
 extern const uint64_t VMAP_END;
 
+extern uint64_t PAGE_END;
 extern uint64_t PAGING_MODE;
 
 enum prot_flags {

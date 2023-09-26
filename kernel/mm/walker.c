@@ -366,7 +366,7 @@ ptwalker_next_with_options(struct pt_walker *const walker,
         return E_PT_WALKER_OK;
     }
 
-    // Start tables from level + 1, as level incremented soon anyways.
+    // Start tables from level + 1, as level is incremented soon anyways.
     pte_t **tables_ptr = walker->tables + level;
     const pgt_level_t orig_level = level;
 

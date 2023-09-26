@@ -13,6 +13,7 @@ __hidden const uint64_t VMAP_BASE = 0xffffd00000000000;
 __hidden const uint64_t VMAP_END = 0xffffe00000000000;
 
 __hidden uint64_t PAGING_MODE = 0;
+__hidden uint64_t PAGE_END = 0;
 
 __optimize(3) pgt_level_t pgt_get_top_level() {
     const bool has_5lvl_paging = PAGING_MODE == LIMINE_PAGING_MODE_X86_64_5LVL;

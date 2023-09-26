@@ -62,8 +62,8 @@ __optimize(3) static inline void list_delete(struct list *const elem) {
 #define list_del(type, elem, name) \
     ({ list_delete(elem); container_of(elem, type, name)})
 
-#define list_prev(ob, name) container_of(ob->name.prev, typeof(*ob), name)
-#define list_next(ob, name) container_of(ob->name.next, typeof(*ob), name)
+#define list_prev(ob, name) container_of(ob->name.prev, typeof(*(ob)), name)
+#define list_next(ob, name) container_of(ob->name.next, typeof(*(ob)), name)
 
 #define list_head(list, type, name) \
     ((type *)((void *)((char *)(list)->next - offsetof(type, name))))

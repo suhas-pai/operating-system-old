@@ -176,9 +176,7 @@ void boot_init() {
             .kind = (enum mm_memmap_kind)(memmap->type + 1),
         };
 
-        if (memmap->type == LIMINE_MEMMAP_USABLE ||
-            memmap->type == LIMINE_MEMMAP_BOOTLOADER_RECLAIMABLE)
-        {
+        if (memmap->type == LIMINE_MEMMAP_USABLE) {
             mm_usable_list[usable_index].pfn = pfn;
             mm_usable_list[usable_index].range =
                 mm_memmap_list[memmap_index].range;

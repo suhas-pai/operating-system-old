@@ -233,7 +233,9 @@ static void setup_pagestructs_table() {
 
     // Map struct page table
     const uint64_t pte_flags = __PTE_WRITE | __PTE_GLOBAL;
+
     alloc_region(PAGE_OFFSET, map_size, pte_flags);
+    PAGE_END = PAGE_OFFSET + map_size;
 
     printk(LOGLEVEL_INFO, "mm: finished mapping structpage-table\n");
 }
