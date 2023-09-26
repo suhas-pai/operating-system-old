@@ -71,33 +71,6 @@ take_off_freelist(struct page_zone *const zone,
 }
 
 __optimize(3) static struct page *
-early_take_off_freelist(struct page_zone *const zone,
-                        struct page_freelist *freelist,
-                        struct page *const page)
-{
-    list_delete(&page->buddy.freelist);
-
-    page->flags &= (uint64_t)~PAGE_IN_FREE_LIST;
-    freelist->count--;
-
-    const uint8_t freelist_order = freelist - zone->freelist_list;
-    zone->total_free -= 1ull << freelist_order;
-
-    if (freelist->count == 0) {
-        const struct page_freelist *const end = carr_end(zone->freelist_list);
-        for (; freelist != end; freelist++) {
-            if (freelist->count != 0) {
-                break;
-            }
-        }
-
-        zone->min_order = freelist - zone->freelist_list;
-    }
-
-    return page;
-}
-
-__optimize(3) static struct page *
 get_from_freelist(struct page_zone *const zone,
                   struct page_freelist *const freelist)
 {
@@ -421,47 +394,6 @@ early_free_pages_to_zone(struct page *page,
                          struct page_zone *const zone,
                          uint8_t order)
 {
-    uint64_t page_pfn = page_to_pfn(page);
-    page_section_t page_section =
-        (page->flags >> SECTION_SHIFT) & SECTION_SHIFT;
-
-    for (; order < MAX_ORDER - 1; order++) {
-        const uint64_t buddy_pfn = buddy_of(page_pfn, order);
-        struct page *buddy = pfn_to_page(buddy_pfn);
-
-        const uint32_t buddy_flags = buddy->flags;
-        if (buddy_flags & PAGE_NOT_USABLE) {
-            break;
-        }
-
-        if (zone != page_to_zone(buddy)) {
-            break;
-        }
-
-        const page_section_t buddy_section =
-            (buddy_flags >> SECTION_SHIFT) & SECTION_SHIFT;
-
-        if (page_section != buddy_section) {
-            break;
-        }
-
-        if ((buddy_flags & PAGE_IN_FREE_LIST) == 0) {
-            break;
-        }
-
-        if (buddy->buddy.order != order) {
-            break;
-        }
-
-        early_take_off_freelist(zone, zone->freelist_list + order, buddy);
-        if (buddy_pfn < page_pfn) {
-            swap(page, buddy);
-
-            page_pfn = buddy_pfn;
-            page_section = buddy_section;
-        }
-    }
-
     page->buddy.order = order;
     zone->total_free += 1ull << order;
 

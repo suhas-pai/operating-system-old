@@ -634,33 +634,62 @@ void mm_early_post_arch_init() {
     struct freepages_info *iter = NULL;
     struct freepages_info *tmp = NULL;
 
+    /*
+     * Free pages into the buddy allocator by freeing in the range of an forder,
+     * but ensure that
+     *  (1) The range of pages belong to the same zone. This check is done by
+     *      making sure the first page and the last page belong to the same
+     *      zone.
+     *  (2) The buddies of the first page for each order from 0...forder are
+     *      located after the first page.
+     */
+
     uint64_t free_page_count = 0;
     list_foreach_mut(iter, tmp, &g_freepage_list, list) {
         uint64_t phys = virt_to_phys(iter);
         uint64_t avail = iter->avail_page_count;
 
         struct page *page = phys_to_page(phys);
+        uint64_t page_pfn = page_to_pfn(page);
+
         do {
-            for (int8_t order = MAX_ORDER - 1; order >= 0; order--) {
-                if (avail < (1ull << order)) {
+            struct page_zone *const zone = phys_to_zone(phys);
+            int8_t iorder = MAX_ORDER - 1;
+
+            for (; iorder >= 0; iorder--) {
+                if (avail < (1ull << iorder)) {
                     continue;
                 }
 
-                struct page_zone *const zone = phys_to_zone(phys);
                 const uint64_t back_phys =
-                    phys + ((PAGE_SIZE << order) - PAGE_SIZE);
+                    phys + ((PAGE_SIZE << iorder) - PAGE_SIZE);
 
-                if (zone != phys_to_zone(back_phys)) {
-                    continue;
+                if (zone == phys_to_zone(back_phys)) {
+                    break;
                 }
-
-                early_free_pages_to_zone(page, zone, (uint8_t)order);
-
-                avail -= 1ull << order;
-                page += 1ull << order;
-                phys += PAGE_SIZE << order;
             }
-        } while (avail != 0);
+
+            int8_t max_free_order = iorder;
+            for (; iorder >= 0; iorder--) {
+                const uint64_t buddy_pfn = page_pfn ^ (1ull << iorder);
+                if (buddy_pfn < page_pfn) {
+                    max_free_order = iorder;
+                }
+            }
+
+            early_free_pages_to_zone(page, zone, (uint8_t)max_free_order);
+
+            const uint64_t page_count = 1ull << max_free_order;
+            avail -= page_count;
+
+            if (avail == 0) {
+                break;
+            }
+
+            page += page_count;
+            page_pfn += page_count;
+            phys += PAGE_SIZE * page_count;
+        } while (true);
 
         list_delete(&iter->list);
         free_page_count += iter->avail_page_count;
