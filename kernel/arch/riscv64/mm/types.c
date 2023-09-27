@@ -16,6 +16,27 @@ __hidden const uint64_t VMAP_END = 0xfffffff000000000;
 __hidden uint64_t PAGING_MODE = 0;
 __hidden uint64_t PAGE_END = 0;
 
+struct largepage_level_info largepage_level_info_list[PGT_LEVEL_COUNT] = {
+    [LARGEPAGE_LEVEL_2MIB] = {
+        .order = 9,
+        .level = LARGEPAGE_LEVEL_2MIB,
+        .size = PAGE_SIZE_2MIB,
+        .is_supported = true
+    },
+    [LARGEPAGE_LEVEL_1GIB] = {
+        .order = 18,
+        .level = LARGEPAGE_LEVEL_1GIB,
+        .size = PAGE_SIZE_1GIB,
+        .is_supported = true
+    },
+    [LARGEPAGE_LEVEL_512GIB] = {
+        .order = 27,
+        .level = LARGEPAGE_LEVEL_512GIB,
+        .size = PAGE_SIZE_512GIB,
+        .is_supported = true
+    }
+};
+
 __optimize(3) pgt_level_t pgt_get_top_level() {
     switch (PAGING_MODE) {
         case LIMINE_PAGING_MODE_RISCV_SV39:

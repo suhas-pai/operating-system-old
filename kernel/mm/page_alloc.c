@@ -80,12 +80,71 @@ get_from_freelist(struct page_zone *const zone,
     return take_off_freelist(zone, freelist, page);
 }
 
-__optimize(3)
-void set_large_page_bits(struct page *const begin, const uint8_t order) {
-    const struct page *const end = begin + (1ull << order);
+__optimize(3) void
+setup_large_page(struct page *const begin,
+                 const struct largepage_level_info *const info)
+{
+    const struct page *const end = begin + (1ull << info->order);
+    refcount_init(&begin->large.largehead.refcount);
+
+    begin->large.head = begin;
+    begin->large.largehead.level = info->level;
+
     for (struct page *page = begin; page != end; page++) {
         page_set_bit(page, PAGE_IN_LARGE_PAGE);
+        refcount_init(&page->large.page_refcount);
+
+        page->large.head = begin;
     }
+}
+
+void
+early_free_pages_to_zone(struct page *page,
+                         struct page_zone *zone,
+                         uint8_t order);
+
+__optimize(3) void
+free_range_of_pages(struct page *page,
+                    struct page_zone *const zone,
+                    const uint64_t amount)
+{
+    uint64_t avail = amount;
+    uint64_t page_pfn = page_to_pfn(page);
+
+    int8_t order = MAX_ORDER - 1;
+    for (; order >= 0; order--) {
+        if (avail >= (1ull << order)) {
+            break;
+        }
+    }
+
+    do {
+        uint8_t max_free_order = (uint8_t)order;
+        for (int8_t iorder = order; iorder >= 0; iorder--) {
+            const uint64_t buddy_pfn = page_pfn ^ (1ull << iorder);
+            if (buddy_pfn < page_pfn) {
+                max_free_order = (uint8_t)iorder;
+            }
+        }
+
+        early_free_pages_to_zone(page, zone, max_free_order);
+
+        const uint64_t page_count = 1ull << max_free_order;
+        avail -= page_count;
+
+        if (avail == 0) {
+            break;
+        }
+
+        page += page_count;
+        page_pfn += page_count;
+
+        for (; order >= 0; order--) {
+            if (avail >= (1ull << order)) {
+                break;
+            }
+        }
+    } while (true);
 }
 
 __optimize(3) static struct page *
@@ -111,53 +170,24 @@ get_large_from_freelist(struct page_zone *const zone,
                 return NULL;
             }
 
+            take_off_freelist(zone, freelist, head);
+
             page += PAGE_COUNT(new_phys - page_phys);
             page_phys = new_phys;
+
+            free_range_of_pages(head, zone, (uint64_t)(page - head));
+        } else {
+            take_off_freelist(zone, freelist, head);
         }
 
-        if (page != head) {
-            struct page *begin = head;
-            for (uint8_t iorder = 1; iorder != MAX_ORDER; iorder++) {
-                struct page *const end = begin + (1ull << iorder);
-                if (end == page) {
-                    free_pages_to_zone(begin, zone, iorder);
-                    break;
-                }
-
-                if (end > page) {
-                    free_pages_to_zone(begin, zone, iorder - 1);
-
-                    begin += (1ull << (iorder - 1));
-                    iorder = 0; // Incremented to 1 for the next loop
-
-                    continue;
-                }
-            }
-        }
-
+        struct page *begin = page + (1ull << largepage_order);
         const struct page *const end = head + (1ull << freelist_order);
-        if (page + (1ull << largepage_order) != end) {
-            struct page *begin = page + (1ull << largepage_order);
-            for (uint8_t iorder = 1; iorder != MAX_ORDER; iorder++) {
-                struct page *const free_end = begin + (1ull << iorder);
-                if (end == free_end) {
-                    free_pages_to_zone(begin, zone, iorder);
-                    break;
-                }
 
-                if (end > free_end) {
-                    free_pages_to_zone(begin, zone, iorder - 1);
-
-                    begin += (1ull << (iorder - 1));
-                    iorder = 0; // Incremented to 1 for the next loop
-
-                    continue;
-                }
-            }
-        }
+        free_range_of_pages(begin, zone, (uint64_t)(end - begin));
     } else {
         do {
             if (has_align(page_phys, PAGE_SIZE << largepage_order)) {
+                take_off_freelist(zone, freelist, head);
                 break;
             }
 
@@ -171,11 +201,9 @@ get_large_from_freelist(struct page_zone *const zone,
             }
 
             page = head;
+            page_phys = page_to_phys(page);
         } while (true);
     }
-
-    take_off_freelist(zone, freelist, head);
-    set_large_page_bits(page, largepage_order);
 
     return page;
 }
@@ -231,33 +259,11 @@ alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
     return page;
 }
 
-struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
-    if (order >= MAX_ORDER) {
-        printk(LOGLEVEL_WARN, "alloc_pages(): got order >= MAX_ORDER\n");
-        return NULL;
-    }
-
-    struct page_zone *const start = page_alloc_flags_to_zone(alloc_flags);
-    struct page_zone *zone = start;
-
-    if (__builtin_expect(zone == NULL, 0)) {
-        printk(LOGLEVEL_WARN,
-               "alloc_pages(): page_alloc_flags_to_zone() returned null\n");
-        return NULL;
-    }
-
-    struct page *page = NULL;
-    while (zone != NULL) {
-        page = alloc_pages_from_zone(zone, order);
-        if (page != NULL) {
-            goto done;
-        }
-
-        zone = zone->fallback_zone;
-    }
-
-    return NULL;
-done:
+struct page *
+setup_alloced_page(struct page *const page,
+                   const uint64_t alloc_flags,
+                   const uint8_t order)
+{
     struct mm_section *const memmap = page_to_mm_section(page);
     const uint64_t page_index = page_to_pfn(page) - memmap->pfn;
 
@@ -292,9 +298,40 @@ done:
     return page;
 }
 
+struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
+    if (order >= MAX_ORDER) {
+        printk(LOGLEVEL_WARN, "alloc_pages(): got order >= MAX_ORDER\n");
+        return NULL;
+    }
+
+    struct page_zone *const start = page_alloc_flags_to_zone(alloc_flags);
+    struct page_zone *zone = start;
+
+    if (__builtin_expect(zone == NULL, 0)) {
+        printk(LOGLEVEL_WARN,
+               "alloc_pages(): page_alloc_flags_to_zone() returned null\n");
+        return NULL;
+    }
+
+    struct page *page = NULL;
+    while (zone != NULL) {
+        page = alloc_pages_from_zone(zone, order);
+        if (page != NULL) {
+            return setup_alloced_page(page, alloc_flags, order);
+        }
+
+        zone = zone->fallback_zone;
+    }
+
+    return NULL;
+}
+
 __optimize(3) static struct page *
-alloc_large_page_from_zone(struct page_zone *const zone, const uint8_t order) {
+alloc_large_page_from_zone(struct page_zone *const zone,
+                           const struct largepage_level_info *const info)
+{
     const int flag = spin_acquire_with_irq(&zone->lock);
+    const uint8_t order = info->order;
 
     if (zone->total_free < (1ull << order)) {
         spin_release_with_irq(&zone->lock, flag);
@@ -316,6 +353,8 @@ alloc_large_page_from_zone(struct page_zone *const zone, const uint8_t order) {
 
         if (page != NULL) {
             spin_release_with_irq(&zone->lock, flag);
+            setup_large_page(page, info);
+
             return page;
         }
 
@@ -337,13 +376,24 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
 
     if (__builtin_expect(zone == NULL, 0)) {
         printk(LOGLEVEL_WARN,
-               "alloc_pages(): page_alloc_flags_to_zone() returned null\n");
+               "alloc_large_page(): page_alloc_flags_to_zone() returned "
+               "null\n");
+        return NULL;
+    }
+
+    if (__builtin_expect(!largepage_level_info_list[level].is_supported, 0)) {
+        printk(LOGLEVEL_WARN,
+               "alloc_large_page(): large-page at level %" PRIu8 " is not "
+               "supported\n",
+               level);
         return NULL;
     }
 
     struct page *page = NULL;
-    const uint8_t order = largepage_level_info_list[level].order;
+    const struct largepage_level_info *const info =
+        &largepage_level_info_list[level];
 
+    const uint8_t order = info->order;
     if (__builtin_expect(order >= MAX_ORDER, 0)) {
         printk(LOGLEVEL_WARN,
                "alloc_large_page(): can't allocate large-page, too large\n");
@@ -351,42 +401,15 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
     }
 
     while (zone != NULL) {
-        page = alloc_large_page_from_zone(zone, order);
+        page = alloc_large_page_from_zone(zone, info);
         if (page != NULL) {
-            goto done;
+            return setup_alloced_page(page, alloc_flags, order);
         }
 
         zone = zone->fallback_zone;
     }
 
-done:
-    struct mm_section *const memmap = page_to_mm_section(page);
-    const uint64_t page_index = page_to_pfn(page) - memmap->pfn;
-    const struct range set_range = range_create(page_index, 1ull << order);
-
-    bitmap_set_range(&memmap->used_pages_bitmap, set_range, /*value=*/true);
-    if (alloc_flags & __ALLOC_TABLE) {
-        zero_multiple_pages(page_to_virt(page), 1ull << order);
-        list_init(&page->table.delayed_free_list);
-
-        page->table.refcount = REFCOUNT_EMPTY();
-        return page;
-    }
-
-    if (alloc_flags & __ALLOC_SLAB_HEAD) {
-        page_set_bit(page, PAGE_IS_SLAB_HEAD);
-
-        zero_multiple_pages(page_to_virt(page), 1ull << order);
-        list_init(&page->slab.head.slab_list);
-
-        return page;
-    }
-
-    if (alloc_flags & __ALLOC_ZERO) {
-        zero_multiple_pages(page_to_virt(page), 1ull << order);
-    }
-
-    return page;
+    return NULL;
 }
 
 __optimize(3) void
@@ -480,4 +503,42 @@ void free_pages(struct page *const page, const uint8_t order) {
     }
 
     free_pages_to_zone(page, page_to_zone(page), order);
+}
+
+__optimize(3) void
+free_large_page_to_zone(struct page *page, struct page_zone *const zone) {
+    struct page *const head = page->large.head;
+    const pgt_level_t level = head->large.largehead.level;
+
+    list_init(&page->buddy.freelist);
+
+    const int flag = spin_acquire_with_irq(&zone->lock);
+    uint64_t amount = 0;
+
+    if (page != head) {
+        amount = (uint64_t)(page - head);
+    } else {
+        amount = 1ull << largepage_level_info_list[level].order;
+    }
+
+    free_range_of_pages(page, zone, amount);
+
+    struct mm_section *const memmap = page_to_mm_section(page);
+    const uint64_t page_index = page_to_pfn(page) - memmap->pfn;
+
+    if (amount != 1) {
+        const struct range set_range = range_create(page_index, amount);
+        bitmap_set_range(&memmap->used_pages_bitmap,
+                         set_range,
+                         /*value=*/false);
+    } else {
+        bitmap_set(&memmap->used_pages_bitmap, page_index, /*value=*/false);
+    }
+
+    spin_release_with_irq(&zone->lock, flag);
+}
+
+void free_large_page(struct page *const page) {
+    assert(page_has_bit(page, PAGE_IN_LARGE_PAGE));
+    free_large_page_to_zone(page, page_to_zone(page));
 }

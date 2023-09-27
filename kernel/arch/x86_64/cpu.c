@@ -164,6 +164,8 @@ static void init_cpuid_features() {
         if (!g_base_cpu_init) {
             g_cpu_capabilities.supports_1gib_pages =
                 (edx & CPUID_FEAT_EXT80000001_EDX_1GIB_PAGES);
+            largepage_level_info_list[LARGEPAGE_LEVEL_1GIB].is_supported =
+                g_cpu_capabilities.supports_1gib_pages;
 
             if (g_cpu_capabilities.supports_1gib_pages) {
                 printk(LOGLEVEL_INFO, "cpu: supports 1gib pages\n");

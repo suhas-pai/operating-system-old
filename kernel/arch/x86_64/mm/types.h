@@ -5,7 +5,9 @@
 
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
+
 #include "lib/macros.h"
 
 #define MAX_ORDER 21
@@ -48,22 +50,20 @@ static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
 static const uint8_t LARGEPAGE_LEVELS[] = { 2, 3 };
 static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
 
-#define PAGE_SIZE_2MIB (1ull << LARGEPAGE_SHIFTS[0])
-#define PAGE_SIZE_1GIB (1ull << LARGEPAGE_SHIFTS[1])
+#define PAGE_SIZE_2MIB (1ull << PML2_SHIFT)
+#define PAGE_SIZE_1GIB (1ull << PML3_SHIFT)
 
-#define LARGEPAGE_LEVEL_2MIB LARGEPAGE_LEVELS[0]
-#define LARGEPAGE_LEVEL_1GIB LARGEPAGE_LEVELS[1]
+#define LARGEPAGE_LEVEL_2MIB 2
+#define LARGEPAGE_LEVEL_1GIB 3
 
 struct largepage_level_info {
     uint8_t order;
     uint8_t level; // can't use pgt_level_t
     uint64_t size;
+    bool is_supported : 1;
 };
 
-__unused static struct largepage_level_info largepage_level_info_list[] = {
-    { .order = 9, .level = LARGEPAGE_LEVEL_2MIB, .size = PAGE_SIZE_2MIB },
-    { .order = 18, .level = LARGEPAGE_LEVEL_1GIB, .size = PAGE_SIZE_1GIB }
-};
+extern struct largepage_level_info largepage_level_info_list[PGT_LEVEL_COUNT];
 
 #define PAGE_SIZE_AT_LEVEL(level) \
     ({\

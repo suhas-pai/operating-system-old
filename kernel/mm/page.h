@@ -37,6 +37,15 @@ struct page {
             struct list delayed_free_list;
             struct refcount refcount;
         } table;
+        struct {
+            struct page *head;
+            struct refcount page_refcount;
+
+            struct {
+                struct refcount refcount;
+                pgt_level_t level;
+            } largehead;
+        } large;
     };
 };
 
