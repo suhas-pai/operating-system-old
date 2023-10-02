@@ -10,7 +10,7 @@
 #endif /* defined(__x86_64__) */
 
 #include "cpu.h"
-#include "pagemap.h"
+#include "pgmap.h"
 
 __hidden struct pagemap kernel_pagemap = {
 #if defined(__aarch64__)
@@ -60,23 +60,27 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
                                const uint64_t phys_addr,
                                const uint64_t align)
 {
-    int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
+    const int flag = spin_acquire_with_irq(&pagemap->addrspace_lock);
     const uint64_t addr =
         addrspace_find_space_and_add_node(&pagemap->addrspace,
                                           in_range,
                                           &vma->node,
                                           align);
 
-    spin_release_with_irq(&pagemap->addrspace_lock, flag);
+
     if (addr == ADDRSPACE_INVALID_ADDR) {
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
         return false;
     }
 
     if (vma->prot == PROT_NONE) {
+        spin_release_with_irq(&pagemap->addrspace_lock, flag);
         return true;
     }
 
-    flag = spin_acquire_with_irq(&vma->lock);
+    const int flag2 = spin_acquire_with_irq(&vma->lock);
+    spin_release_with_irq(&pagemap->addrspace_lock, flag);
+
     const bool map_result =
         arch_make_mapping(pagemap,
                           range_create(phys_addr, vma->node.range.size),
@@ -85,7 +89,7 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
                           vma->cachekind,
                           /*is_overwrite=*/false);
 
-    spin_release_with_irq(&vma->lock, flag);
+    spin_release_with_irq(&vma->lock, flag2);
     if (!map_result) {
         return false;
     }

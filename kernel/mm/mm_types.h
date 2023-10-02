@@ -33,17 +33,20 @@ typedef uint8_t page_section_t;
 #define pfn_to_page(pfn) \
     ((struct page *)(PAGE_OFFSET + (SIZEOF_STRUCTPAGE * (pfn))))
 
-#define page_to_pfn(page) \
-    _Generic((page), \
+#define page_to_pfn(p) \
+    _Generic((p), \
         const struct page *: \
-            (((uint64_t)(page) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE), \
+            (((uint64_t)(p) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE), \
         struct page *: \
-            (((uint64_t)(page) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE))
+            (((uint64_t)(p) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE))
 
 #define phys_to_page(phys) pfn_to_page(phys_to_pfn(phys))
 #define virt_to_page(virt) pfn_to_page(virt_to_pfn(virt))
 #define virt_to_pfn(virt) phys_to_pfn(virt_to_phys(virt))
-#define page_to_virt(page) phys_to_virt(page_to_phys(page))
+#define page_to_virt(p) \
+    _Generic((p), \
+        const struct page *: phys_to_virt(page_to_phys(p)), \
+        struct page *: phys_to_virt(page_to_phys(p)))
 
 typedef uint8_t pgt_level_t;
 typedef uint16_t pgt_index_t;
@@ -53,6 +56,7 @@ pgt_level_t pgt_get_top_level();
 bool pte_is_present(pte_t pte);
 bool pte_level_can_have_large(pgt_level_t level);
 bool pte_is_large(pte_t pte);
+bool pte_is_dirty(pte_t pte);
 
 #define pte_to_pfn(pte) phys_to_pfn(pte_to_phys(pte))
 #define pte_to_virt(pte) phys_to_virt(pte_to_phys(pte))
@@ -98,6 +102,8 @@ enum prot_flags {
     PROT_IO = 1 << 4
 #endif
 };
+
+typedef uint8_t prot_t;
 
 enum vma_cachekind {
     VMA_CACHEKIND_WRITEBACK,

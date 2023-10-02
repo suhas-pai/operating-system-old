@@ -6,13 +6,13 @@
 #include "dev/printk.h"
 #include "lib/align.h"
 
+#include "alloc.h"
 #include "boot.h"
 #include "early.h"
 
+#include "kmalloc.h"
 #include "pagemap.h"
 #include "walker.h"
-
-#include "kmalloc.h"
 
 struct freepages_info {
     struct list list;
@@ -33,10 +33,10 @@ static uint64_t total_free_pages = 0;
 static uint64_t total_free_pages_remaining = 0;
 
 static void claim_pages(const struct mm_memmap *const memmap) {
-    const uint64_t page_count = PAGE_COUNT(memmap->range.size);
-
     struct freepages_info *const info = phys_to_virt(memmap->range.front);
     list_init(&info->list);
+
+    const uint64_t page_count = PAGE_COUNT(memmap->range.size);
 
     total_free_pages += page_count;
     total_free_pages_remaining += page_count;
@@ -108,8 +108,8 @@ uint64_t early_alloc_page() {
     struct freepages_info *const info =
         list_head(&g_freepage_list, struct freepages_info, list);
 
-    // Take last page out of list, because first page stores the freepage_info
-    // struct.
+    // Take the last page out of the list, because first page stores the
+    // freepage_info struct.
 
     info->avail_page_count -= 1;
     if (info->avail_page_count == 0) {
@@ -143,8 +143,8 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
         return INVALID_PHYS;
     }
 
-    // Take last page out of list, because first page stores the freepage_info
-    // struct.
+    // Take the last several pages out of the list, because first page stores
+    // the freepage_info struct.
 
     info->avail_page_count -= alloc_amount;
     if (info->avail_page_count == 0) {
@@ -309,6 +309,8 @@ void mm_early_init() {
 static void init_table_page(struct page *const page) {
     list_init(&page->table.delayed_free_list);
     refcount_init(&page->table.refcount);
+
+    page->flags |= PAGE_IS_TABLE;
 }
 
 void
@@ -531,12 +533,6 @@ set_section_for_pages(const struct mm_section *const memmap,
             continue;
         }
 
-        const uint64_t pages_in_this_section =
-            PAGE_COUNT(memmap->range.size -
-                       range_index_for_loc(memmap->range, iter_phys));
-
-        assert(iter->avail_page_count <= pages_in_this_section);
-
         // Mark all usable pages that exist from in iter.
         struct page *page = virt_to_page(iter);
         struct page *const end = page + iter->avail_page_count;
@@ -565,8 +561,8 @@ void mm_early_post_arch_init() {
         }
     }
 
-    // Iterate over the usable-memmaps (sections) three times.
-    //  1. Iterate over the used-pages first. This must be done first because
+    // Iterate over the usable-memmaps (sections) three times:
+    //  1. Iterate to mark used-pages first. This must be done first because
     //     it needs to be done before memmaps are merged, as before the merge,
     //     its obvious which pages are used.
     //  2. Set the section mask in page->flags.
@@ -635,7 +631,7 @@ void mm_early_post_arch_init() {
     struct freepages_info *tmp = NULL;
 
     /*
-     * Free pages into the buddy allocator by freeing in the range of an forder,
+     * Free pages into the buddy allocator by freeing in the range of `forder`,
      * but ensure that
      *  (1) The range of pages belong to the same zone. This check is done by
      *      making sure the first page and the last page belong to the same
@@ -648,32 +644,50 @@ void mm_early_post_arch_init() {
     list_foreach_mut(iter, tmp, &g_freepage_list, list) {
         uint64_t phys = virt_to_phys(iter);
         uint64_t avail = iter->avail_page_count;
+        uint64_t page_pfn = phys_to_pfn(phys);
 
-        struct page *page = phys_to_page(phys);
-        uint64_t page_pfn = page_to_pfn(page);
+        struct page *page = pfn_to_page(page_pfn);
 
+        // iorder is log2() of the count of available pages, here we use a for
+        // loop to calculate that, but in the future, it may be worth it to
+        // directly use log2() if available.
+        // Because the count of available pages only decreases, we keep iorder
+        // out of the loop to minimize log2() calculation.
+
+        int8_t iorder = MAX_ORDER - 1;
         do {
             struct page_zone *const zone = phys_to_zone(phys);
-            int8_t iorder = MAX_ORDER - 1;
-
             for (; iorder >= 0; iorder--) {
-                if (avail < (1ull << iorder)) {
-                    continue;
+                if (avail >= (1ull << iorder)) {
+                    break;
                 }
+            }
 
+            // jorder is the order of pages that all fit in the same zone.
+            // jorder should be equal to iorder in most cases, except in the
+            // case where a section crosses the boundary of two zones.
+
+            int8_t jorder = iorder;
+            for (; jorder >= 0; jorder--) {
                 const uint64_t back_phys =
-                    phys + ((PAGE_SIZE << iorder) - PAGE_SIZE);
+                    phys + ((PAGE_SIZE << jorder) - PAGE_SIZE);
 
                 if (zone == phys_to_zone(back_phys)) {
                     break;
                 }
             }
 
-            int8_t max_free_order = iorder;
-            for (; iorder >= 0; iorder--) {
-                const uint64_t buddy_pfn = page_pfn ^ (1ull << iorder);
+            // max_free_order is the order of pages, starting from the current
+            // page, that can be added to the freelist.
+            // This number should be equal to jorder, but can at times be less
+            // than jorder because a buddy of page at some order 0..=jorder is
+            // located before the current page.
+
+            int8_t max_free_order = jorder;
+            for (int8_t korder = jorder; korder >= 0; korder--) {
+                const uint64_t buddy_pfn = buddy_of(page_pfn, (uint8_t)korder);
                 if (buddy_pfn < page_pfn) {
-                    max_free_order = iorder;
+                    max_free_order = korder;
                 }
             }
 
@@ -688,7 +702,7 @@ void mm_early_post_arch_init() {
 
             page += page_count;
             page_pfn += page_count;
-            phys += PAGE_SIZE * page_count;
+            phys += page_count << PAGE_SHIFT;
         } while (true);
 
         list_delete(&iter->list);
@@ -707,4 +721,5 @@ void mm_early_post_arch_init() {
            free_page_count);
 
     kmalloc_init();
+    mm_alloc_init();
 }

@@ -47,18 +47,22 @@ static const uint16_t PT_LEVEL_MASKS[PGT_LEVEL_COUNT + 1] =
 static const uint8_t PAGE_SHIFTS[PGT_LEVEL_COUNT] =
     { PML1_SHIFT, PML2_SHIFT, PML3_SHIFT, PML4_SHIFT, PML5_SHIFT };
 
-static const uint8_t LARGEPAGE_LEVELS[] = { 2, 3 };
-static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
+static const uint8_t LARGEPAGE_LEVELS[] = { 2, 3, 4 };
+static const uint8_t LARGEPAGE_SHIFTS[] =
+    { PML2_SHIFT, PML3_SHIFT, PML4_SHIFT };
 
 #define PAGE_SIZE_2MIB (1ull << PML2_SHIFT)
 #define PAGE_SIZE_1GIB (1ull << PML3_SHIFT)
+#define PAGE_SIZE_512GIB (1ull << PML4_SHIFT)
 
 #define LARGEPAGE_LEVEL_2MIB 2
 #define LARGEPAGE_LEVEL_1GIB 3
+#define LARGEPAGE_LEVEL_512GIB 4
 
 struct largepage_level_info {
     uint8_t order;
     uint8_t level; // can't use pgt_level_t
+    uint8_t largepage_order;
     uint64_t size;
     bool is_supported : 1;
 };
@@ -97,6 +101,7 @@ enum pte_flags {
     __PTE_ACCESS = 1ull << 10,
     __PTE_NONGLOBAL = 1ull << 11,
 
+    __PTE_DIRTY = 1ull << 51,
     __PTE_PXN = 1ull << 53,
     __PTE_UXN = 1ull << 54,
 };

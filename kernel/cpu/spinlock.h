@@ -9,8 +9,8 @@
 #include <stdint.h>
 
 struct spinlock {
-    _Atomic uint64_t front;
-    _Atomic uint64_t back;
+    _Atomic uint32_t front;
+    _Atomic uint32_t back;
 };
 
 #define SPINLOCK_INIT() ((struct spinlock){ .front = 0, .back = 0 })

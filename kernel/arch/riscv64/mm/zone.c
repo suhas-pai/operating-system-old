@@ -73,9 +73,7 @@ void pagezones_init() {
     for_each_page_zone (zone) {
         for (uint8_t i = 0; i != MAX_ORDER; i++) {
             list_init(&zone->freelist_list[i].page_list);
-
             zone->freelist_list[i].count = 0;
-            zone->freelist_list[i].order = i;
         }
     }
 }

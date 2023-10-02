@@ -1355,7 +1355,7 @@ __optimize(3) static inline uint64_t read_id_aa64mmfr2_el1() {
     return result;
 }
 
-// FIXME: gcc doesn't register the ID_AA64MMFR3_EL1 register
+// FIXME: gcc doesn't recognize the ID_AA64MMFR3_EL1 register
 #if 0
 __optimize(3) static inline uint64_t read_id_aa64mmfr3_el1() {
     uint64_t result = 0;
@@ -1372,7 +1372,7 @@ __optimize(3) static inline uint64_t read_id_aa64mmfr4_el1() {
     return result;
 }
 
-// FIXME: gcc doesn't register the id_aa64smfr0 register
+// FIXME: gcc doesn't recognize the id_aa64smfr0 register
 #if 0
 __optimize(3) static inline uint64_t read_id_aa64smfr0_el1() {
     uint64_t result = 0;
@@ -1382,12 +1382,15 @@ __optimize(3) static inline uint64_t read_id_aa64smfr0_el1() {
 }
 #endif
 
+// FIXME: clang doesn't recognize the id_aa64zfr0 register
+#if 0
 __optimize(3) static inline uint64_t read_id_aa64zfr0_el1() {
     uint64_t result = 0;
     asm volatile("mrs %0, ID_AA64ZFR0_EL1" : "=r"(result));
 
     return result;
 }
+#endif
 
 __optimize(3) static inline uint64_t read_id_aa64dfr0_el1() {
     uint64_t result = 0;

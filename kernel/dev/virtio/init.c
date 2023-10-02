@@ -285,7 +285,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         const uint8_t cap_len = pci_read_virtio_cap_field(cap.cap_len);
         if (cap_len < sizeof(struct virtio_pci_cap)) {
             printk(LOGLEVEL_INFO,
-                   "\tcapability-length (%" PRIu8 ") is too short\n",
+                   "\tvirtio-pci: capability-length (%" PRIu8 ") is too "
+                   "short\n",
                    cap_len);
 
             cap_index++;
@@ -295,8 +296,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         const uint8_t bar_index = pci_read_virtio_cap_field(cap.bar);
         if (!index_in_bounds(bar_index, pci_device->max_bar_count)) {
             printk(LOGLEVEL_INFO,
-                   "\tindex of base-address-reg (%" PRIu8 ") bar is past end "
-                   "of pci-device's bar list\n",
+                   "\tvirtio-pci: index of base-address-reg (%" PRIu8 ") bar "
+                   "is past end of pci-device's bar list\n",
                    bar_index);
 
             cap_index++;
@@ -308,7 +309,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
         if (!bar->is_present) {
             printk(LOGLEVEL_INFO,
-                   "\tbase-address-reg of bar %" PRIu8 " is not present\n",
+                   "\tvirtio-pci: base-address-reg of bar %" PRIu8 " is not "
+                   "present\n",
                    bar_index);
 
             cap_index++;
@@ -318,7 +320,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         if (bar->is_mmio) {
             if (!pci_map_bar(bar)) {
                 printk(LOGLEVEL_INFO,
-                       "\tfailed to map bar at index %" PRIu8 "\n",
+                       "\tvirtio-pci: failed to map bar at index %" PRIu8 "\n",
                        bar_index);
 
                 cap_index++;
@@ -337,8 +339,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
         if (!range_has_index_range(io_range, index_range)) {
             printk(LOGLEVEL_WARN,
-                   "\tcapability has an offset+length pair that falls outside "
-                   "device's io-range (" RANGE_FMT ")\n",
+                   "\tvirtio-pci: capability has an offset+length pair that "
+                   "falls outside device's io-range (" RANGE_FMT ")\n",
                    RANGE_FMT_ARGS(io_range));
 
             cap_index++;
@@ -350,7 +352,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
             case VIRTIO_PCI_CAP_COMMON_CFG:
                 if (length < sizeof(struct virtio_pci_common_cfg)) {
                     printk(LOGLEVEL_WARN,
-                           "\tcommon-cfg capability is too short\n");
+                           "\tvirtio-pci: common-cfg capability is too "
+                           "short\n");
 
                     cap_index++;
                     continue;
@@ -363,7 +366,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
             case VIRTIO_PCI_CAP_NOTIFY_CFG:
                 if (cap_len < sizeof(struct virtio_pci_notify_cfg_cap)) {
                     printk(LOGLEVEL_WARN,
-                           "\tnotify-cfg capability is too short\n");
+                           "\tvirtio-pci: notify-cfg capability is too "
+                           "short\n");
 
                     cap_index++;
                     continue;
@@ -376,7 +380,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
             case VIRTIO_PCI_CAP_ISR_CFG:
                 if (cap_len < sizeof(struct virtio_pci_isr_cfg_cap)) {
                     printk(LOGLEVEL_WARN,
-                           "\tisr-cfg capability is too short\n");
+                           "\tvirtio-pci: isr-cfg capability is too short\n");
 
                     cap_index++;
                     continue;
@@ -392,7 +396,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
             case VIRTIO_PCI_CAP_PCI_CFG:
                 if (cap_len < sizeof(struct virtio_pci_cap)) {
                     printk(LOGLEVEL_WARN,
-                           "\tpci-cfg capability is too short\n");
+                           "\tvirtio-pci: pci-cfg capability is too short\n");
 
                     cap_index++;
                     continue;
@@ -426,7 +430,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
                 if (!array_append(&virt_device.shmem_regions, &region)) {
                     printk(LOGLEVEL_WARN,
-                           "virtio-pci: failed to add shmem region to array\n");
+                           "virtio-pci: failed to add shmem region to "
+                           "array\n");
 
                     cap_index++;
                     continue;

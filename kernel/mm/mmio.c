@@ -6,17 +6,16 @@
 #include "dev/printk.h"
 
 #include "mm/page_alloc.h"
-#include "mm/walker.h"
+#include "mm/pgmap.h"
 
 #include "kmalloc.h"
 #include "mmio.h"
-#include "pagemap.h"
 
 static struct address_space mmio_space = ADDRSPACE_INIT(mmio_space);
 static struct spinlock mmio_space_lock = SPINLOCK_INIT();
 
 enum mmio_region_flags {
-    MMIO_REGION_LOW4G = 1 << 0
+    __MMIO_REGION_LOW4G = 1 << 0
 };
 
 enum prot_fail {
@@ -26,7 +25,7 @@ enum prot_fail {
     PROT_FAIL_PROT_USER
 };
 
-__optimize(3) static inline enum prot_fail verify_prot(const uint8_t prot) {
+__optimize(3) static inline enum prot_fail verify_prot(const prot_t prot) {
     if (prot == PROT_NONE) {
         return PROT_FAIL_PROT_NONE;
     }
@@ -47,7 +46,7 @@ __optimize(3) static inline enum prot_fail verify_prot(const uint8_t prot) {
 
 struct mmio_region *
 map_mmio_region(const struct range phys_range,
-                const uint8_t prot,
+                const prot_t prot,
                 const uint64_t flags)
 {
     struct range in_range =
@@ -94,13 +93,13 @@ map_mmio_region(const struct range phys_range,
 
     spin_release_with_irq(&mmio_space_lock, flag);
     if (!map_success) {
+        kfree(mmio);
         printk(LOGLEVEL_WARN,
                "vmap_mmio(): failed to map phys-range " RANGE_FMT " to virtual "
                "range " RANGE_FMT "\n",
                RANGE_FMT_ARGS(phys_range),
                RANGE_FMT_ARGS(virt_range));
 
-        kfree(mmio);
         return NULL;
     }
 
@@ -111,7 +110,7 @@ map_mmio_region(const struct range phys_range,
 }
 
 struct mmio_region *
-vmap_mmio_low4g(const uint8_t prot, const uint64_t order, const uint64_t flags)
+vmap_mmio_low4g(const prot_t prot, const uint64_t order, const uint64_t flags)
 {
     if (order == 0) {
         printk(LOGLEVEL_WARN,
@@ -161,7 +160,7 @@ vmap_mmio_low4g(const uint8_t prot, const uint64_t order, const uint64_t flags)
 
 struct mmio_region *
 vmap_mmio(const struct range phys_range,
-          const uint8_t prot,
+          const prot_t prot,
           const uint64_t flags)
 {
     if (range_empty(phys_range)) {
@@ -205,27 +204,33 @@ vmap_mmio(const struct range phys_range,
 }
 
 bool vunmap_mmio(struct mmio_region *const region) {
-    int flag = spin_acquire_with_irq(&mmio_space_lock);
-    uint64_t phys = 0;
+    const struct pgunmap_options options = {
+        .free_pages = region->flags & __MMIO_REGION_LOW4G,
+        .dont_split_large_pages = true
+    };
 
-    if (region->flags & MMIO_REGION_LOW4G) {
-        phys = ptwalker_virt_get_phys(&kernel_pagemap, (uint64_t)region->base);
-        if (phys == INVALID_PHYS) {
-            spin_release_with_irq(&mmio_space_lock, flag);
-            return false;
-        }
+    const struct range virt_range = mmio_region_get_range(region);
+
+    const int flag = spin_acquire_with_irq(&mmio_space_lock);
+    const bool result =
+        pgunmap_at(&kernel_pagemap,
+                   virt_range,
+                   /*map_options=*/NULL,
+                   &options);
+
+    if (!result) {
+        spin_release_with_irq(&mmio_space_lock, flag);
+        printk(LOGLEVEL_WARN,
+               "mm: failed to map mmio region at " RANGE_FMT "\n",
+               RANGE_FMT_ARGS(virt_range));
+
+        return false;
     }
-
-    arch_unmap_mapping(&kernel_pagemap, (uint64_t)region->base, region->size);
 
     addrspace_remove_node(&region->node);
     spin_release_with_irq(&mmio_space_lock, flag);
-
-    if (region->flags & MMIO_REGION_LOW4G) {
-        free_pages(phys_to_page(phys), /*order=*/region->size >> PAGE_SHIFT);
-    }
-
     kfree(region);
+
     return true;
 }
 

@@ -244,18 +244,14 @@ map_into_kernel_pagemap(const struct range phys_range,
                         const uint64_t virt_addr,
                         const uint64_t pte_flags)
 {
-    const bool supports_2mib = (pte_flags & __PTE_WC) == 0;
-    const bool supports_1gib =
-        supports_2mib && get_cpu_capabilities()->supports_1gib_pages;
-
+    const bool supports_1gib = get_cpu_capabilities()->supports_1gib_pages;
     const struct pgmap_options options = {
         .pte_flags = __PTE_GLOBAL | pte_flags,
 
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,
 
-        .supports_largepage_at_level_mask =
-            supports_1gib << 3 | supports_2mib << 2,
+        .supports_largepage_at_level_mask = 1 << 2 | supports_1gib << 3,
 
         .free_pages = true,
         .is_in_early = true,
@@ -382,12 +378,22 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
 }
 
 void mm_init() {
+    const uint64_t pat_msr_orig = read_msr(IA32_MSR_PAT);
     const uint64_t pat_msr =
-        read_msr(IA32_MSR_PAT) & ~(0b111ull << MSR_PAT_INDEX_PAT4);
-    const uint64_t write_combining_mask =
-        (uint64_t)MSR_PAT_ENCODING_WRITE_COMBINING << MSR_PAT_INDEX_PAT4;
+        pat_msr_orig |
+        (~((MSR_PAT_ENTRY_MASK << MSR_PAT_INDEX_PAT2) |
+           (MSR_PAT_ENTRY_MASK << MSR_PAT_INDEX_PAT3)));
 
-    write_msr(IA32_MSR_PAT, pat_msr | write_combining_mask);
+    printk(LOGLEVEL_INFO,
+           "mm: pat msr original value is 0x%" PRIx64 "\n",
+           pat_msr_orig);
+
+    const uint64_t uncacheable_mask =
+        (uint64_t)MSR_PAT_ENCODING_UNCACHEABLE << MSR_PAT_INDEX_PAT2;
+    const uint64_t write_combining_mask =
+        (uint64_t)MSR_PAT_ENCODING_WRITE_COMBINING << MSR_PAT_INDEX_PAT3;
+
+    write_msr(IA32_MSR_PAT, pat_msr | uncacheable_mask | write_combining_mask);
 
     uint64_t kernel_memmap_size = 0;
     setup_kernel_pagemap(&kernel_memmap_size);

@@ -21,9 +21,9 @@ create_ioapic_redirect_request(
     const bool masked,
     const uint8_t lapic_id)
 {
-    const bool is_active_low = (flags & __ACPI_MADT_ENTRY_ISO_ACTIVE_LOW) != 0;
+    const bool is_active_low = (flags & __ACPI_MADT_ENTRY_ISO_ACTIVE_LOW);
     const bool is_level_triggered =
-        (flags & __ACPI_MADT_ENTRY_ISO_LEVEL_TRIGGER) != 0;
+        (flags & __ACPI_MADT_ENTRY_ISO_LEVEL_TRIGGER);
 
     const uint64_t result =
         vector |
@@ -103,6 +103,7 @@ ioapic_add(const uint8_t apic_id, const uint32_t base, const uint32_t gsib) {
     };
 
     assert_msg(info.regs_mmio != NULL, "ioapic: failed to map ioapic regs");
+    info.regs = info.regs_mmio->base;
 
     const uint32_t id_reg = ioapic_read(&info, IOAPIC_REG_ID);
     assert_msg(info.arbid == ioapic_id_reg_get_arbid(id_reg),
@@ -127,7 +128,7 @@ ioapic_add(const uint8_t apic_id, const uint32_t base, const uint32_t gsib) {
 
 uint32_t
 ioapic_read(const struct ioapic_info *const ioapic, const enum ioapic_reg reg) {
-    volatile struct ioapic_registers *const regs = ioapic->regs_mmio->base;
+    volatile struct ioapic_registers *const regs = ioapic->regs;
 
     mmio_write(&regs->selector, (uint32_t)reg);
     return mmio_read(&regs->data);
@@ -138,7 +139,7 @@ ioapic_write(const struct ioapic_info *const ioapic,
              const enum ioapic_reg reg,
              const uint32_t value)
 {
-    volatile struct ioapic_registers *const regs = ioapic->regs_mmio->base;
+    volatile struct ioapic_registers *const regs = ioapic->regs;
 
     mmio_write(&regs->selector, (uint32_t)reg);
     mmio_write(&regs->data, value);

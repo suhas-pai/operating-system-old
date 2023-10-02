@@ -182,7 +182,7 @@ static bool ps2_init_port(const enum ps2_port_id device_id) {
     const uint8_t success_response = ps2_read_input_byte();
     if (success_response != PS2_RESPONSE_SUCCESS) {
         printk(LOGLEVEL_WARN,
-               "ps2: device %d did not give success response to reset "
+               "ps2: device %d did not have a success response to reset "
                "command, gave 0x%" PRIx8 "\n",
                device_id,
                success_response);

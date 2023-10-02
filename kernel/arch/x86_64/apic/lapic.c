@@ -33,7 +33,7 @@ static void calibrate_timer() {
      * Calibrate the Timer:
      *
      * We want to calibrate the timer to match the PIT, however the LAPIC timer
-     * runs at a faster frequency than the PIT.
+     * runs at a higher frequency than the PIT.
      *
      * Therefore, we setup both the LAPIC timer and the PIT to run for a sample
      * time, and after the lapic-timer reaches zero, we can calculate the

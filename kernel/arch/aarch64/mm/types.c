@@ -19,14 +19,23 @@ __hidden uint64_t PAGE_END = 0;
 struct largepage_level_info largepage_level_info_list[PGT_LEVEL_COUNT] = {
     [LARGEPAGE_LEVEL_2MIB] = {
         .order = 9,
+        .largepage_order = 0,
         .level = LARGEPAGE_LEVEL_2MIB,
         .size = PAGE_SIZE_2MIB,
         .is_supported = true
     },
     [LARGEPAGE_LEVEL_1GIB] = {
         .order = 18,
+        .largepage_order = 1,
         .level = LARGEPAGE_LEVEL_1GIB,
         .size = PAGE_SIZE_1GIB,
+        .is_supported = true
+    },
+    [LARGEPAGE_LEVEL_512GIB] = {
+        .order = 27,
+        .largepage_order = 2,
+        .level = LARGEPAGE_LEVEL_512GIB,
+        .size = PAGE_SIZE_512GIB,
         .is_supported = true
     }
 };
@@ -46,6 +55,10 @@ __optimize(3) bool pte_level_can_have_large(const pgt_level_t level) {
 
 __optimize(3) bool pte_is_large(const pte_t pte) {
     return (pte & (__PTE_VALID | __PTE_TABLE)) == __PTE_VALID;
+}
+
+__optimize(3) bool pte_is_dirty(const pte_t pte) {
+    return (pte & __PTE_DIRTY) != 0;
 }
 
 __optimize(3) pte_t pte_read(const pte_t *const pte) {

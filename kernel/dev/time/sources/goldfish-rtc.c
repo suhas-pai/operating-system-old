@@ -76,7 +76,7 @@ bool goldfish_rtc_init_from_dtb(const void *const dtb, const int nodeoff) {
     uint64_t size = 0;
     if (!align_up(base_addr_reg.size, PAGE_SIZE, &size)) {
         printk(LOGLEVEL_WARN,
-               "goldfish-rtc: size (%" PRIu64 "could not be aligned up to "
+               "goldfish-rtc: size (%" PRIu64 ") could not be aligned up to "
                "page-size\n",
                base_addr_reg.size);
         return false;

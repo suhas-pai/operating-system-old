@@ -16,9 +16,9 @@ __optimize(3) void spinlock_init(struct spinlock *const lock) {
 }
 
 __optimize(3) void spin_acquire(struct spinlock *const lock) {
-    const uint64_t ticket = atomic_fetch_add(&lock->back, 1);
+    const uint32_t ticket = atomic_fetch_add(&lock->back, 1);
     while (true) {
-        const uint64_t front = atomic_load(&lock->front);
+        const uint32_t front = atomic_load(&lock->front);
         if (front == ticket) {
             return;
         }

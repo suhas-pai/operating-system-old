@@ -8,8 +8,6 @@
 
 struct page_freelist {
     struct list page_list;
-
-    uint8_t order;
     uint64_t count;
 };
 

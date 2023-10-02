@@ -104,5 +104,7 @@ enum msr_pat_indexes {
     MSR_PAT_INDEX_PAT7 = 56,
 };
 
+#define MSR_PAT_ENTRY_MASK 0b111ull
+
 uint64_t read_msr(enum ia32_msr msr);
 void write_msr(enum ia32_msr msr, uint64_t value);

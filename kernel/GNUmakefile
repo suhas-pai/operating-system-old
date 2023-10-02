@@ -31,6 +31,11 @@ ifeq ($(shell $(CC) --version 2>&1 | grep -i 'clang' >/dev/null 2>&1 && echo 1),
 	override CC_IS_CLANG := yes
 endif
 
+override LD_IS_LLD := no
+ifeq ($(shell $(LD) --version 2>&1 | grep -i 'LLD' >/dev/null 2>&1 && echo 1),1)
+	override LD_IS_LLD := yes
+endif
+
 override DEFAULT_CXX := clang++
 $(eval $(call DEFAULT_VAR,CXX,$(DEFAULT_CXX)))
 
@@ -99,6 +104,29 @@ ifeq ($(ARCH),x86_64)
 	# Internal nasm flags that should not be changed by the user.
 	override NASMFLAGS += \
 		-Wall
+endif
+
+ifeq ($(CC_IS_CLANG),yes)
+	override CFLAGS += \
+		-mllvm -enable-cond-stores-vec \
+		-mllvm -enable-loopinterchange \
+		-mllvm -enable-loop-distribute \
+		-mllvm -enable-unroll-and-jam \
+		-mllvm -enable-loop-flatten \
+		-mllvm -interleave-small-loop-scalar-reduction \
+		-mllvm -unroll-runtime-multi-exit \
+		-mllvm -aggressive-ext-opt
+endif
+
+ifeq ($(LD_IS_LLD),yes)
+	override LDFLAGS +=
+		-flto=thin \
+		-Wl,--lto-O3 \
+		-Wl,--lto-CGO3 \
+      	-Wl,-mllvm,-enable-gvn-hoist \
+      	-Wl,-mllvm,-loop-rotate-multi \
+      	-Wl,-mllvm,-polly \
+      	-Wl,-mllvm,-polly-invariant-load-hoisting
 endif
 
 # Architecture specific internal flags.

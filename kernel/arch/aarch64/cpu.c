@@ -30,17 +30,24 @@ static struct cpu_info g_base_cpu_info = {
 
 static struct cpu_features g_cpu_features = {0};
 struct list g_cpu_list = LIST_INIT(g_cpu_list);
+static bool g_base_cpu_init = false;
 
 __optimize(3) const struct cpu_info *get_base_cpu_info() {
+    assert(__builtin_expect(g_base_cpu_init, 1));
     return &g_base_cpu_info;
 }
 
 __optimize(3) const struct cpu_info *get_cpu_info() {
-    return &g_base_cpu_info;
+    return get_cpu_info_mut();
 }
 
 __optimize(3) struct cpu_info *get_cpu_info_mut() {
-    return &g_base_cpu_info;
+    assert(__builtin_expect(g_base_cpu_init, 1));
+
+    struct cpu_info *result = NULL;
+    asm volatile ("mrs %0, tpidr_el1" : "=r"(result));
+
+    return result;
 }
 
 __optimize(3) const struct cpu_features *cpu_get_features() {
@@ -58,7 +65,7 @@ void collect_cpu_features() {
     const uint64_t id_aa64mmfr2 = read_id_aa64mmfr2_el1();
     //const uint64_t id_aa64mmfr3 = read_id_aa64mmfr3_el1();
     //const uint64_t id_aa64smfr0 = read_id_aa64smfr0_el1();
-    const uint64_t id_aa64zfr0 = read_id_aa64zfr0_el1();
+    //const uint64_t id_aa64zfr0 = read_id_aa64zfr0_el1();
     const uint64_t id_aa64dfr0 = read_id_aa64dfr0_el1();
     const uint64_t id_aa64dfr1 = read_id_aa64dfr1_el1();
     const uint64_t tcr_el1 = read_tcr_el1();
@@ -374,6 +381,7 @@ void collect_cpu_features() {
             break;
     }
 
+    #if 0
     const enum id_aa64zfr0_el1_sve_support id_aa64zfr0_el1_sve_support =
         (id_aa64zfr0 & __ID_AA64ZFR0_EL1_SVEVER) >>
             ID_AA64ZFR0_EL1_SVE_SUPPORT_SHIFT;
@@ -418,6 +426,7 @@ void collect_cpu_features() {
             g_cpu_features.sve_bf16 = CPU_FEAT_SVE_EBF16;
             break;
     }
+    #endif
 
     g_cpu_features.sel2 = (id_aa64pfr0 & __ID_AA64PFR0_EL1_SEL2) != 0;
     const enum id_aa64pfr0_el1_amu_support id_aa64pfr0_el1_amu_support =
@@ -729,8 +738,8 @@ void collect_cpu_features() {
         (id_aa64smfr0 & __ID_AA64SMFR0_B16B16) != 0;
 #endif
 
-    g_cpu_features.sve_sha3 = (id_aa64zfr0 & __ID_AA64ZFR0_EL1_SHA3) != 0;
-    g_cpu_features.sve_sm4 = (id_aa64zfr0 & __ID_AA64ZFR0_EL1_SM4) != 0;
+    //g_cpu_features.sve_sha3 = (id_aa64zfr0 & __ID_AA64ZFR0_EL1_SHA3) != 0;
+    //g_cpu_features.sve_sm4 = (id_aa64zfr0 & __ID_AA64ZFR0_EL1_SM4) != 0;
     g_cpu_features.i8mm = (id_aa64isar1 & __ID_AA64ISAR1_EL1_I8MM) != 0;
     g_cpu_features.xs = (id_aa64isar1 & __ID_AA64ISAR1_EL1_XS) != 0;
     g_cpu_features.ls64 = (id_aa64isar1 & __ID_AA64ISAR1_EL1_LS64) != 0;
@@ -1416,6 +1425,9 @@ void cpu_init() {
 
     g_base_cpu_info.mpidr = read_mpidr_el1();
     g_base_cpu_info.mpidr &= ~(1ull << 31);
+
+    asm volatile ("msr tpidr_el1, %0" :: "r"(&g_base_cpu_info));
+    g_base_cpu_init = true;
 }
 
 void

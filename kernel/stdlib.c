@@ -350,7 +350,8 @@ void *memchr(const void *const ptr, const int ch, const size_t count) {
 __optimize(3) void bzero(void *dst, unsigned long n) {
 #if defined(__x86_64__)
     if (n >= 32) {
-        asm volatile ("cld; rep stosb" : "+D"(dst), "+c" (n) : "a"(0) : "memory");
+        asm volatile ("cld; rep stosb"
+                      : "+D"(dst), "+c" (n) : "a"(0) : "memory");
         return;
     }
 #endif

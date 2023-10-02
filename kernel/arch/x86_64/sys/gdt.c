@@ -55,11 +55,11 @@ _Static_assert(ACC_USER_DATA == 0b01110010, "ACC_DATA_CODE isn't correct");
 #define GRAN_LONG (1 << 5)
 #define GRAN_32_BIT_SEG (1 << 6)
 
-#define GRAN_64 ((uint8_t)GRAN_LONG)
 #define GRAN_32 ((uint8_t)(GRAN_32_BIT_SEG | GRAN_LIMIT_HIGH))
+#define GRAN_64 ((uint8_t)GRAN_LONG)
 
-_Static_assert(GRAN_32 == 0b11001111, "GRAN_32 isn't correct");
-_Static_assert(GRAN_64 == 0b00100000, "GRAN_64 isn't correct");
+_Static_assert(GRAN_32 == 0b11001111, "GRAN_32 is incorrect");
+_Static_assert(GRAN_64 == 0b00100000, "GRAN_64 is incorrect");
 
 #define TSS_64 0b1001
 #define TSS_PRESENT 0b10000000
@@ -69,13 +69,23 @@ struct gdt {
     struct tss_descriptor tss;
 };
 
+#define NULL_INDEX 0
+
+#define KERNEL_CODE_16_INDEX 1
+#define KERNEL_DATA_16_INDEX 2
+#define KERNEL_CODE_32_INDEX 3
+#define KERNEL_DATA_32_INDEX 4
+#define KERNEL_CODE_64_INDEX 5
+#define KERNEL_DATA_64_INDEX 6
+
+#define USER_CODE_64_INDEX 9
+#define USER_DATA_64_INDEX 10
+
 // This must be in a mutable section
 static struct gdt g_gdt = {
     .entries = {
-        // NULL Descriptor
-        {0},
-        // Kernel Code 16
-        {
+        [NULL_INDEX] = {0},
+        [KERNEL_CODE_16_INDEX] = {
             .limit = 0xFFFF,
             .base_low16 = 0,
             .base_mid8 = 0,
@@ -83,8 +93,7 @@ static struct gdt g_gdt = {
             .granularity = 0,
             .base_high8 = 0
         },
-        // Kernel Data 16
-        {
+        [KERNEL_DATA_16_INDEX] = {
             .limit = 0xFFFF,
             .base_low16 = 0,
             .base_mid8 = 0,
@@ -92,8 +101,7 @@ static struct gdt g_gdt = {
             .granularity = 0,
             .base_high8 = 0
         },
-        // Kernel Code 32
-        {
+        [KERNEL_CODE_32_INDEX] = {
             .limit = 0xFFFF,
             .base_low16 = 0,
             .base_mid8 = 0,
@@ -101,8 +109,7 @@ static struct gdt g_gdt = {
             .granularity = GRAN_32,
             .base_high8 = 0
         },
-        // Kernel Data 32
-        {
+        [KERNEL_DATA_32_INDEX] = {
             .limit = 0xFFFF,
             .base_low16 = 0,
             .base_mid8 = 0,
@@ -110,8 +117,7 @@ static struct gdt g_gdt = {
             .granularity = GRAN_32,
             .base_high8 = 0
         },
-        // Kernel Code 64
-        {
+        [KERNEL_CODE_64_INDEX] = {
             .limit = 0,
             .base_low16 = 0,
             .base_mid8 = 0,
@@ -119,8 +125,7 @@ static struct gdt g_gdt = {
             .granularity = GRAN_64,
             .base_high8 = 0
         },
-        // Kernel Data 64
-        {
+        [KERNEL_DATA_64_INDEX] = {
             .limit = 0,
             .base_low16 = 0,
             .base_mid8 = 0,
@@ -132,8 +137,7 @@ static struct gdt g_gdt = {
         // SYSENTER Descriptors
         {0},{0},
 
-        // User Code 64
-        {
+        [USER_CODE_64_INDEX] = {
             .limit = 0,
             .base_low16 = 0,
             .base_mid8 = 0,
@@ -141,8 +145,7 @@ static struct gdt g_gdt = {
             .granularity = GRAN_64,
             .base_high8 = 0
         },
-        // User Data 64
-        {
+        [USER_DATA_64_INDEX] = {
             .limit = 0,
             .base_low16 = 0,
             .base_mid8 = 0,
@@ -173,11 +176,11 @@ static struct gdt_register g_gdt_reg = {
 };
 
 uint16_t gdt_get_kernel_code_segment() {
-    return 0x28;
+    return KERNEL_CODE_64_INDEX * sizeof(struct gdt_descriptor);
 }
 
 uint16_t gdt_get_user_data_segment() {
-    return 0x50;
+    return USER_DATA_64_INDEX * sizeof(struct gdt_descriptor);
 }
 
 void gdt_load() {

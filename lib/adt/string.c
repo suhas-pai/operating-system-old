@@ -77,7 +77,7 @@ string_append_format(struct string *const string, const char *const fmt, ...) {
     va_list list;
     va_start(list, fmt);
 
-    format_to_string(string, fmt, list);
+    vformat_to_string(string, fmt, list);
 
     va_end(list);
     return string;

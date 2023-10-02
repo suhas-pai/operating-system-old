@@ -29,9 +29,6 @@ enum error_kind {
 #undef UBSAN_CHECK
 };
 
-_Static_assert(sizeof(struct source_location) == sizeof(void *) + 8,
-               "source_location is not packed");
-
 enum type_descriptor_kind {
     TYPE_DESCRIPTOR_KIND_INT,
     TYPE_DESCRIPTOR_KIND_FLOAT,

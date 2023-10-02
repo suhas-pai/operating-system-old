@@ -63,8 +63,6 @@ static uint8_t mm_memmap_count = 0;
 static struct mm_section mm_usable_list[255] = {0};
 static uint8_t mm_usable_count = 0;
 
-struct list largepage_memmap_lists[countof(LARGEPAGE_LEVELS)] = {0};
-
 static const void *rsdp = NULL;
 static const void *dtb = NULL;
 
@@ -115,10 +113,6 @@ void boot_init() {
     HHDM_OFFSET = hhdm_request.response->offset;
     KERNEL_BASE = kern_addr_request.response->virtual_base;
     PAGING_MODE = paging_mode_request.response->mode;
-
-    for (pgt_level_t i = 0; i != countof(LARGEPAGE_LEVELS); i++) {
-        list_init(&largepage_memmap_lists[i]);
-    }
 
     const struct limine_memmap_response *const resp = memmap_request.response;
 
@@ -240,28 +234,4 @@ void boot_merge_usable_memmaps() {
             }
         } while (true);
     }
-
-    for (uint64_t index = 0; index != mm_usable_count; index++) {
-        struct mm_section *const memmap = mm_usable_list + index;
-        for (pgt_level_t i = 0; i != countof(LARGEPAGE_LEVELS); i++) {
-            list_init(&memmap->largepage_list[i]);
-            const uint64_t largepage_size =
-                PAGE_SIZE_AT_LEVEL(LARGEPAGE_LEVELS[i]);
-
-            if (memmap->range.size >= largepage_size) {
-                list_add(&largepage_memmap_lists[i],
-                         &memmap->largepage_list[i]);
-            }
-        }
-    }
-}
-
-struct list *mm_get_largepage_memmap_list(const pgt_level_t level) {
-    for (pgt_level_t i = 0; i != countof(LARGEPAGE_LEVELS); i++) {
-        if (LARGEPAGE_LEVELS[i] == level) {
-            return &largepage_memmap_lists[i];
-        }
-    }
-
-    return NULL;
 }

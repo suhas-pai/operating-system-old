@@ -35,6 +35,17 @@ static void hcf(void) {
     }
 }
 
+void test_alloc_largepage() {
+    struct page *const largepage =
+        alloc_large_page(__ALLOC_ZERO, LARGEPAGE_LEVEL_1GIB);
+
+    printk(LOGLEVEL_INFO,
+           "kernel: allocated largepage at %p\n",
+           (void *)page_to_phys(largepage));
+
+    free_large_page(largepage);
+}
+
 void arch_init();
 void arch_early_init();
 
@@ -72,6 +83,8 @@ void _start(void) {
 
     enable_all_interrupts();
     printk(LOGLEVEL_INFO, "kernel: finished initializing\n");
+
+    test_alloc_largepage();
 
     // We're done, just hang...
     hcf();

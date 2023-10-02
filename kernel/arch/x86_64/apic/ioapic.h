@@ -55,12 +55,13 @@ enum ioapic_reg {
 struct ioapic_info {
     uint8_t arbid;
     uint8_t version;
+    uint8_t max_redirect_count;
 
     uint32_t gsi_base;
-    uint8_t max_redirect_count;
 
     /* gsib = Global System Interrupt Base */
     struct mmio_region *regs_mmio;
+    volatile struct ioapic_registers *regs;
 };
 
 void ioapic_add(uint8_t apic_id, uint32_t base, uint32_t gsib);

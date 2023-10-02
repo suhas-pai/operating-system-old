@@ -8,13 +8,33 @@
 
 #include "page.h"
 
-void zero_page(void *const page) {
-    memset_64(page, PAGE_SIZE / sizeof(uint64_t), 0);
+__optimize(3) void zero_page(void *page) {
+#if defined(__x86_64__)
+    uint64_t count = PAGE_SIZE / sizeof(uint64_t);
+    asm volatile ("cld;\n"
+                  "rep stosq"
+                  : "+D"(page), "+c" (count) : "a"(0) : "memory");
+#else
+    const uint64_t *const end = page + PAGE_SIZE;
+    for (uint64_t *iter = page; iter != end; iter++) {
+        *iter = 0;
+    }
+#endif /* defined(__x86_64__) */
 }
 
-void zero_multiple_pages(void *const page, const uint64_t count) {
+__optimize(3) void zero_multiple_pages(void *page, const uint64_t count) {
     const uint64_t full_size = check_mul_assert(PAGE_SIZE, count);
-    memset_64(page, full_size / sizeof(uint64_t), 0);
+#if defined(__x86_64__)
+    uint64_t qword_count = full_size / sizeof(uint64_t);
+    asm volatile ("cld;\n"
+                  "rep stosq"
+                  : "+D"(page), "+c" (qword_count) : "a"(0) : "memory");
+#else
+    const uint64_t *const end = page + full_size;
+    for (uint64_t *iter = page; iter != end; iter++) {
+        *iter = 0;
+    }
+#endif /* defined(__x86_64__) */
 }
 
 __optimize(3) uint32_t page_get_flags(const struct page *const page) {

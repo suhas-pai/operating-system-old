@@ -3,72 +3,133 @@
  * © suhas pai
  */
 
-#include "lib/adt/array.h"
-
-#if defined(__x86_64__)
+#include "dev/printk.h"
+#if __has_include("mm/tlb.h")
     #include "mm/tlb.h"
-#endif /* defined(__x86_64__) */
-
-#include "pagemap.h"
-#include "pageop.h"
+#endif /* __has_include("mm/tlb.h") */
 
 #include "cpu.h"
+
+#include "pagemap.h"
 #include "page_alloc.h"
 
-void pageop_init(struct pageop *const pageop) {
-    pageop->pagemap = get_cpu_info()->pagemap;
+#include "walker.h"
+
+void pageop_init(struct pageop *const pageop, struct pagemap *const pagemap) {
+    pageop->pagemap = pagemap;
     pageop->flush_range = RANGE_EMPTY();
 
     list_init(&pageop->delayed_free);
 }
 
-struct flush_pte_info {
-    struct refcount ref;
-    struct list delayed_free_list;
-    struct spinlock lock;
-
-    uint64_t pte_phys;
-    pgt_level_t pte_level;
-};
-
 void
-pageop_flush_pte(struct pageop *const pageop,
-                 pte_t *const pte,
-                 const pgt_level_t level)
+pageop_flush_pte_in_current_range(struct pageop *const pageop,
+                                  const pte_t pte,
+                                  const pgt_level_t level,
+                                  const bool should_free_pages)
 {
-    pageop_finish(pageop);
+    const uint64_t pte_phys = pte_to_phys(pte);
+    struct page *const pte_page = phys_to_page(pte_phys);
 
-    struct pagemap *const pagemap = pageop->pagemap;
-    struct array cpu_array = ARRAY_INIT(sizeof(struct cpu_info *));
-
-    const int flag = spin_acquire_with_irq(&pagemap->cpu_lock);
-    const pte_t pte_phys = pte_to_phys(pte_read(pte));
-
-    pte_write(pte, /*value=*/0);
-
-    struct cpu_info *iter = NULL;
-    list_foreach(iter, &pagemap->cpu_list, pagemap_node) {
-        array_append(&cpu_array, &iter);
+    if (!page_has_bit(pte_page, PAGE_IS_TABLE)) {
+        deref_page(pte_page, pageop);
+        return;
     }
 
-    spin_release_with_irq(&pagemap->cpu_lock, flag);
-    struct flush_pte_info flush_info = {
-        .ref = REFCOUNT_CREATE(array_item_count(cpu_array)),
-        .delayed_free_list = LIST_INIT(flush_info.delayed_free_list),
-        .lock = SPINLOCK_INIT(),
-        .pte_phys = pte_phys,
-        .pte_level = level
-    };
+    struct pt_walker walker;
+    ptwalker_create_from_toplevel(&walker,
+                                  pte_phys,
+                                  level,
+                                  /*root_index=*/0,
+                                  /*alloc_pgtable=*/NULL,
+                                  /*free_pgtable=*/NULL);
 
-    array_destroy(&cpu_array);
+    while (true) {
+        const pte_t entry =
+            pte_read(walker.tables[walker.level - 1] +
+                     walker.indices[walker.level - 1]);
+
+        struct page *const page = pte_to_page(entry);
+        if (pte_is_large(entry)) {
+            if (ref_down(&page->largehead.refcount) && should_free_pages) {
+                list_add(&pageop->delayed_free,
+                         &page->largehead.delayed_free_list);
+            }
+        } else {
+            if (ref_down(&page->used.refcount) && should_free_pages) {
+                list_add(&pageop->delayed_free, &page->used.delayed_free_list);
+            }
+        }
+
+        ptwalker_deref_from_level(&walker, walker.level, pageop);
+
+        const enum pt_walker_result result = ptwalker_next(&walker);
+        if (result == E_PT_WALKER_OK) {
+            continue;
+        }
+
+        if (result == E_PT_WALKER_REACHED_END) {
+            break;
+        }
+
+        panic("mm: got result=%d while flushing pte\n", result);
+    }
 }
 
-void pageop_flush_address(struct pageop *const pageop, const uint64_t virt) {
+void
+pageop_setup_for_address(struct pageop *const pageop, const uint64_t virt) {
+    if (virt + PAGE_SIZE == pageop->flush_range.front) {
+        pageop->flush_range.front = virt;
+        return;
+    }
+
+    if (range_has_loc(pageop->flush_range, virt)) {
+        return;
+    }
+
+    uint64_t end = 0;
+    if (range_get_end(pageop->flush_range, &end)) {
+        if (virt == end) {
+            pageop->flush_range.size += PAGE_SIZE;
+            return;
+        }
+    }
+
     pageop_finish(pageop);
     pageop->flush_range = range_create(virt, PAGE_SIZE);
 }
 
+void
+pageop_setup_for_range(struct pageop *const pageop, const struct range virt) {
+    if (range_has(pageop->flush_range, virt)) {
+        return;
+    }
+
+    uint64_t virt_end = 0;
+    if (range_get_end(virt, &virt_end)) {
+        if (pageop->flush_range.front == virt_end) {
+            pageop->flush_range.front = virt.front;
+            return;
+        }
+    }
+
+    uint64_t flush_end = 0;
+    if (range_get_end(pageop->flush_range, &flush_end)) {
+        if (virt.front == flush_end) {
+            pageop->flush_range.size += virt.size;
+            return;
+        }
+    }
+
+    pageop_finish(pageop);
+    pageop->flush_range = virt;
+}
+
 void pageop_finish(struct pageop *const pageop) {
+    if (range_empty(pageop->flush_range)) {
+        return;
+    }
+
 #if defined(__x86_64__)
     tlb_flush_pageop(pageop);
 #elif defined(__riscv64)

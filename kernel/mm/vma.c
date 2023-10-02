@@ -29,7 +29,7 @@ struct vm_area *vma_next(struct vm_area *const vma) {
 struct vm_area *
 vma_alloc(struct pagemap *const pagemap,
           const struct range range,
-          const uint8_t prot,
+          const prot_t prot,
           const enum vma_cachekind cachekind)
 {
     struct vm_area *const vma = kmalloc(sizeof(struct vm_area));
@@ -52,7 +52,7 @@ vma_create(struct pagemap *const pagemap,
            const uint64_t phys,
            const uint64_t size,
            const uint64_t align,
-           const uint8_t prot,
+           const prot_t prot,
            const enum vma_cachekind cachekind)
 {
     assert(has_align(phys, PAGE_SIZE));
@@ -76,7 +76,7 @@ struct vm_area *
 vma_create_at(struct pagemap *const pagemap,
               const struct range range,
               const uint64_t phys_addr,
-              const uint8_t prot,
+              const prot_t prot,
               const enum vma_cachekind cachekind)
 {
     struct vm_area *const vma = vma_alloc(pagemap, range, prot, cachekind);

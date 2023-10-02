@@ -85,6 +85,12 @@ void acpi_init(void) {
         return;
     }
 
+    const uint64_t oem_id_length =
+        strnlen(info.rsdp->oem_id, sizeof(info.rsdp->oem_id));
+    const struct string_view oem_id =
+        sv_create_nocheck(info.rsdp->oem_id, oem_id_length);
+
+    printk(LOGLEVEL_INFO, "acpi: oem is " SV_FMT "\n", SV_FMT_ARGS(oem_id));
     if (has_xsdt()) {
         info.rsdt = phys_to_virt(info.rsdp->v2.xsdt_addr);
     } else {

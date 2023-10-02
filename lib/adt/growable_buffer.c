@@ -8,8 +8,6 @@
 
 #include "growable_buffer.h"
 
-/******* PRIVATE APIs *******/
-
 struct growable_buffer gbuffer_alloc(const uint32_t init_cap) {
     const struct growable_buffer gbuffer = {
         .begin = malloc(init_cap),

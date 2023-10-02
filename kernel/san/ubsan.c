@@ -24,10 +24,6 @@ static const char *const type_check_kind_list[] = {
     "dynamic operation on"
 };
 
-static const char *type_check_kind_get_string(const enum type_check_kind kind) {
-    return type_check_kind_list[kind];
-}
-
 void
 __ubsan_handle_type_mismatch_v1(struct type_mismatch_info_v1 *const info,
                                 const uint64_t pointer)
@@ -36,7 +32,7 @@ __ubsan_handle_type_mismatch_v1(struct type_mismatch_info_v1 *const info,
         printk(LOGLEVEL_ERROR,
                "ubsan: [" SOURCE_LOCATION_FMT "] %s null pointer of type %s\n",
                SOURCE_LOCATION_FMT_ARGS(&info->location),
-               type_check_kind_get_string(info->type_check_kind),
+               type_check_kind_list[info->type_check_kind],
                info->type->name);
         return;
     }
@@ -470,8 +466,8 @@ __ubsan_handle_function_type_mismatch(
 {
     printk(LOGLEVEL_ERROR,
            "ubsan: [" SOURCE_LOCATION_FMT "] call to function at address %p "
-           "through pointer "
-           "with incorrect function type\n",
+           "through pointer with incorrect function type %s\n",
            SOURCE_LOCATION_FMT_ARGS(&info->location),
-           (void *)value);
+           (void *)value,
+           info->type->name);
 }

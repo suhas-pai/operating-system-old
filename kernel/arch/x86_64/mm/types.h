@@ -58,7 +58,8 @@ static const uint8_t LARGEPAGE_SHIFTS[] = { PML2_SHIFT, PML3_SHIFT };
 
 struct largepage_level_info {
     uint8_t order;
-    uint8_t level; // can't use pgt_level_t
+    uint8_t largepage_order;
+    uint8_t level; // should be pgt_level_t
     uint64_t size;
     bool is_supported : 1;
 };
@@ -84,9 +85,10 @@ enum pte_flags {
     __PTE_USER     = 1ull << 2,
     __PTE_PWT      = 1ull << 3,
     __PTE_PCD      = 1ull << 4,
+    __PTE_WC       = __PTE_PWT | __PTE_PCD,
     __PTE_ACCESSED = 1ull << 5,
+    __PTE_DIRTY    = 1ull << 6, // Only valid of PML1 pages and large pages
     __PTE_LARGE    = 1ull << 7, // Not valid on PML1 pages
-    __PTE_WC       = 1ull << 7, // Only valid on PML1 pages
     __PTE_GLOBAL   = 1ull << 8,
 
     __PTE_NOEXEC = 1ull << 63

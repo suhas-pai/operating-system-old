@@ -678,9 +678,7 @@ bitmap_has(const struct bitmap *const bitmap,
 #undef CHECK_MEMBUF_ALL_BITS_OF_VALUE
 #undef TYPE_FOR_BIT_AMT
 
-    /*
-     * Stage 3: Check last byte.
-     */
+    // Stage 3: Check last byte.
 
     const uint8_t last_byte_bits = *(uint8_t *)ptr & mask_for_n_bits(count);
     const uint8_t last_byte_expected =
@@ -757,8 +755,8 @@ bitmap_set_range(struct bitmap *const bitmap,
 
 void bitmap_set_all(struct bitmap *const bitmap, const bool value) {
     if (value) {
-        memset_all_ones(bitmap->gbuffer.begin,
-                        gbuffer_capacity(bitmap->gbuffer));
+        const uint64_t capacity = gbuffer_capacity(bitmap->gbuffer);
+        memset_all_ones(bitmap->gbuffer.begin, capacity);
     } else {
         bzero(bitmap->gbuffer.begin, gbuffer_capacity(bitmap->gbuffer));
     }
