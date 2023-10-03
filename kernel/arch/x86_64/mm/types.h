@@ -60,8 +60,9 @@ struct largepage_level_info {
     uint8_t order;
     uint8_t largepage_order;
     uint8_t level; // should be pgt_level_t
-    uint64_t size;
+
     bool is_supported : 1;
+    uint64_t size;
 };
 
 extern struct largepage_level_info largepage_level_info_list[PGT_LEVEL_COUNT];

@@ -805,8 +805,12 @@ pci_add_pcie_domain(struct range bus_range,
     domain->mmio =
         vmap_mmio(config_space_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 
-    assert_msg(domain->mmio != NULL,
+    if (domain->mmio == NULL) {
+        printk(LOGLEVEL_WARN,
                "pcie: failed to mmio-map pci-domain config-space");
+
+        return NULL;
+    }
 
     domain->bus_range = bus_range;
     domain->segment = segment;

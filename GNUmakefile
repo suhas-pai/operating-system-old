@@ -133,7 +133,7 @@ limine:
 
 .PHONY: kernel
 kernel:
-	$(MAKE) -C kernel
+	$(MAKE) -C kernel DEBUG=$(DEBUG)
 
 $(IMAGE_NAME).iso: limine kernel
 	rm -rf iso_root

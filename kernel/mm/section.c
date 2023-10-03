@@ -8,7 +8,7 @@
 
 #include "boot.h"
 
-__optimize(3) uint64_t phys_to_pfn(const uint64_t phys) {
+uint64_t phys_to_pfn(const uint64_t phys) {
     const struct mm_section *const begin = mm_get_usable_list();
     const struct mm_section *const end = begin + mm_get_usable_count();
 

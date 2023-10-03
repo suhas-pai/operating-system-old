@@ -60,6 +60,7 @@ __optimize(3) page_section_t page_get_section(const struct page *const page) {
     return (page_get_flags(page) >> SECTION_SHIFT) & SECTION_MASK;
 }
 
-__optimize(3) struct mm_section *page_to_mm_section(const struct page *page) {
+__optimize(3)
+struct mm_section *page_to_mm_section(const struct page *const page) {
     return mm_get_usable_list() + page_get_section(page);
 }

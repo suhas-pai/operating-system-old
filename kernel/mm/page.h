@@ -26,7 +26,7 @@ struct page {
 
             // An order of 0xFF means this is a tail-page of a page in the lru
             // cache.
-            uint32_t order;
+            uint32_t amount;
         } dirty_lru;
         struct {
             struct slab_allocator *allocator;

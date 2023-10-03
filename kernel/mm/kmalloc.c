@@ -98,6 +98,5 @@ __optimize(3) void *krealloc(void *const buffer, const uint64_t size) {
 __optimize(3) void kfree(void *const buffer) {
     assert_msg(__builtin_expect(kmalloc_is_initialized, 1),
                "mm: kfree() called before kmalloc_init()");
-
     slab_free(buffer);
 }

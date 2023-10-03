@@ -64,8 +64,8 @@ struct largepage_level_info {
     uint8_t largepage_order;
     uint8_t level; // can't use pgt_level_t
 
-    uint64_t size;
     bool is_supported : 1;
+    uint64_t size;
 };
 
 extern struct largepage_level_info largepage_level_info_list[PGT_LEVEL_COUNT];
@@ -102,6 +102,6 @@ enum pte_flags {
 
 #define PGT_FLAGS __PTE_VALID
 #define PTE_LARGE_FLAGS(level) ({ (void)(level); __PTE_VALID; })
-#define PTE_LEAF_FLAGS (__PTE_VALID | __PTE_ACCESSED | __PTE_DIRTY)
+#define PTE_LEAF_FLAGS (__PTE_VALID | __PTE_ACCESSED)
 
 struct page;

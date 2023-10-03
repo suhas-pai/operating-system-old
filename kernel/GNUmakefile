@@ -31,17 +31,17 @@ ifeq ($(shell $(CC) --version 2>&1 | grep -i 'clang' >/dev/null 2>&1 && echo 1),
 	override CC_IS_CLANG := yes
 endif
 
-override LD_IS_LLD := no
-ifeq ($(shell $(LD) --version 2>&1 | grep -i 'LLD' >/dev/null 2>&1 && echo 1),1)
-	override LD_IS_LLD := yes
-endif
-
 override DEFAULT_CXX := clang++
 $(eval $(call DEFAULT_VAR,CXX,$(DEFAULT_CXX)))
 
 # Same thing for "ld" (the linker).
 override DEFAULT_LD := ld
 $(eval $(call DEFAULT_VAR,LD,$(DEFAULT_LD)))
+
+override LD_IS_LLD := no
+ifeq ($(shell $(LD) --version 2>&1 | grep -i 'LLD' >/dev/null 2>&1 && echo 1),1)
+	override LD_IS_LLD := yes
+endif
 
 COMMON_FLAGS = -g3 -pipe -Wcast-align -Wcast-qual -Wsign-conversion -Werror \
 			   -Wfloat-equal -Wredundant-decls -Wshadow -Wstrict-overflow=5 \
@@ -58,6 +58,9 @@ ifeq ($(IN_QEMU), 1)
 	override COMMON_FLAGS += -DIN_QEMU
 endif
 
+override DEFAULT_DEBUG := 0
+$(eval $(call DEFAULT_VAR,DEBUG,$(DEFAULT_DEBUG)))
+
 # User controllable C flags.
 override DEFAULT_CFLAGS := $(COMMON_FLAGS)
 $(eval $(call DEFAULT_VAR,CFLAGS,$(DEFAULT_CFLAGS)))
@@ -72,11 +75,6 @@ override DEFAULT_NASMFLAGS := -F dwarf -g
 $(eval $(call DEFAULT_VAR,NASMFLAGS,$(DEFAULT_NASMFLAGS)))
 endif
 
-# User controllable linker flags. We set none by default.
-override DEFAULT_LDFLAGS :=
-$(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
-
-# User controllable C preprocessor flags. We set none by default.
 # User controllable linker flags. We set none by default.
 override DEFAULT_LDFLAGS :=
 $(eval $(call DEFAULT_VAR,LDFLAGS,$(DEFAULT_LDFLAGS)))
@@ -106,27 +104,28 @@ ifeq ($(ARCH),x86_64)
 		-Wall
 endif
 
-ifeq ($(CC_IS_CLANG),yes)
-	override CFLAGS += \
-		-mllvm -enable-cond-stores-vec \
-		-mllvm -enable-loopinterchange \
-		-mllvm -enable-loop-distribute \
-		-mllvm -enable-unroll-and-jam \
-		-mllvm -enable-loop-flatten \
-		-mllvm -interleave-small-loop-scalar-reduction \
-		-mllvm -unroll-runtime-multi-exit \
-		-mllvm -aggressive-ext-opt
-endif
-
-ifeq ($(LD_IS_LLD),yes)
-	override LDFLAGS +=
-		-flto=thin \
-		-Wl,--lto-O3 \
-		-Wl,--lto-CGO3 \
-      	-Wl,-mllvm,-enable-gvn-hoist \
-      	-Wl,-mllvm,-loop-rotate-multi \
-      	-Wl,-mllvm,-polly \
-      	-Wl,-mllvm,-polly-invariant-load-hoisting
+ifeq ($(DEBUG), 0)
+	ifeq ($(CC_IS_CLANG),yes)
+		override CFLAGS += \
+			-mllvm -enable-cond-stores-vec \
+			-mllvm -enable-loopinterchange \
+			-mllvm -enable-loop-distribute \
+			-mllvm -enable-unroll-and-jam \
+			-mllvm -enable-loop-flatten \
+			-mllvm -interleave-small-loop-scalar-reduction \
+			-mllvm -unroll-runtime-multi-exit \
+			-mllvm -aggressive-ext-opt
+	endif
+	ifeq ($(LD_IS_LLD),yes)
+		override LDFLAGS +=
+			-flto=thin \
+			-Wl,--lto-O3 \
+			-Wl,--lto-CGO3 \
+			-Wl,-mllvm,-enable-gvn-hoist \
+			-Wl,-mllvm,-loop-rotate-multi \
+			-Wl,-mllvm,-polly \
+			-Wl,-mllvm,-polly-invariant-load-hoisting
+	endif
 endif
 
 # Architecture specific internal flags.
