@@ -2,7 +2,7 @@
 override MAKEFLAGS += -rR
 
 override IMAGE_NAME := barebones
-export IN_QEMU := 1
+export IN_QEMU := 0
 
 # Convenience macro to reliably declare user overridable variables.
 define DEFAULT_VAR =
