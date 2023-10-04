@@ -449,6 +449,9 @@ void mark_used_pages(const struct mm_section *const memmap) {
             continue;
         }
 
+        // Mark the range from the beginning of the memmap, to the first
+        // free page.
+
         struct page *const start = phys_to_page(memmap->range.front);
         struct page *page = start;
         struct page *const unusable_end = virt_to_page(iter);
@@ -458,9 +461,10 @@ void mark_used_pages(const struct mm_section *const memmap) {
         }
 
         while (true) {
-            page += iter->avail_page_count;
+            // Mark the range from after the free pages, to the end of the
+            // original free-page area.
 
-            // Mark all pages after iter as non-usable.
+            page += iter->avail_page_count;
             for (uint64_t i = iter->avail_page_count;
                  i != iter->total_page_count;
                  i++, page++)
@@ -470,6 +474,9 @@ void mark_used_pages(const struct mm_section *const memmap) {
 
             iter = list_next(iter, list);
             if (&iter->list == &g_freepage_list) {
+                // Mark the range from after the original free-area, to the end
+                // of the memmap.
+
                 const struct page *const memmap_end =
                     start + PAGE_COUNT(memmap->range.size);
 
@@ -482,6 +489,9 @@ void mark_used_pages(const struct mm_section *const memmap) {
 
             iter_phys = virt_to_phys(iter);
             if (!range_has_loc(memmap->range, iter_phys)) {
+                // Mark the range from after the original free-area, to the end
+                // of the memmap.
+
                 const struct page *const memmap_end =
                     start + PAGE_COUNT(memmap->range.size);
 

@@ -7,18 +7,14 @@ So far, only the kernel is being worked on.
 ## Features
 
 The kernel has the following implemented:
-
 * UART drivers; uart8250 on x86_64, riscv64 and pl011 on aarch64
-* GDT, IDT, and support for dynamic vector allocation
 * Physical Memory Buddy Allocator using a vmemmap of `struct page`
 * General memory allocation with kmalloc() using a slab allocator
-* RTC (google,goldfish-rtc on riscv64) Clock and HPET on x86_64
-* Page Fault Interrupt and other exceptions
+* RTC (google,goldfish-rtc on riscv64) and LAPIC Timer, HPET on x86_64
 * Keyboard (ps2) driver
 * Parsing ACPI Tables and Flattened Device Tree (when available)
 * Local APIC and I/O APIC
-* Local APIC Timer
-* PCI(e) device detection
+* PCI(e) Device Initialization with drivers
 
 The following is currently being worked on.
 * AHCI, SATA, IDE controllers to read disk
@@ -52,13 +48,13 @@ Among many others
 operating-system currently supports the `x86_64`, `aarch64` (`arm64`), and `riscv64` architectures.
 `x86_64` is the most feature complete, while `arm64` and `riscv64` are catching up
 
-To build and run, only clang and ld are needed, except for `x86_64`, which
-needs a cross compiler, such as `x86_64-elf-gcc` available on homebrew, because
-sysv-abi support is needed but is not provided for by clang.
+Several options are available to configure launching in QEMU:
+  * `MEM` to configure memory size (in QEMU units) (By Default `4G`)
+  * `SMP` to configure amount of cpus (By Default 4)
+  * `DEBUG` to allow starting in QEMU's debugger mode (By default 0)
+  * `CONSOLE` to allow starting in QEMU's console mode (By default 0)
 
-Otherwise, building for `riscv64` and `arm64` can be done natively with clang/ld
-directly from llvm (not apple)
-
+To build and run, only clang and ld.lld are needed (from LLVM).
 Run using:
 
-```make clean && make run ARCH=<arch>```
+```make clean && make run ARCH=<arch> MEM=<mem> SMP=<smp>```
