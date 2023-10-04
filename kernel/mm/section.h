@@ -6,9 +6,6 @@
 #pragma once
 
 #include "lib/adt/bitmap.h"
-#include "lib/list.h"
-
-#include "mm/memmap.h"
 #include "mm_types.h"
 
 struct mm_section {

@@ -10,6 +10,7 @@
 #include "lib/size.h"
 
 #include "mm/early.h"
+#include "mm/memmap.h"
 #include "mm/pgmap.h"
 #include "mm/walker.h"
 
@@ -22,7 +23,7 @@ ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
     (void)cb_info;
 
     const uint64_t phys = early_alloc_page();
-    if (phys != INVALID_PHYS) {
+    if (__builtin_expect(phys != INVALID_PHYS, 1)) {
         return phys;
     }
 
@@ -40,182 +41,207 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                                 /*alloc_pgtable=*/ptwalker_alloc_pgtable_cb,
                                 /*free_pgtable=*/NULL);
 
-    if (map_size >= PAGE_SIZE_1GIB && has_align(virt_addr, PAGE_SIZE_1GIB)) {
-        walker_result =
-            ptwalker_fill_in_to(&pt_walker,
-                                /*level=*/3,
-                                /*should_ref=*/false,
-                                /*alloc_pgtable_cb_info=*/NULL,
-                                /*free_pgtable_cb_info=*/NULL);
+    const bool supports_1gib_pages =
+        get_cpu_capabilities()->supports_1gib_pages;
 
-        if (walker_result != E_PT_WALKER_OK) {
-        panic:
-            panic("mm: failed to setup page-structs, ran out of memory\n");
-        }
+    do {
+    try_1gib:
+        if (map_size >= PAGE_SIZE_1GIB &&
+            has_align(virt_addr, PAGE_SIZE_1GIB) &&
+            supports_1gib_pages)
+        {
+            walker_result =
+                ptwalker_fill_in_to(&pt_walker,
+                                    /*level=*/3,
+                                    /*should_ref=*/false,
+                                    /*alloc_pgtable_cb_info=*/NULL,
+                                    /*free_pgtable_cb_info=*/NULL);
 
-        pte_t *table = pt_walker.tables[2];
-        pte_t *pte = table + pt_walker.indices[2];
-        const pte_t *end = table + PGT_PTE_COUNT;
-
-        do {
-            const uint64_t page =
-                early_alloc_large_page(
-                    /*amount=*/PGT_PTE_COUNT * PGT_PTE_COUNT);
-
-            if (page == INVALID_PHYS) {
-                // We failed to alloc a 1gib page, so try 2mib pages next.
-                break;
+            if (walker_result != E_PT_WALKER_OK) {
+            panic:
+                panic("mm: failed to setup page-structs, ran out of memory\n");
             }
 
-            *pte = phys_create_pte(page) | PTE_LARGE_FLAGS(3) | pte_flags;
-            pte++;
+            pte_t *table = pt_walker.tables[2];
+            pte_t *pte = table + pt_walker.indices[2];
+            const pte_t *end = table + PGT_PTE_COUNT;
 
-            if (pte == end) {
-                pt_walker.indices[2] = PGT_PTE_COUNT - 1;
-                walker_result =
-                    ptwalker_next_with_options(&pt_walker,
-                                               /*level=*/3,
-                                               /*alloc_parents=*/true,
-                                               /*alloc_level=*/true,
-                                               /*should_ref=*/false,
-                                               /*alloc_pgtable_cb_info=*/NULL,
-                                               /*free_pgtable_cb_info=*/NULL);
+            do {
+                const uint64_t page =
+                    early_alloc_large_page(
+                        /*amount=*/PGT_PTE_COUNT * PGT_PTE_COUNT);
 
-                if (walker_result != E_PT_WALKER_OK) {
-                    goto panic;
+                if (page == INVALID_PHYS) {
+                    // We failed to alloc a 1gib page, so try 2mib pages next.
+                    break;
                 }
 
-                table = pt_walker.tables[2];
-                pte = table;
-                end = table + PGT_PTE_COUNT;
+                *pte = phys_create_pte(page) | PTE_LARGE_FLAGS(3) | pte_flags;
+                pte++;
 
-                break;
-            }
+                if (pte == end) {
+                    pt_walker.indices[2] = PGT_PTE_COUNT - 1;
+                    walker_result =
+                        ptwalker_next_with_options(
+                            &pt_walker,
+                            /*level=*/3,
+                            /*alloc_parents=*/true,
+                            /*alloc_level=*/true,
+                            /*should_ref=*/false,
+                            /*alloc_pgtable_cb_info=*/NULL,
+                            /*free_pgtable_cb_info=*/NULL);
 
-            map_size -= PAGE_SIZE_1GIB;
-            if (map_size < PAGE_SIZE_1GIB) {
-                pt_walker.indices[2] = pte - table;
-                goto try_2mib;
-            }
+                    if (walker_result != E_PT_WALKER_OK) {
+                        goto panic;
+                    }
 
-            virt_addr += PAGE_SIZE_1GIB;
-        } while (true);
-    }
+                    table = pt_walker.tables[2];
+                    pte = table;
+                    end = table + PGT_PTE_COUNT;
 
-try_2mib:
-    if (map_size >= PAGE_SIZE_2MIB && has_align(virt_addr, PAGE_SIZE_2MIB)) {
-        walker_result =
-            ptwalker_fill_in_to(&pt_walker,
-                                /*level=*/2,
-                                /*should_ref=*/false,
-                                /*alloc_pgtable_cb_info=*/NULL,
-                                /*free_pgtable_cb_info=*/NULL);
-
-        if (walker_result != E_PT_WALKER_OK) {
-            goto panic;
-        }
-
-        pte_t *table = pt_walker.tables[1];
-        pte_t *pte = table + pt_walker.indices[1];
-        const pte_t *end = table + PGT_PTE_COUNT;
-
-        do {
-            const uint64_t page =
-                early_alloc_large_page(/*amount=*/PGT_PTE_COUNT);
-
-            if (page == INVALID_PHYS) {
-                // We failed to alloc a 2mib page, so try 4kib pages next.
-                break;
-            }
-
-            *pte = phys_create_pte(page) | PTE_LARGE_FLAGS(2) | pte_flags;
-            pte++;
-
-            if (pte == end) {
-                pt_walker.indices[1] = PGT_PTE_COUNT - 1;
-                walker_result =
-                    ptwalker_next_with_options(&pt_walker,
-                                               /*level=*/2,
-                                               /*alloc_parents=*/true,
-                                               /*alloc_level=*/true,
-                                               /*should_ref=*/false,
-                                               /*alloc_pgtable_cb_info=*/NULL,
-                                               /*free_pgtable_cb_info=*/NULL);
-
-                if (walker_result != E_PT_WALKER_OK) {
-                    goto panic;
+                    break;
                 }
 
-                table = pt_walker.tables[1];
-                pte = table;
-                end = pte + PGT_PTE_COUNT;
-            }
-
-            map_size -= PAGE_SIZE_2MIB;
-            if (map_size < PAGE_SIZE_2MIB) {
-                pt_walker.indices[1] = pte - table;
-                goto try_normal;
-            }
-
-            virt_addr += PAGE_SIZE_2MIB;
-        } while (true);
-    }
-
-try_normal:
-    if (map_size != 0) {
-        walker_result =
-            ptwalker_fill_in_to(&pt_walker,
-                                /*level=*/1,
-                                /*should_ref=*/false,
-                                /*alloc_pgtable_cb_info=*/NULL,
-                                /*free_pgtable_cb_info=*/NULL);
-
-        if (walker_result != E_PT_WALKER_OK) {
-            goto panic;
-        }
-
-        pte_t *table = pt_walker.tables[0];
-        pte_t *pte = table + pt_walker.indices[0];
-        const pte_t *end = table + PGT_PTE_COUNT;
-
-        do {
-            const uint64_t page = early_alloc_page();
-            if (page == INVALID_PHYS) {
-                panic("mm: failed to allocate page while setting up "
-                      "kernel-pagemap\n");
-            }
-
-            *pte = phys_create_pte(page) | PTE_LEAF_FLAGS | pte_flags;
-            map_size -= PAGE_SIZE;
-
-            if (map_size == 0) {
-                return;
-            }
-
-            pte++;
-            if (pte == end) {
-                pt_walker.indices[0] = PGT_PTE_COUNT - 1;
-                walker_result =
-                    ptwalker_next_with_options(&pt_walker,
-                                               /*level=*/1,
-                                               /*alloc_parents=*/true,
-                                               /*alloc_level=*/true,
-                                               /*should_ref=*/false,
-                                               /*alloc_pgtable_cb_info=*/NULL,
-                                               /*free_pgtable_cb_info=*/NULL);
-
-                if (walker_result != E_PT_WALKER_OK) {
-                    goto panic;
+                map_size -= PAGE_SIZE_1GIB;
+                if (map_size < PAGE_SIZE_1GIB) {
+                    pt_walker.indices[2] = pte - table;
+                    goto try_2mib;
                 }
 
-                table = pt_walker.tables[0];
-                pte = table;
-                end = table + PGT_PTE_COUNT;
+                virt_addr += PAGE_SIZE_1GIB;
+            } while (true);
+        }
+
+    try_2mib:
+        if (map_size >= PAGE_SIZE_2MIB && has_align(virt_addr, PAGE_SIZE_2MIB))
+        {
+            walker_result =
+                ptwalker_fill_in_to(&pt_walker,
+                                    /*level=*/2,
+                                    /*should_ref=*/false,
+                                    /*alloc_pgtable_cb_info=*/NULL,
+                                    /*free_pgtable_cb_info=*/NULL);
+
+            if (walker_result != E_PT_WALKER_OK) {
+                goto panic;
             }
 
-            virt_addr += PAGE_SIZE;
-        } while (true);
-    }
+            pte_t *table = pt_walker.tables[1];
+            pte_t *pte = table + pt_walker.indices[1];
+            const pte_t *end = table + PGT_PTE_COUNT;
+
+            do {
+                const uint64_t page =
+                    early_alloc_large_page(/*amount=*/PGT_PTE_COUNT);
+
+                if (page == INVALID_PHYS) {
+                    // We failed to alloc a 2mib page, so try 4kib pages next.
+                    break;
+                }
+
+                *pte = phys_create_pte(page) | PTE_LARGE_FLAGS(2) | pte_flags;
+                pte++;
+
+                if (pte == end) {
+                    pt_walker.indices[1] = PGT_PTE_COUNT - 1;
+                    walker_result =
+                        ptwalker_next_with_options(
+                            &pt_walker,
+                            /*level=*/2,
+                            /*alloc_parents=*/true,
+                            /*alloc_level=*/true,
+                            /*should_ref=*/false,
+                            /*alloc_pgtable_cb_info=*/NULL,
+                            /*free_pgtable_cb_info=*/NULL);
+
+                    if (walker_result != E_PT_WALKER_OK) {
+                        goto panic;
+                    }
+
+                    if (pt_walker.indices[2] == 0) {
+                        goto try_1gib;
+                    }
+
+                    table = pt_walker.tables[1];
+                    pte = table;
+                    end = pte + PGT_PTE_COUNT;
+                }
+
+                map_size -= PAGE_SIZE_2MIB;
+                if (map_size < PAGE_SIZE_2MIB) {
+                    pt_walker.indices[1] = pte - table;
+                    goto try_normal;
+                }
+
+                virt_addr += PAGE_SIZE_2MIB;
+            } while (true);
+        }
+
+    try_normal:
+        if (map_size != 0) {
+            walker_result =
+                ptwalker_fill_in_to(&pt_walker,
+                                    /*level=*/1,
+                                    /*should_ref=*/false,
+                                    /*alloc_pgtable_cb_info=*/NULL,
+                                    /*free_pgtable_cb_info=*/NULL);
+
+            if (walker_result != E_PT_WALKER_OK) {
+                goto panic;
+            }
+
+            pte_t *table = pt_walker.tables[0];
+            pte_t *pte = table + pt_walker.indices[0];
+            const pte_t *end = table + PGT_PTE_COUNT;
+
+            do {
+                const uint64_t page = early_alloc_page();
+                if (page == INVALID_PHYS) {
+                    panic("mm: failed to allocate page while setting up "
+                          "kernel-pagemap\n");
+                }
+
+                *pte = phys_create_pte(page) | PTE_LEAF_FLAGS | pte_flags;
+                map_size -= PAGE_SIZE;
+
+                if (map_size == 0) {
+                    return;
+                }
+
+                pte++;
+                if (pte == end) {
+                    pt_walker.indices[0] = PGT_PTE_COUNT - 1;
+                    walker_result =
+                        ptwalker_next_with_options(
+                            &pt_walker,
+                            /*level=*/1,
+                            /*alloc_parents=*/true,
+                            /*alloc_level=*/true,
+                            /*should_ref=*/false,
+                            /*alloc_pgtable_cb_info=*/NULL,
+                            /*free_pgtable_cb_info=*/NULL);
+
+                    if (walker_result != E_PT_WALKER_OK) {
+                        goto panic;
+                    }
+
+                    if (pt_walker.indices[1] == 0) {
+                        if (pt_walker.indices[2] == 0) {
+                            goto try_1gib;
+                        }
+
+                        goto try_2mib;
+                    }
+
+                    table = pt_walker.tables[0];
+                    pte = table;
+                    end = table + PGT_PTE_COUNT;
+                }
+
+                virt_addr += PAGE_SIZE;
+            } while (true);
+        }
+    } while (false);
 }
 
 extern uint64_t structpage_page_count;

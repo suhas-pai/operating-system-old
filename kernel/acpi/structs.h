@@ -82,8 +82,8 @@ struct acpi_madt_entry_header {
 } __packed;
 
 enum acpi_madt_entry_cpu_lapic_flags {
-    ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ENABLED        = 1 << 0,
-    ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ONLINE_CAPABLE = 1 << 1
+    __ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ENABLED        = 1 << 0,
+    __ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ONLINE_CAPABLE = 1 << 1
 };
 
 struct acpi_madt_entry_cpu_lapic {
@@ -156,16 +156,16 @@ struct acpi_madt_entry_cpu_local_x2apic_nmi {
 } __packed;
 
 enum acpi_madt_entry_gic_cpu_flags {
-    ACPI_MADT_ENTRY_GIC_CPU_ENABLED = 1 << 0,
-    ACPI_MADT_ENTRY_GIC_CPU_PERF_INTR_EDGE_TRIGGER = 1 << 1,
-    ACPI_MADT_ENTRY_GIC_CPU_VGIC_INTR_EDGE_TRIGGER = 1 << 2,
+    __ACPI_MADT_ENTRY_GIC_CPU_ENABLED = 1 << 0,
+    __ACPI_MADT_ENTRY_GIC_CPU_PERF_INTR_EDGE_TRIGGER = 1 << 1,
+    __ACPI_MADT_ENTRY_GIC_CPU_VGIC_INTR_EDGE_TRIGGER = 1 << 2,
 };
 
 enum acpi_madt_entry_gic_cpu_mpidr_flags {
-    ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF0 = 0xff,
-    ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF1 = 0xff << 8,
-    ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF2 = 0xff << 16,
-    ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF3 = 0xffull << 32,
+    __ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF0 = 0xff,
+    __ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF1 = 0xff << 8,
+    __ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF2 = 0xff << 16,
+    __ACPI_MADT_ENTRY_GIC_CPU_MPIDR_AFF3 = 0xffull << 32,
 };
 
 struct acpi_madt_entry_gic_cpu_interface {

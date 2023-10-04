@@ -20,7 +20,7 @@ ptwalker_early_alloc_pgtable_cb(struct pt_walker *const walker,
     (void)cb_info;
 
     const uint64_t phys = early_alloc_page();
-    if (phys != INVALID_PHYS) {
+    if (__builtin_expect(phys != INVALID_PHYS, 1)) {
         return phys;
     }
 

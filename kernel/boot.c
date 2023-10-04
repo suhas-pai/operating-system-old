@@ -4,6 +4,8 @@
  */
 
 #include "dev/printk.h"
+
+#include "mm/memmap.h"
 #include "mm/section.h"
 
 #include "boot.h"
@@ -233,5 +235,34 @@ void boot_merge_usable_memmaps() {
                 return;
             }
         } while (true);
+    }
+}
+
+void boot_remove_section(struct mm_section *section) {
+    const uint64_t length =
+        (uint64_t)((mm_usable_list + mm_usable_count) - (section + 1));
+
+    memmove(section, section + 1, length);
+}
+
+struct mm_section *boot_add_section_at(struct mm_section *section) {
+    const uint64_t length =
+        (uint64_t)((mm_usable_list + mm_usable_count) - section);
+
+    memmove(section + 1, section, length);
+    mm_usable_count++;
+
+    return section;
+}
+
+void boot_recalculate_pfns() {
+    uint64_t pfn = 0;
+
+    struct mm_section *section = mm_usable_list;
+    const struct mm_section *const end = mm_usable_list + mm_usable_count;
+
+    for (; section != end; section++) {
+        section->pfn = pfn;
+        pfn += PAGE_COUNT(section->range.size);
     }
 }

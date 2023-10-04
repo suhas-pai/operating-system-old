@@ -16,4 +16,6 @@ const void *boot_get_rsdp();
 const void *boot_get_dtb();
 
 int64_t boot_get_time();
+
 void boot_merge_usable_memmaps();
+void boot_recalculate_pfns();

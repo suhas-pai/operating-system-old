@@ -68,10 +68,10 @@ void madt_init(const struct acpi_madt *const madt) {
                     .apic_id = hdr->apic_id,
                     .processor_id = hdr->processor_id,
                     .enabled =
-                        (hdr->flags & ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ENABLED),
+                        (hdr->flags & __ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ENABLED),
                     .online_capable =
                         (hdr->flags &
-                         ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ONLINE_CAPABLE),
+                         __ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ONLINE_CAPABLE),
                 };
 
                 lapic_add(&lapic_info);
@@ -340,13 +340,13 @@ void madt_init(const struct acpi_madt *const madt) {
                        cpu->cpu_interface_number,
                        cpu->acpi_processor_id,
                        cpu->flags,
-                       (cpu->flags & ACPI_MADT_ENTRY_GIC_CPU_ENABLED) != 0 ?
+                       (cpu->flags & __ACPI_MADT_ENTRY_GIC_CPU_ENABLED) != 0 ?
                         "yes" : "no",
                        (cpu->flags &
-                        ACPI_MADT_ENTRY_GIC_CPU_PERF_INTR_EDGE_TRIGGER) != 0 ?
+                        __ACPI_MADT_ENTRY_GIC_CPU_PERF_INTR_EDGE_TRIGGER) != 0 ?
                         "yes" : "no",
                        (cpu->flags &
-                        ACPI_MADT_ENTRY_GIC_CPU_VGIC_INTR_EDGE_TRIGGER) != 0 ?
+                        __ACPI_MADT_ENTRY_GIC_CPU_VGIC_INTR_EDGE_TRIGGER) != 0 ?
                         "yes" : "no",
                        cpu->parking_protocol_version,
                        cpu->perf_interrupt_gsiv,

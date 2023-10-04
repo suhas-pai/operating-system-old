@@ -11,6 +11,7 @@
 #include "early.h"
 
 #include "kmalloc.h"
+#include "memmap.h"
 #include "pagemap.h"
 #include "walker.h"
 
@@ -694,7 +695,6 @@ void mm_early_post_arch_init() {
 
         int8_t iorder = MAX_ORDER - 1;
         do {
-            struct page_zone *const zone = phys_to_zone(phys);
             for (; iorder >= 0; iorder--) {
                 if (avail >= (1ull << iorder)) {
                     break;
@@ -705,7 +705,9 @@ void mm_early_post_arch_init() {
             // jorder should be equal to iorder in most cases, except in the
             // case where a section crosses the boundary of two zones.
 
+            struct page_zone *const zone = phys_to_zone(phys);
             int8_t jorder = iorder;
+
             for (; jorder >= 0; jorder--) {
                 const uint64_t back_phys =
                     phys + ((PAGE_SIZE << jorder) - PAGE_SIZE);
