@@ -372,8 +372,6 @@ void mm_early_init() {
 static void init_table_page(struct page *const page) {
     list_init(&page->table.delayed_free_list);
     refcount_init(&page->table.refcount);
-
-    page->flags |= PAGE_IS_TABLE;
 }
 
 void
@@ -482,7 +480,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
         struct page *const unusable_end = virt_to_page(iter);
 
         for (; page != unusable_end; page++) {
-            page->flags = PAGE_NOT_USABLE;
+            page->state = PAGE_STATE_NOT_USABLE;
         }
 
         while (true) {
@@ -494,7 +492,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
                  i != iter->total_page_count;
                  i++, page++)
             {
-                page->flags = PAGE_NOT_USABLE;
+                page->state = PAGE_STATE_NOT_USABLE;
             }
 
             iter = list_next(iter, list);
@@ -506,7 +504,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
                     start + PAGE_COUNT(memmap->range.size);
 
                 for (; page != memmap_end; page++) {
-                    page->flags = PAGE_NOT_USABLE;
+                    page->state = PAGE_STATE_NOT_USABLE;
                 }
 
                 return;
@@ -521,7 +519,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
                     start + PAGE_COUNT(memmap->range.size);
 
                 for (; page != memmap_end; page++) {
-                    page->flags = PAGE_NOT_USABLE;
+                    page->state = PAGE_STATE_NOT_USABLE;
                 }
 
                 return;
@@ -532,7 +530,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
 
             struct page *const end = phys_to_page(iter_phys);
             for (; page != end; page++) {
-                page->flags = PAGE_NOT_USABLE;
+                page->state = PAGE_STATE_NOT_USABLE;
             }
         }
     }
@@ -544,7 +542,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
     struct page *page = phys_to_page(memmap->range.front);
 
     for (uint64_t i = 0; i != memmap_page_count; i++, page++) {
-        page->flags = PAGE_NOT_USABLE;
+        page->state = PAGE_STATE_NOT_USABLE;
     }
 }
 
@@ -557,7 +555,7 @@ void mark_last_part_of_structpage_table() {
 
     const struct page *const end = (struct page *)PAGE_END;
     for (; page + sizeof(*page) <= end; page++) {
-        page->flags = PAGE_NOT_USABLE;
+        page->state = PAGE_STATE_NOT_USABLE;
     }
 }
 
@@ -570,9 +568,9 @@ void mark_used_pages_for_bitmap(struct mm_section *const memmap) {
 
     while (page < end) {
         struct page *begin = page;
-        if (page->flags == PAGE_NOT_USABLE) {
+        if (page->state == PAGE_STATE_NOT_USABLE) {
             for (; page != end; page++) {
-                if (page->flags != PAGE_NOT_USABLE) {
+                if (page->state != PAGE_STATE_NOT_USABLE) {
                     break;
                 }
             }
@@ -583,7 +581,7 @@ void mark_used_pages_for_bitmap(struct mm_section *const memmap) {
             bitmap_set_range(&memmap->used_pages_bitmap, range, /*value=*/true);
         } else {
             for (; page != end; page++) {
-                if (page->flags == PAGE_NOT_USABLE) {
+                if (page->state == PAGE_STATE_NOT_USABLE) {
                     break;
                 }
             }
@@ -610,11 +608,8 @@ set_section_for_pages(const struct mm_section *const memmap,
         struct page *page = virt_to_page(iter);
         struct page *const end = page + iter->avail_page_count;
 
-        const uint64_t section_shifted =
-            (uint64_t)(section & SECTION_MASK) << SECTION_SHIFT;
-
         for (; page != end; page++) {
-            page->flags = section_shifted;
+            page->section = section;
         }
     }
 }
@@ -795,7 +790,7 @@ void mm_early_post_arch_init() {
         const struct page *bitmap_page_end = bitmap_page + page_count;
 
         for (struct page *page = bitmap_page; page != bitmap_page_end; page++) {
-            page->flags = PAGE_NOT_USABLE;
+            page->state = PAGE_STATE_NOT_USABLE;
         }
 
         struct mm_section *const page_section = page_to_mm_section(bitmap_page);

@@ -53,7 +53,7 @@ slab_allocator_init(struct slab_allocator *const slab_alloc,
 
 static struct page *alloc_slab_page(struct slab_allocator *const alloc) {
     struct page *const head =
-        alloc_pages(__ALLOC_SLAB_HEAD | __ALLOC_ZERO, alloc->slab_order);
+        alloc_pages(PAGE_STATE_SLAB_HEAD, __ALLOC_ZERO, alloc->slab_order);
 
     if (__builtin_expect(head == NULL, 0)) {
         return NULL;
@@ -144,7 +144,7 @@ void *slab_alloc(struct slab_allocator *const alloc) {
 
 __optimize(3) static inline struct page *slab_head_of(const void *const mem) {
     struct page *const page = virt_to_page(mem);
-    if (page_has_bit(page, PAGE_IS_SLAB_HEAD)) {
+    if (page_get_state(page) == PAGE_STATE_SLAB_HEAD) {
         return page;
     }
 

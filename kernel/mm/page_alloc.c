@@ -17,7 +17,7 @@ add_to_freelist(struct page_zone *const zone,
                 struct page_freelist *const freelist,
                 struct page *const page)
 {
-    page_set_bit(page, PAGE_IN_FREE_LIST);
+    page_set_state(page, PAGE_STATE_FREE_LIST);
 
     list_init(&page->buddy.freelist);
     list_add(&freelist->page_list, &page->buddy.freelist);
@@ -38,7 +38,7 @@ early_add_to_freelist(struct page_zone *const zone,
     list_init(&page->buddy.freelist);
     list_add(&freelist->page_list, &page->buddy.freelist);
 
-    page->flags |= PAGE_IN_FREE_LIST;
+    page->state = PAGE_STATE_FREE_LIST;
     freelist->count++;
 
     const uint8_t freelist_order = (freelist - zone->freelist_list);
@@ -50,10 +50,11 @@ early_add_to_freelist(struct page_zone *const zone,
 __optimize(3) static struct page *
 take_off_freelist(struct page_zone *const zone,
                   struct page_freelist *freelist,
-                  struct page *const page)
+                  struct page *const page,
+                  const enum page_state state)
 {
     list_delete(&page->buddy.freelist);
-    page_clear_bit(page, PAGE_IN_FREE_LIST);
+    page_set_state(page, state);
 
     const uint8_t freelist_order = freelist - zone->freelist_list;
 
@@ -76,32 +77,13 @@ take_off_freelist(struct page_zone *const zone,
 
 __optimize(3) static struct page *
 get_from_freelist(struct page_zone *const zone,
-                  struct page_freelist *const freelist)
+                  struct page_freelist *const freelist,
+                  const enum page_state state)
 {
     struct page *page =
         list_head(&freelist->page_list, struct page, buddy.freelist);
 
-    return take_off_freelist(zone, freelist, page);
-}
-
-__optimize(3) void
-setup_large_page(struct page *const begin,
-                 const struct largepage_level_info *const info)
-{
-    const struct page *const end = begin + (1ull << info->order);
-
-    refcount_init(&begin->largehead.refcount);
-    refcount_init(&begin->largehead.page_refcount);
-
-    page_set_bit(begin, PAGE_IS_LARGE_HEAD);
-    list_init(&begin->largehead.delayed_free_list);
-
-    for (struct page *page = begin + 1; page != end; page++) {
-        page_set_bit(page, PAGE_IN_LARGE_PAGE);
-        refcount_init(&page->largetail.refcount);
-
-        page->largetail.head = begin;
-    }
+    return take_off_freelist(zone, freelist, page, state);
 }
 
 __optimize(3) uint64_t buddy_of(const uint64_t pfn, const uint8_t order) {
@@ -114,24 +96,21 @@ free_pages_to_zone_unlocked(struct page *page,
                             uint8_t order)
 {
     uint64_t page_pfn = page_to_pfn(page);
-    uint64_t page_section = page_get_section(page);
+    uint64_t page_section = page->section;
 
     for (; order < MAX_ORDER - 1; order++) {
         const uint64_t buddy_pfn = buddy_of(page_pfn, order);
         struct page *buddy = pfn_to_page(buddy_pfn);
 
-        // Because both the not-usable flag and the section-number are constant,
-        // try speeding up this function by atomically loading flags once rather
-        // than twice.
-
-        const uint32_t buddy_flags = page_get_flags(buddy);
-        if (buddy_flags & PAGE_NOT_USABLE) {
+        if (page_get_state(buddy) != PAGE_STATE_FREE_LIST) {
             break;
         }
 
-        const page_section_t buddy_section =
-            (buddy_flags >> SECTION_SHIFT) & SECTION_SHIFT;
+        if (buddy->buddy.order != order) {
+            break;
+        }
 
+        const page_section_t buddy_section = buddy->section;
         if (page_section != buddy_section) {
             break;
         }
@@ -140,18 +119,9 @@ free_pages_to_zone_unlocked(struct page *page,
             break;
         }
 
-        // Don't use buddy_flags here because the in-free-list flag is not
-        // constant.
+        struct page_freelist *const freelist = &zone->freelist_list[order];
+        take_off_freelist(zone, freelist, buddy, PAGE_STATE_USED);
 
-        if (!page_has_bit(buddy, PAGE_IN_FREE_LIST)) {
-            break;
-        }
-
-        if (buddy->buddy.order != order) {
-            break;
-        }
-
-        take_off_freelist(zone, &zone->freelist_list[order], buddy);
         if (buddy_pfn < page_pfn) {
             page = buddy;
             page_pfn = buddy_pfn;
@@ -233,7 +203,7 @@ get_large_from_freelist(struct page_zone *const zone,
     uint64_t page_phys = page_to_phys(page);
 
     if (largepage_order != freelist_order) {
-        take_off_freelist(zone, freelist, head);
+        take_off_freelist(zone, freelist, head, PAGE_STATE_LARGE_HEAD);
         if (!has_align(page_phys, PAGE_SIZE << largepage_order)) {
             uint64_t new_phys = 0;
             if (!align_up(page_phys, PAGE_SIZE << largepage_order, &new_phys)) {
@@ -248,6 +218,7 @@ get_large_from_freelist(struct page_zone *const zone,
             page_phys = new_phys;
 
             free_range_of_pages(head, zone, (uint64_t)(page - head));
+            page_set_state(page, PAGE_STATE_LARGE_HEAD);
         }
 
         struct page *begin = page + (1ull << largepage_order);
@@ -262,7 +233,10 @@ get_large_from_freelist(struct page_zone *const zone,
         const uint64_t align = PAGE_SIZE << largepage_order;
         do {
             if (has_align(page_phys, align)) {
-                take_off_freelist(zone, freelist, head);
+                take_off_freelist(zone,
+                                  freelist,
+                                  head,
+                                  PAGE_STATE_LARGE_HEAD);
                 break;
             }
 
@@ -284,7 +258,10 @@ get_large_from_freelist(struct page_zone *const zone,
 }
 
 __optimize(3) static struct page *
-alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
+alloc_pages_from_zone(struct page_zone *const zone,
+                      const uint8_t order,
+                      const enum page_state state)
+{
     struct page *page = NULL;
     const int flag = spin_acquire_with_irq(&zone->lock);
 
@@ -299,7 +276,7 @@ alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
         struct page_freelist *const freelist =
             &zone->freelist_list[alloced_order];
 
-        page = get_from_freelist(zone, freelist);
+        page = get_from_freelist(zone, freelist, state);
         if (page != NULL) {
             break;
         }
@@ -327,6 +304,7 @@ alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
 
 struct page *
 setup_alloced_page(struct page *const page,
+                   const enum page_state state,
                    const uint64_t alloc_flags,
                    const uint8_t order)
 {
@@ -340,23 +318,44 @@ setup_alloced_page(struct page *const page,
         bitmap_set(&memmap->used_pages_bitmap, page_index, /*value=*/true);
     }
 
-    if (alloc_flags & __ALLOC_TABLE) {
-        page_set_bit(page, PAGE_IS_TABLE);
+    switch (state) {
+        case PAGE_STATE_NOT_USABLE:
+            verify_not_reached();
+        case PAGE_STATE_USED:
+            break;
+        case PAGE_STATE_FREE_LIST:
+            verify_not_reached();
+        case PAGE_STATE_LRU_CACHE:
+            verify_not_reached();
+        case PAGE_STATE_SLAB_HEAD:
+            zero_multiple_pages(page_to_virt(page), 1ull << order);
+            list_init(&page->slab.head.slab_list);
 
-        zero_page(page_to_virt(page));
-        list_init(&page->table.delayed_free_list);
+            return page;
+        case PAGE_STATE_TABLE:
+            zero_page(page_to_virt(page));
+            list_init(&page->table.delayed_free_list);
 
-        page->table.refcount = REFCOUNT_EMPTY();
-        return page;
-    }
+            page->table.refcount = REFCOUNT_EMPTY();
+            return page;
+        case PAGE_STATE_LARGE_HEAD: {
+            const struct page *const end = page + (1ull << order);
 
-    if (alloc_flags & __ALLOC_SLAB_HEAD) {
-        page_set_bit(page, PAGE_IS_SLAB_HEAD);
+            refcount_init(&page->largehead.refcount);
+            refcount_init(&page->largehead.page_refcount);
 
-        zero_multiple_pages(page_to_virt(page), 1ull << order);
-        list_init(&page->slab.head.slab_list);
+            list_init(&page->largehead.delayed_free_list);
+            for (struct page *iter = page + 1; iter != end; iter++) {
+                page_set_state(iter, PAGE_STATE_LARGE_TAIL);
+                refcount_init(&iter->largetail.refcount);
 
-        return page;
+                iter->largetail.head = page;
+            }
+
+            break;
+        }
+        case PAGE_STATE_LARGE_TAIL:
+            verify_not_reached();
     }
 
     const struct page *const end = page + (1ull << order);
@@ -372,7 +371,11 @@ setup_alloced_page(struct page *const page,
     return page;
 }
 
-struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
+struct page *
+alloc_pages(const enum page_state state,
+            const uint64_t alloc_flags,
+            const uint8_t order)
+{
     if (order >= MAX_ORDER) {
         printk(LOGLEVEL_WARN, "mm: alloc_pages() got order >= MAX_ORDER\n");
         return NULL;
@@ -383,15 +386,16 @@ struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
 
     if (__builtin_expect(zone == NULL, 0)) {
         printk(LOGLEVEL_WARN,
-               "mm: alloc_pages() page_alloc_flags_to_zone() returned null\n");
+               "mm: page_alloc_flags_to_zone() returned null in "
+               "alloc_pages()\n");
         return NULL;
     }
 
     struct page *page = NULL;
     while (zone != NULL) {
-        page = alloc_pages_from_zone(zone, order);
+        page = alloc_pages_from_zone(zone, order, state);
         if (page != NULL) {
-            return setup_alloced_page(page, alloc_flags, order);
+            return setup_alloced_page(page, state, alloc_flags, order);
         }
 
         zone = zone->fallback_zone;
@@ -417,14 +421,11 @@ alloc_large_page_from_zone(struct page_zone *const zone,
     while (true) {
         struct page_freelist *const freelist =
             &zone->freelist_list[alloced_order];
-
         struct page *const page =
             get_large_from_freelist(zone, freelist, order);
 
         if (page != NULL) {
             spin_release_with_irq(&zone->lock, flag);
-            setup_large_page(page, info);
-
             return page;
         }
 
@@ -473,7 +474,10 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
     while (zone != NULL) {
         page = alloc_large_page_from_zone(zone, info);
         if (page != NULL) {
-            return setup_alloced_page(page, alloc_flags, order);
+            return setup_alloced_page(page,
+                                      PAGE_STATE_LARGE_HEAD,
+                                      alloc_flags,
+                                      order);
         }
 
         zone = zone->fallback_zone;
@@ -546,7 +550,7 @@ void free_pages(struct page *const page, const uint8_t order) {
         return;
     }
 
-    if (page_has_bit(page, PAGE_IN_LARGE_PAGE)) {
+    if (page_get_state(page) == PAGE_STATE_LARGE_HEAD) {
         if (order != 0) {
             printk(LOGLEVEL_WARN,
                    "mm: free_pages() got order > 0, which is not supported for "
@@ -562,13 +566,15 @@ void free_pages(struct page *const page, const uint8_t order) {
 }
 
 void free_large_page(struct page *const page) {
-    assert(page_has_bit(page, PAGE_IS_LARGE_HEAD));
+    assert(page_get_state(page) == PAGE_STATE_LARGE_HEAD);
     free_large_page_to_zone(page, page_to_zone(page));
 }
 
 __optimize(3)
 struct page *deref_page(struct page *page, struct pageop *const pageop) {
-    assert(__builtin_expect(!page_has_bit(page, PAGE_IS_SLAB_HEAD), 0));
+    const enum page_state state = page_get_state(page);
+    assert(__builtin_expect(state != PAGE_STATE_LARGE_HEAD, 1));
+
     if (ref_down(&page->used.refcount)) {
         list_add(&pageop->delayed_free, &page->used.delayed_free_list);
         return NULL;

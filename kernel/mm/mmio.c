@@ -110,8 +110,7 @@ map_mmio_region(const struct range phys_range,
 }
 
 struct mmio_region *
-vmap_mmio_low4g(const prot_t prot, const uint64_t order, const uint64_t flags)
-{
+vmap_mmio_low4g(const prot_t prot, const uint8_t order, const uint64_t flags) {
     if (order == 0) {
         printk(LOGLEVEL_WARN,
                "vmap_mmio_low4g(): attempting to map an empty low-4g range\n");
@@ -138,7 +137,9 @@ vmap_mmio_low4g(const prot_t prot, const uint64_t order, const uint64_t flags)
             return NULL;
     }
 
-    struct page *const page = alloc_pages(__ALLOC_ZERO | __ALLOC_LOW4G, order);
+    struct page *const page =
+        alloc_pages(PAGE_STATE_USED, __ALLOC_ZERO | __ALLOC_LOW4G, order);
+
     if (page == NULL) {
         printk(LOGLEVEL_WARN,
                "vmap_mmio_low4g(): failed to allocate low-4g pages to map a "

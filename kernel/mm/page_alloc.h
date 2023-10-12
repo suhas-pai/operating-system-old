@@ -11,13 +11,11 @@
 #include "page.h"
 #include "pageop.h"
 
-#define alloc_page(flags) alloc_pages((flags), /*order=*/0)
+#define alloc_page(state, flags) alloc_pages((state), (flags), /*order=*/0)
 #define free_page(page) free_pages((page), /*order=*/0)
 
 enum page_alloc_flags {
     __ALLOC_ZERO = 1 << 0,
-    __ALLOC_TABLE = 1 << 1,
-    __ALLOC_SLAB_HEAD = 1 << 2,
     __ALLOC_LOW4G = 1 << 3,
     __ALLOC_HIGHMEM = 1 << 4,
 };
@@ -33,7 +31,8 @@ void free_large_page(struct page *page);
 struct page *deref_page(struct page *page, struct pageop *pageop);
 
 __malloclike __malloc_dealloc(free_pages, 1)
-struct page *alloc_pages(uint64_t alloc_flags, uint8_t order);
+struct page *
+alloc_pages(enum page_state state, uint64_t alloc_flags, uint8_t order);
 
 __malloclike __malloc_dealloc(free_pages, 1)
 struct page *alloc_large_page(uint64_t alloc_flags, pgt_level_t level);

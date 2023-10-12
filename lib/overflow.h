@@ -11,19 +11,19 @@
 #define check_mul(lhs, rhs, result) (!__builtin_mul_overflow(lhs, rhs, result))
 
 #define check_add_assert(lhs, rhs) ({ \
-    __auto_type __result = lhs;                           \
-    assert(!__builtin_add_overflow(lhs, rhs, &__result)); \
-    __result;                                             \
+    __auto_type __result__ = lhs;                           \
+    assert(!__builtin_add_overflow(lhs, rhs, &__result__)); \
+    __result__;                                             \
 })
 
 #define check_sub_assert(lhs, rhs) ({ \
-    __auto_type __result = lhs;                           \
-    assert(!__builtin_sub_overflow(lhs, rhs, &__result)); \
-    __result;                                             \
+    __auto_type __result__ = lhs;                           \
+    assert(!__builtin_sub_overflow(lhs, rhs, &__result__)); \
+    __result__;                                             \
 })
 
 #define check_mul_assert(lhs, rhs) ({ \
-    __auto_type __result = lhs;                           \
-    assert(!__builtin_mul_overflow(lhs, rhs, &__result)); \
-    __result;                                             \
+    __auto_type __result__ = lhs;                           \
+    assert(!__builtin_mul_overflow(lhs, rhs, &__result__)); \
+    __result__;                                             \
 })

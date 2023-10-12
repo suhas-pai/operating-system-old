@@ -31,7 +31,7 @@ pageop_flush_pte_in_current_range(struct pageop *const pageop,
     const uint64_t pte_phys = pte_to_phys(pte);
     struct page *const pte_page = phys_to_page(pte_phys);
 
-    if (!page_has_bit(pte_page, PAGE_IS_TABLE)) {
+    if (page_get_state(pte_page) != PAGE_STATE_TABLE) {
         deref_page(pte_page, pageop);
         return;
     }
@@ -140,5 +140,5 @@ void pageop_finish(struct pageop *const pageop) {
 }
 
 struct page *alloc_table() {
-    return alloc_page(__ALLOC_TABLE | __ALLOC_ZERO);
+    return alloc_page(PAGE_STATE_TABLE, __ALLOC_ZERO);
 }

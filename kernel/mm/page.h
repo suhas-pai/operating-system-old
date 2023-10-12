@@ -11,8 +11,25 @@
 
 #include "mm_types.h"
 
+enum page_state {
+    PAGE_STATE_USED,
+    PAGE_STATE_NOT_USABLE,
+
+    PAGE_STATE_FREE_LIST,
+    PAGE_STATE_LRU_CACHE,
+    PAGE_STATE_SLAB_HEAD,
+    PAGE_STATE_TABLE,
+    PAGE_STATE_LARGE_HEAD,
+    PAGE_STATE_LARGE_TAIL,
+};
+
 struct page {
-    _Atomic uint64_t flags;
+    _Atomic uint32_t flags;
+    _Atomic uint8_t state;
+
+    page_section_t section;
+    uint16_t extra;
+
     union {
         struct {
             struct list freelist;
@@ -68,14 +85,7 @@ _Static_assert(sizeof(struct page) == SIZEOF_STRUCTPAGE,
                "SIZEOF_STRUCTPAGE is incorrect");
 
 enum struct_page_flags {
-    PAGE_NOT_USABLE = 1 << 0,
-    PAGE_IN_FREE_LIST = 1 << 1,
-    PAGE_IN_LRU_CACHE = 1 << 2,
-    PAGE_IS_SLAB_HEAD = 1 << 3,
-    PAGE_IS_LARGE_HEAD = 1 << 4,
-    PAGE_IN_LARGE_PAGE = 1 << 5,
-    PAGE_IS_TABLE = 1 << 6,
-    PAGE_IS_DIRTY = 1 << 7,
+    PAGE_IS_DIRTY = 1 << 0,
 };
 
 uint32_t page_get_flags(const struct page *page);
@@ -84,7 +94,8 @@ void page_set_bit(struct page *page, enum struct_page_flags flag);
 bool page_has_bit(const struct page *page, enum struct_page_flags flag);
 void page_clear_bit(struct page *page, enum struct_page_flags flag);
 
-page_section_t page_get_section(const struct page *page);
-struct mm_section *page_to_mm_section(const struct page *page);
+enum page_state page_get_state(const struct page *page);
+void page_set_state(struct page *page, enum page_state state);
 
+struct mm_section *page_to_mm_section(const struct page *page);
 struct page *alloc_table();

@@ -56,11 +56,15 @@ page_clear_bit(struct page *const page, const enum struct_page_flags flag) {
     atomic_fetch_and_explicit(&page->flags, ~flag, memory_order_relaxed);
 }
 
-__optimize(3) page_section_t page_get_section(const struct page *const page) {
-    return (page_get_flags(page) >> SECTION_SHIFT) & SECTION_MASK;
+__optimize(3) enum page_state page_get_state(const struct page *const page) {
+    return atomic_load_explicit(&page->state, memory_order_relaxed);
+}
+
+void page_set_state(struct page *const page, const enum page_state state) {
+    atomic_store_explicit(&page->state, state, memory_order_relaxed);
 }
 
 __optimize(3)
 struct mm_section *page_to_mm_section(const struct page *const page) {
-    return &mm_get_usable_list()[page_get_section(page)];
+    return &mm_get_usable_list()[page->section];
 }

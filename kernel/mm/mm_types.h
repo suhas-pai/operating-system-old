@@ -36,9 +36,9 @@ typedef uint8_t page_section_t;
 #define page_to_pfn(p) \
     _Generic((p), \
         const struct page *: \
-            (((uint64_t)(p) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE), \
+            (check_sub_assert((uint64_t)(p), PAGE_OFFSET) / SIZEOF_STRUCTPAGE),\
         struct page *: \
-            (((uint64_t)(p) - PAGE_OFFSET) / SIZEOF_STRUCTPAGE))
+            (check_sub_assert((uint64_t)(p), PAGE_OFFSET) / SIZEOF_STRUCTPAGE))
 
 #define phys_to_page(phys) pfn_to_page(phys_to_pfn(phys))
 #define virt_to_page(virt) pfn_to_page(virt_to_pfn(virt))

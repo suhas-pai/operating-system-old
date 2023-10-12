@@ -26,7 +26,7 @@ enum vmap_mmio_flags {
 };
 
 struct mmio_region *
-vmap_mmio_low4g(prot_t prot, uint64_t order, uint64_t flags);
+vmap_mmio_low4g(prot_t prot, uint8_t order, uint64_t flags);
 
 struct mmio_region *
 vmap_mmio(struct range phys_range, prot_t prot, uint64_t flags);
