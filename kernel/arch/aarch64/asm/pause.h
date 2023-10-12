@@ -5,4 +5,4 @@
 
 #pragma once
 
-#define cpu_pause() asm("YIELD")
+#define cpu_pause() asm("yield")

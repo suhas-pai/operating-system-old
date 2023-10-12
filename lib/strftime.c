@@ -46,7 +46,7 @@ time_format_to_string_buffer(char *const buffer_in,
                               format,
                               tm);
 
-    *(uint8_t *)mbuffer_get_current_ptr(mbuffer) = '\0';
+    *(uint8_t *)mbuffer_current_ptr(mbuffer) = '\0';
     return result;
 }
 

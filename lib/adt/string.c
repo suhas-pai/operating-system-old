@@ -37,7 +37,7 @@ struct string string_create_alloc(const struct string_view sv) {
     return result;
 }
 
-static bool prepare_append(struct string *const string, uint32_t length) {
+static bool prepare_append(struct string *const string, const uint32_t length) {
     return gbuffer_ensure_can_add_capacity(&string->gbuffer, length + 1);
 }
 
@@ -176,11 +176,12 @@ string_find_string(struct string *const string,
 }
 
 struct string_view string_to_sv(const struct string string) {
-    if (string_length(string) == 0) {
+    const uint64_t length = string_length(string);
+    if (length == 0) {
         return SV_EMPTY();
     }
 
-    return sv_create_nocheck(string.gbuffer.begin, string_length(string));
+    return sv_create_nocheck(string.gbuffer.begin, length);
 }
 
 void string_destroy(struct string *const string) {

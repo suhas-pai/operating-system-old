@@ -151,16 +151,15 @@ free_pages_to_zone_unlocked(struct page *page,
             break;
         }
 
-        take_off_freelist(zone, zone->freelist_list + order, buddy);
+        take_off_freelist(zone, &zone->freelist_list[order], buddy);
         if (buddy_pfn < page_pfn) {
-            swap(page, buddy);
-
+            page = buddy;
             page_pfn = buddy_pfn;
             page_section = buddy_section;
         }
     }
 
-    add_to_freelist(zone, zone->freelist_list + order, page);
+    add_to_freelist(zone, &zone->freelist_list[order], page);
 
     struct mm_section *const memmap = page_to_mm_section(page);
     const uint64_t page_index = page_to_pfn(page) - memmap->pfn;
@@ -239,7 +238,7 @@ get_large_from_freelist(struct page_zone *const zone,
             uint64_t new_phys = 0;
             if (!align_up(page_phys, PAGE_SIZE << largepage_order, &new_phys)) {
                 printk(LOGLEVEL_INFO,
-                       "alloc_large_page(): failed to align page's physical "
+                       "mm: alloc_large_page() failed to align page's physical "
                        "address to boundary at order %" PRIu8 "\n",
                        largepage_order);
                 return NULL;
@@ -298,7 +297,7 @@ alloc_pages_from_zone(struct page_zone *const zone, const uint8_t order) {
     uint8_t alloced_order = max(order, zone->min_order);
     while (true) {
         struct page_freelist *const freelist =
-            zone->freelist_list + alloced_order;
+            &zone->freelist_list[alloced_order];
 
         page = get_from_freelist(zone, freelist);
         if (page != NULL) {
@@ -375,7 +374,7 @@ setup_alloced_page(struct page *const page,
 
 struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
     if (order >= MAX_ORDER) {
-        printk(LOGLEVEL_WARN, "alloc_pages(): got order >= MAX_ORDER\n");
+        printk(LOGLEVEL_WARN, "mm: alloc_pages() got order >= MAX_ORDER\n");
         return NULL;
     }
 
@@ -384,7 +383,7 @@ struct page *alloc_pages(const uint64_t alloc_flags, const uint8_t order) {
 
     if (__builtin_expect(zone == NULL, 0)) {
         printk(LOGLEVEL_WARN,
-               "alloc_pages(): page_alloc_flags_to_zone() returned null\n");
+               "mm: alloc_pages() page_alloc_flags_to_zone() returned null\n");
         return NULL;
     }
 
@@ -417,7 +416,7 @@ alloc_large_page_from_zone(struct page_zone *const zone,
     uint8_t alloced_order = max(order, zone->min_order);
     while (true) {
         struct page_freelist *const freelist =
-            zone->freelist_list + alloced_order;
+            &zone->freelist_list[alloced_order];
 
         struct page *const page =
             get_large_from_freelist(zone, freelist, order);
@@ -447,14 +446,14 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
 
     if (__builtin_expect(zone == NULL, 0)) {
         printk(LOGLEVEL_WARN,
-               "alloc_large_page(): page_alloc_flags_to_zone() returned "
+               "mm: alloc_large_page() page_alloc_flags_to_zone() returned "
                "null\n");
         return NULL;
     }
 
     if (__builtin_expect(!largepage_level_info_list[level].is_supported, 0)) {
         printk(LOGLEVEL_WARN,
-               "alloc_large_page(): large-page at level %" PRIu8 " is not "
+               "mm: alloc_large_page() allocating at level %" PRIu8 " is not "
                "supported\n",
                level);
         return NULL;
@@ -467,7 +466,7 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
     const uint8_t order = info->order;
     if (__builtin_expect(order >= MAX_ORDER, 0)) {
         printk(LOGLEVEL_WARN,
-               "alloc_large_page(): can't allocate large-page, too large\n");
+               "mm: alloc_large_page() can't allocate large-page, too large\n");
         return NULL;
     }
 
@@ -484,9 +483,9 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
 }
 
 __optimize(3) void
-early_free_pages_to_zone(struct page *page,
+early_free_pages_to_zone(struct page *const page,
                          struct page_zone *const zone,
-                         uint8_t order)
+                         const uint8_t order)
 {
     page->buddy.order = order;
     zone->total_free += 1ull << order;
@@ -495,9 +494,9 @@ early_free_pages_to_zone(struct page *page,
 }
 
 __optimize(3) void
-free_pages_to_zone(struct page *page,
+free_pages_to_zone(struct page *const page,
                    struct page_zone *const zone,
-                   uint8_t order)
+                   const uint8_t order)
 {
     const int flag = spin_acquire_with_irq(&zone->lock);
 
@@ -543,14 +542,14 @@ void free_large_page_to_zone(struct page *head, struct page_zone *const zone) {
 
 void free_pages(struct page *const page, const uint8_t order) {
     if (order >= MAX_ORDER) {
-        printk(LOGLEVEL_WARN, "free_pages(): got order >= MAX_ORDER\n");
+        printk(LOGLEVEL_WARN, "mm: free_pages() got order >= MAX_ORDER\n");
         return;
     }
 
     if (page_has_bit(page, PAGE_IN_LARGE_PAGE)) {
         if (order != 0) {
             printk(LOGLEVEL_WARN,
-                   "free_pages(): got order > 0, which is not supported for "
+                   "mm: free_pages() got order > 0, which is not supported for "
                    "large pages\n");
             return;
         }

@@ -82,7 +82,7 @@ struct acpi_madt_entry_header {
 } __packed;
 
 enum acpi_madt_entry_cpu_lapic_flags {
-    __ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ENABLED        = 1 << 0,
+    __ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ENABLED = 1 << 0,
     __ACPI_MADT_ENTRY_CPU_LAPIC_FLAG_ONLINE_CAPABLE = 1 << 1
 };
 
@@ -310,7 +310,7 @@ enum acpi_fadt_iapc_boot_flags {
 
 enum acpi_fadt_arm_boot_flags {
     __ACPI_FADT_ARM_BOOT_PSCI_COMPLIANT = 1 << 0,
-    __ACPI_FADT_ARM_BOOT_PSCI_USE_HVC   = 1 << 1,
+    __ACPI_FADT_ARM_BOOT_PSCI_USE_HVC = 1 << 1,
 };
 
 enum acpi_fadt_pm1_status {
@@ -319,7 +319,7 @@ enum acpi_fadt_pm1_status {
      * counter changes from clear to set or set to clear.
      */
 
-    ACPI_FADT_PM1_STATUS_TIMER_CARRY_STATUS = 1 << 0,
+    __ACPI_FADT_PM1_STATUS_TIMER_CARRY_STATUS = 1 << 0,
 
     /*
      * This is the bus master status bit. This bit is set any time a system bus
@@ -330,7 +330,7 @@ enum acpi_fadt_pm1_status {
      * performs a memory transaction).
      */
 
-    ACPI_FADT_PM1_STATUS_BUS_MASTER_STATUS  = 1 << 4,
+    __ACPI_FADT_PM1_STATUS_BUS_MASTER_STATUS = 1 << 4,
 
     /*
      * This bit is set when an SCI is generated due to the platform runtime
@@ -341,7 +341,7 @@ enum acpi_fadt_pm1_status {
      * having seen the pending bit set.
      */
 
-    ACPI_FADT_PM1_STATUS_GBL_STATUS = 1 << 5,
+    __ACPI_FADT_PM1_STATUS_GBL_STATUS = 1 << 5,
 
     /*
      * This optional bit is set when the Power Button is pressed. In the system
@@ -365,7 +365,7 @@ enum acpi_fadt_pm1_status {
      * S1-S4 state), then this bit is set prior to returning control to OSPM.
      */
 
-    ACPI_FADT_PM1_STATUS_PWR_BTN_STATUS = 1 << 8,
+    __ACPI_FADT_PM1_STATUS_PWR_BTN_STATUS = 1 << 8,
 
     /*
     * This optional bit is set when the sleep button is pressed. In the system
@@ -384,7 +384,7 @@ enum acpi_fadt_pm1_status {
     * this bit is set prior to returning control to OSPM.
     */
 
-    ACPI_FADT_PM1_STATUS_SLP_BTN_STATUS = 1 << 9,
+    __ACPI_FADT_PM1_STATUS_SLP_BTN_STATUS = 1 << 9,
 
     /*
      * This optional bit is set when the RTC generates an alarm (asserts the RTC
@@ -399,7 +399,7 @@ enum acpi_fadt_pm1_status {
      * then this bit is set prior to returning control to OSPM.
      */
 
-    ACPI_FADT_PM1_STATUS_RTC_STS = 1 << 10,
+    __ACPI_FADT_PM1_STATUS_RTC_STS = 1 << 10,
 
     /*
      * This bit is optional for chipsets that implement PCI Express.
@@ -424,7 +424,7 @@ enum acpi_fadt_pm1_status {
      * sleeping state, the system will not automatically wake.
      */
 
-    ACPI_FADT_PM1_STATUS_PCIEXP_WAKE_STS = 1 << 14,
+    __ACPI_FADT_PM1_STATUS_PCIEXP_WAKE_STS = 1 << 14,
 
     /*
      * This bit is set when the system is in the sleeping state and an enabled
@@ -433,7 +433,7 @@ enum acpi_fadt_pm1_status {
      * software writing a "1" to this bit position.
      */
 
-    ACPI_FADT_PM1_STATUS_WAKE_STATUS = 1 << 15,
+    __ACPI_FADT_PM1_STATUS_WAKE_STATUS = 1 << 15,
 };
 
 /*
@@ -452,11 +452,11 @@ enum acpi_fadt_pm1_status {
  */
 
 enum acpi_fadt_pm1_enable_registers {
-    ACPI_FADT_PM1_ENABLE_TMR_EN         = 1 << 0,
-    ACPI_FADT_PM1_ENABLE_GBL_EN         = 1 << 5,
-    ACPI_FADT_PM1_ENABLE_PWR_BTN_EN     = 1 << 8,
-    ACPI_FADT_PM1_ENABLE_SLP_BTN_EN     = 1 << 9,
-    ACPI_FADT_PM1_ENABLE_RTC_EN         = 1 << 10,
+    __ACPI_FADT_PM1_ENABLE_TMR_EN     = 1 << 0,
+    __ACPI_FADT_PM1_ENABLE_GBL_EN     = 1 << 5,
+    __ACPI_FADT_PM1_ENABLE_PWR_BTN_EN = 1 << 8,
+    __ACPI_FADT_PM1_ENABLE_SLP_BTN_EN = 1 << 9,
+    __ACPI_FADT_PM1_ENABLE_RTC_EN     = 1 << 10,
 
     /*
      * This bit disables the inputs to the PCIEXP_WAKE_STS bit in the PM1 Status
@@ -471,7 +471,7 @@ enum acpi_fadt_pm1_enable_registers {
      * put into a sleeping state, the system will not automatically wake.
      */
 
-    ACPI_FADT_PM1_ENABLE_PCIEXP_WAKE_EN = 1 << 14,
+    __ACPI_FADT_PM1_ENABLE_PCIEXP_WAKE_EN = 1 << 14,
 };
 
 enum acpi_fadt_pm1_control_registers {
@@ -484,7 +484,7 @@ enum acpi_fadt_pm1_control_registers {
      * preserves this bit position.
      */
 
-    ACPI_FADT_PM1_CONTROL_SCI_EN = 1 << 0,
+    __ACPI_FADT_PM1_CONTROL_SCI_EN = 1 << 0,
 
     /*
      * When set, this bit allows the generation of a bus master request to cause
@@ -493,7 +493,7 @@ enum acpi_fadt_pm1_control_registers {
      * processor in the C3 state.
      */
 
-    ACPI_FADT_PM1_CONTROL_BM_RLD = 1 << 1,
+    __ACPI_FADT_PM1_CONTROL_BM_RLD = 1 << 1,
 
     /*
      * This write-only bit is used by the ACPI software to raise an event to the
@@ -506,7 +506,7 @@ enum acpi_fadt_pm1_control_registers {
      * structure.
      */
 
-    ACPI_FADT_PM1_CONTROL_GBL_RLS = 1 << 2,
+    __ACPI_FADT_PM1_CONTROL_GBL_RLS = 1 << 2,
 
     /*
      * Defines the type of sleeping or soft-off state the system enters when the
@@ -517,7 +517,7 @@ enum acpi_fadt_pm1_control_registers {
      * \_Sx object and programs each value into the respective SLP_TYPx field.
      */
 
-    ACPI_FADT_PM1_CONTROL_SLP_TYP = 0b111ull << 10,
+    __ACPI_FADT_PM1_CONTROL_SLP_TYP = 0b111ull << 10,
 
     /*
      * This is a write-only bit and reads to it always return a zero. Setting
@@ -525,7 +525,7 @@ enum acpi_fadt_pm1_control_registers {
      * with the SLP_TYPx fields programmed with the values from the \_Sx object.
      */
 
-    ACPI_FADT_PM1_CONTROL_SLP_EN = 1 << 13,
+    __ACPI_FADT_PM1_CONTROL_SLP_EN = 1 << 13,
 };
 
 struct acpi_fadt {
@@ -636,7 +636,7 @@ struct acpi_fadt {
 } __packed;
 
 enum acpi_fadt_pm2_control_registers {
-    ACPI_FADT_PM2_CONTROL_ABR_DISABLE = 1 << 0,
+    __ACPI_FADT_PM2_CONTROL_ABR_DISABLE = 1 << 0,
 };
 
 struct acpi_mcfg_entry {

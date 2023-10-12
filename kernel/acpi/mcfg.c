@@ -13,7 +13,7 @@ void mcfg_init(const struct acpi_mcfg *const mcfg) {
     const uint32_t entry_count = length / sizeof(struct acpi_mcfg_entry);
 
     for (uint32_t index = 0; index != entry_count; index++) {
-        const struct acpi_mcfg_entry *const iter = mcfg->entries + index;
+        const struct acpi_mcfg_entry *const iter = &mcfg->entries[index];
         printk(LOGLEVEL_INFO,
                "mcfg: pci-group #%" PRIu32 ": mmio at %p, first "
                "bus=%" PRIu32 ", end bus=%" PRIu32 ", segment: %" PRIu32 "\n",

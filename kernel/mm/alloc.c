@@ -13,30 +13,30 @@ static struct slab_allocator alloc_slabs[2] = {0};
 static bool alloc_is_initialized = false;
 
 void mm_alloc_init() {
-    assert(slab_allocator_init(alloc_slabs + 0, 16, /*alloc_flags=*/0));
-    assert(slab_allocator_init(alloc_slabs + 1, 32, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&alloc_slabs[0], 16, /*alloc_flags=*/0));
+    assert(slab_allocator_init(&alloc_slabs[1], 32, /*alloc_flags=*/0));
 
     alloc_is_initialized = true;
 }
 
-void *mm_alloc(uint64_t size) {
+void *mm_alloc(const uint64_t size) {
     assert_msg(__builtin_expect(alloc_is_initialized, 1),
                "mm: mm_alloc() called before init");
 
     if (__builtin_expect(size == 0, 0)) {
-        printk(LOGLEVEL_WARN, "mm_alloc(): got size=0\n");
+        printk(LOGLEVEL_WARN, "mm: mm_alloc() got size=0\n");
         return NULL;
     }
 
     if (__builtin_expect(size > 32, 0)) {
         printk(LOGLEVEL_WARN,
-               "mm_alloc(): Can't allocate %" PRIu64 " bytes, max is 2048 "
+               "mm: mm_alloc() Can't allocate %" PRIu64 " bytes, max is 2048 "
                "bytes\n",
                size);
         return NULL;
     }
 
-    struct slab_allocator *allocator = alloc_slabs + 0;
+    struct slab_allocator *allocator = &alloc_slabs[0];
     while (allocator->object_size < size) {
         allocator++;
     }
@@ -59,7 +59,7 @@ __optimize(3) void *mm_realloc(void *const buffer, const uint64_t size) {
 
     if (__builtin_expect(size == 0, 0)) {
         printk(LOGLEVEL_WARN,
-               "mm: mm_realloc(): got size=0, use mm_alloc_free() instead\n");
+               "mm: mm_realloc() got size=0, use mm_alloc_free() instead\n");
 
         mm_alloc_free(buffer);
         return NULL;

@@ -9,9 +9,10 @@
 #include "growable_buffer.h"
 
 struct growable_buffer gbuffer_alloc(const uint32_t init_cap) {
+    uint64_t size = 0;
     const struct growable_buffer gbuffer = {
-        .begin = malloc(init_cap),
-        .end = gbuffer.begin != NULL ? gbuffer.begin + init_cap : NULL,
+        .begin = malloc_size(init_cap, &size),
+        .end = gbuffer.begin + size,
         .is_alloc = true
     };
 

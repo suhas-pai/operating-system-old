@@ -29,15 +29,6 @@ struct pl011_device {
     volatile uint32_t dmacr_offset;
 } __packed;
 
-_Static_assert(offsetof(struct pl011_device, dr_offset) == 0, "");
-_Static_assert(offsetof(struct pl011_device, fr_offset) == 0x018, "");
-_Static_assert(offsetof(struct pl011_device, ibrd_offset) == 0x024, "");
-_Static_assert(offsetof(struct pl011_device, fbrd_offset) == 0x028, "");
-_Static_assert(offsetof(struct pl011_device, lcr_offset) == 0x02c, "");
-_Static_assert(offsetof(struct pl011_device, cr_offset) == 0x030, "");
-_Static_assert(offsetof(struct pl011_device, imsc_offset) == 0x038, "");
-_Static_assert(offsetof(struct pl011_device, dmacr_offset) == 0x048, "");
-
 static const uint32_t FR_BUSY = 1 << 3;
 
 static const uint32_t CR_TXEN = 1 << 8;

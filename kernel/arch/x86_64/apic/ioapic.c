@@ -21,9 +21,9 @@ create_ioapic_redirect_request(
     const bool masked,
     const uint8_t lapic_id)
 {
-    const bool is_active_low = (flags & __ACPI_MADT_ENTRY_ISO_ACTIVE_LOW);
+    const bool is_active_low = flags & __ACPI_MADT_ENTRY_ISO_ACTIVE_LOW;
     const bool is_level_triggered =
-        (flags & __ACPI_MADT_ENTRY_ISO_LEVEL_TRIGGER);
+        flags & __ACPI_MADT_ENTRY_ISO_LEVEL_TRIGGER;
 
     const uint64_t result =
         vector |

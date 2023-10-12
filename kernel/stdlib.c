@@ -237,8 +237,8 @@ __optimize(3) void *memmove(void *dst, const void *src, unsigned long n) {
     if (src > dst) {
         memcpy(dst, src, n);
     } else {
-        void *dst_back = dst + (n - 1);
-        const void *src_back = src + (n - 1);
+        void *dst_back = &((uint8_t *)dst)[n - 1];
+        const void *src_back = &((const uint8_t *)src)[n - 1];
 
         asm volatile ("std;"
                       "rep movsb;"
@@ -350,7 +350,8 @@ void *memchr(const void *const ptr, const int ch, const size_t count) {
 __optimize(3) void bzero(void *dst, unsigned long n) {
 #if defined(__x86_64__)
     if (n >= 32) {
-        asm volatile ("cld; rep stosb"
+        asm volatile ("cld;\n"
+                      "rep stosb"
                       : "+D"(dst), "+c" (n) : "a"(0) : "memory");
         return;
     }

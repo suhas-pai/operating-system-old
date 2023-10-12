@@ -39,11 +39,15 @@ void test_alloc_largepage() {
     struct page *const largepage =
         alloc_large_page(__ALLOC_ZERO, LARGEPAGE_LEVEL_1GIB);
 
-    printk(LOGLEVEL_INFO,
-           "kernel: allocated largepage at %p\n",
-           (void *)page_to_phys(largepage));
+    if (largepage != NULL) {
+        printk(LOGLEVEL_INFO,
+               "kernel: allocated largepage at %p\n",
+               (void *)page_to_phys(largepage));
 
-    free_large_page(largepage);
+        free_large_page(largepage);
+    } else {
+        printk(LOGLEVEL_WARN, "kernel: failed to allocate a 1gib page\n");
+    }
 }
 
 void arch_init();

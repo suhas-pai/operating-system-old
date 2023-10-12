@@ -51,6 +51,14 @@ __optimize(3) static inline bool list_empty(struct list *const list) {
     return list == list->prev;
 }
 
+__optimize(3) static inline void list_remove(struct list *const elem) {
+    elem->next->prev = elem->prev;
+    elem->prev->next = elem->next;
+
+    elem->prev = elem;
+    elem->next = elem;
+}
+
 __optimize(3) static inline void list_delete(struct list *const elem) {
     elem->next->prev = elem->prev;
     elem->prev->next = elem->next;
@@ -59,11 +67,20 @@ __optimize(3) static inline void list_delete(struct list *const elem) {
     elem->next = NULL;
 }
 
+#define list_rm(type, elem, name) \
+    ({ list_remove(elem); container_of(elem, type, name); })
+
 #define list_del(type, elem, name) \
     ({ list_delete(elem); container_of(elem, type, name); })
 
 #define list_prev(ob, name) container_of(ob->name.prev, typeof(*(ob)), name)
 #define list_next(ob, name) container_of(ob->name.next, typeof(*(ob)), name)
+
+#define list_prev_safe(list, ob, name) \
+    (ob->name.prev != (list) ? list_prev(ob, name) : NULL)
+
+#define list_next_safe(list, ob, name) \
+    (ob->name.next != (list) ? list_next(ob, name) : NULL)
 
 #define list_head(list, type, name) \
     ((type *)((void *)((char *)(list)->next - offsetof(type, name))))
@@ -73,6 +90,10 @@ __optimize(3) static inline void list_delete(struct list *const elem) {
 #define list_foreach(iter, list, name) \
     for(iter = list_head(list, typeof(*iter), name); &iter->name != (list); \
         iter = list_next(iter, name))
+
+#define list_foreach_reverse(iter, list, name) \
+    for(iter = list_tail(list, typeof(*iter), name); &iter->name != (list); \
+        iter = list_prev(iter, name))
 
 #define list_count(list, type, name) ({  \
     uint64_t __result__ = 0;             \
@@ -88,3 +109,9 @@ __optimize(3) static inline void list_delete(struct list *const elem) {
              tmp = list_next(iter, name);             \
          &iter->name != (list);                       \
          iter = tmp, tmp = list_next(iter, name))
+
+#define list_foreach_reverse_mut(iter, tmp, list, name) \
+    for (iter = list_tail(list, typeof(*iter), name), \
+             tmp = list_prev(iter, name);             \
+         &iter->name != (list);                       \
+         iter = tmp, tmp = list_prev(iter, name))

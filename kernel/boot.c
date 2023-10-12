@@ -54,11 +54,11 @@ static volatile struct limine_boot_time_request boot_time_request = {
 static struct mm_memmap mm_memmap_list[255] = {0};
 static uint8_t mm_memmap_count = 0;
 
-// If we have a memmap whose memory pages will go in the structpage
-// table, then they will also be stored in the mm_usable_list array.
+// If we have a memmap whose memory pages will go in the structpage table, then
+// they will also be stored in the mm_usable_list array.
 //
-// We store twice so the functions `phys_to_pfn()` can efficiently find
-// the memmap that corresponds to a physical address w/o having to traverse the
+// We store twice so the functions `phys_to_pfn()` can efficiently find the
+// memmap that corresponds to a physical address w/o having to traverse the
 // entire memmap-list, which is made up mostly of memmaps not mapped into the
 // structpage-table
 
@@ -70,31 +70,31 @@ static const void *dtb = NULL;
 
 static int64_t boot_time = 0;
 
-const struct mm_memmap *mm_get_memmap_list() {
+__optimize(3) const struct mm_memmap *mm_get_memmap_list() {
     return mm_memmap_list;
 }
 
-struct mm_section *mm_get_usable_list() {
+__optimize(3) struct mm_section *mm_get_usable_list() {
     return mm_usable_list;
 }
 
-uint8_t mm_get_memmap_count() {
+__optimize(3) uint8_t mm_get_memmap_count() {
     return mm_memmap_count;
 }
 
-uint8_t mm_get_usable_count() {
+__optimize(3) uint8_t mm_get_usable_count() {
     return mm_usable_count;
 }
 
-const void *boot_get_rsdp() {
+__optimize(3) const void *boot_get_rsdp() {
     return rsdp;
 }
 
-const void *boot_get_dtb() {
+__optimize(3) const void *boot_get_dtb() {
     return dtb;
 }
 
-int64_t boot_get_time() {
+__optimize(3) int64_t boot_get_time() {
     return boot_time;
 }
 
@@ -119,7 +119,7 @@ void boot_init() {
     const struct limine_memmap_response *const resp = memmap_request.response;
 
     struct limine_memmap_entry *const *entries = resp->entries;
-    struct limine_memmap_entry *const *const end = entries + resp->entry_count;
+    struct limine_memmap_entry *const *const end = &entries[resp->entry_count];
 
     uint8_t memmap_index = 0;
     uint8_t usable_index = 0;
@@ -213,7 +213,7 @@ void boot_init() {
 
 void boot_merge_usable_memmaps() {
     for (uint64_t index = 1; index != mm_usable_count; index++) {
-        struct mm_section *const memmap = mm_usable_list + index;
+        struct mm_section *const memmap = &mm_usable_list[index];
         do {
             struct mm_section *const prev_memmap = memmap - 1;
             const uint64_t prev_end = range_get_end_assert(prev_memmap->range);
@@ -259,7 +259,7 @@ void boot_recalculate_pfns() {
     uint64_t pfn = 0;
 
     struct mm_section *section = mm_usable_list;
-    const struct mm_section *const end = mm_usable_list + mm_usable_count;
+    const struct mm_section *const end = &mm_usable_list[mm_usable_count];
 
     for (; section != end; section++) {
         section->pfn = pfn;

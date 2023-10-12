@@ -103,13 +103,14 @@ enum pte_flags {
     __PTE_NONGLOBAL = 1ull << 11,
 
     __PTE_DIRTY = 1ull << 51,
+    __PTE_CONTIG = 1ull << 52,
     __PTE_PXN = 1ull << 53,
     __PTE_UXN = 1ull << 54,
 };
 
 #define PGT_FLAGS (__PTE_VALID | __PTE_TABLE)
 #define PTE_LARGE_FLAGS(level) \
-    ({ (void)(level); (__PTE_VALID | __PTE_ACCESS); })
+    ({ (void)(level); __PTE_VALID | __PTE_ACCESS; })
 
 #define PTE_LEAF_FLAGS (__PTE_VALID | __PTE_4KPAGE | __PTE_ACCESS)
 

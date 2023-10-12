@@ -37,7 +37,7 @@
     #else
         #define __aligned(n)
     #endif /* __has_attribute(aligned) */
-#endif /* !defined(__optimize) */
+#endif /* !defined(__aligned) */
 
 #if !defined(__malloclike)
     #if __has_attribute(malloc)

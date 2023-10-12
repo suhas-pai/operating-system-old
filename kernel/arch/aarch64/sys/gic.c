@@ -215,12 +215,12 @@ void gic_cpu_init(volatile struct gic_cpu_interface *const intr) {
         mmio_write(g_regs->interrupt_clear_active_enable, 0xFFFFFFFF);
     }
 
-    mmio_write(g_regs->interrupt_clear_enable + 0, 0xFFFF0000);
-    mmio_write(g_regs->interrupt_set_enable + 0, 0x0000FFFF);
+    mmio_write(&g_regs->interrupt_clear_enable[0], 0xFFFF0000);
+    mmio_write(&g_regs->interrupt_set_enable[0], 0x0000FFFF);
 
     for (uint16_t i = 0; i < 32; i += 4) {
         const uint16_t index = i / 4;
-        mmio_write(g_regs->interrupt_priority + index, 0xa0a0a0a0);
+        mmio_write(&g_regs->interrupt_priority[index], 0xa0a0a0a0);
     }
 
     mmio_write(&intr->priority_mask, 0xF0);

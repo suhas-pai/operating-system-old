@@ -14,7 +14,7 @@
 #define HAVE_VMS_EXT 1
 
 __optimize(3) uint8_t hour_12_to_24hour(const uint8_t hour, const bool is_pm) {
-    /* Use modulo to wrap hour 12 to hour 0 */
+    // Use modulo to wrap hour 12 to hour 0
     return (is_pm) ? ((hour % 12) + 12) : (hour % 12);
 }
 
@@ -31,7 +31,7 @@ __optimize(3)
 uint8_t weekday_to_decimal_monday_one(const enum weekday weekday) {
     const uint8_t result =
         (weekday != WEEKDAY_SUNDAY) ?
-            (uint8_t)weekday : 7; /* Wrap WEEKDAY_SUNDAY from 0 to 7 */
+            (uint8_t)weekday : 7; // Wrap WEEKDAY_SUNDAY from 0 to 7
 
     return result;
 }
@@ -66,10 +66,8 @@ get_week_count_at_day(const enum weekday weekday,
                       const uint16_t days_since_jan_1,
                       const bool is_monday_first)
 {
-    /*
-     * Based on implementation specified here:
-     * https://github.com/arnoldrobbins/strftime/blob/master/strftime.c#L990-L1032
-     */
+    // Based on implementation specified here:
+    // https://github.com/arnoldrobbins/strftime/blob/master/strftime.c#L990-L1032
 
     const uint64_t delta =
         (is_monday_first ?
@@ -80,29 +78,23 @@ get_week_count_at_day(const enum weekday weekday,
 }
 
 __optimize(3) int month_to_tm_mon(const enum month month) {
-    /*
-     * Subtract one as tm_mon is actually "months since january", being
-     * zero-indexed and having the range [0, 11]. Instead, we have [1, 12].
-     */
+    // Subtract one as tm_mon is actually "months since january", being
+    // zero-indexed and having the range [0, 11]. Instead, we have [1, 12].
 
     assert(month != MONTH_INVALID);
     return (int)(month - 1);
 }
 
 __optimize(3) enum month tm_mon_to_month(const int tm_mon) {
-    /*
-     * Add one as tm_mon is actually "months since january", being
-     * zero-indexed and having the range [0, 11]. Instead, we need [1, 12].
-     */
+    // Add one as tm_mon is actually "months since january", being
+    // zero-indexed and having the range [0, 11]. Instead, we need [1, 12].
 
     return (enum month)(tm_mon + 1);
 }
 
 __optimize(3) bool year_is_leap_year(const uint64_t year) {
-    /*
-     * Year has to be divisible by 4 (first two lsb bits are zero) and either
-     * the year is not divisible by 100 or the year is divisible by 400.
-     */
+    // Year has to be divisible by 4 (first two lsb bits are zero) and either
+    // the year is not divisible by 100 or the year is divisible by 400.
 
     return (
         ((year & 0b11) == 0) &&
@@ -480,40 +472,36 @@ day_of_month_to_day_of_year(const uint8_t day_in_month,
 {
     assert(month_is_valid(month));
 
-    /* Store the days preceding a month at index `(uint8_t)(month - 1)` */
+    // Store the days preceding a month at index `(uint8_t)(month - 1)`
     static const uint16_t lookup_table[MONTH_COUNT] = {
-        0,   /* January */
-        31,  /* February */
-        59,  /* March */
-        90,  /* April */
-        120, /* May */
-        151, /* June */
-        181, /* July */
-        212, /* August */
-        243, /* September */
-        273, /* October */
-        304, /* November */
-        334  /* December */
+        0,   // January
+        31,  // February
+        59,  // March
+        90,  // April
+        120, // May
+        151, // June
+        181, // July
+        212, // August
+        243, // September
+        273, // October
+        304, // November
+        334  // December
     };
 
-    /*
-     * February has an extra day on leap years, which wasn't accounted for in
-     * the lookup table.
-     */
+    // February has an extra day on leap years, which wasn't accounted for in
+    // the lookup table.
 
     uint16_t days_preceding_month = lookup_table[(uint8_t)month - 1];
     if (in_leap_year) {
-        /*
-         * Each month after February has to account for the leap day in February
-         * in leap years by adjusting their days-preceding entry.
-         */
+        // Each month after February has to account for the leap day in February
+        // in leap years by adjusting their days-preceding entry.
 
         if (month > MONTH_FEBRUARY) {
             days_preceding_month += 1;
         }
     }
 
-    return (days_preceding_month + day_in_month);
+    return days_preceding_month + day_in_month;
 }
 
 __optimize(3) uint8_t
@@ -531,17 +519,15 @@ iso_8601_get_week_number(const enum weekday weekday,
         jan_1_weekday += 7;
     }
 
-    /* Get week number, Monday as the first day of week */
+    // Get week number, Monday as the first day of week
     uint8_t week_number =
         get_week_count_at_day(weekday,
                               days_since_jan_1,
                               /*is_monday_first=*/true);
 
-    /*
-     * According to the ISO 8601 format, January 1 on days Monday through
-     * Thursday are in week 1. Otherwise January 1 is on the last week of the
-     * previous year, which counts in this year as week 0.
-     */
+    // According to the ISO 8601 format, January 1 on days Monday through
+    // Thursday are in week 1. Otherwise January 1 is on the last week of the
+    // previous year, which counts in this year as week 0.
 
     switch (jan_1_weekday) {
         case WEEKDAY_INVALID:
@@ -551,7 +537,7 @@ iso_8601_get_week_number(const enum weekday weekday,
         case WEEKDAY_TUESDAY:
         case WEEKDAY_WEDNESDAY:
         case WEEKDAY_THURSDAY:
-            /* Fix the calculation from the formula above */
+            // Fix the calculation from the formula above
             week_number += 1;
             break;
         case WEEKDAY_FRIDAY:
@@ -561,17 +547,13 @@ iso_8601_get_week_number(const enum weekday weekday,
                 break;
             }
 
-            /*
-             * To figure this out, recursively call ourself for december 31's
-             * week number.
-             */
+            // To figure this out, recursively call ourself for december 31's
+            // week number.
 
             const enum weekday dec_31_weekday = weekday_prev(weekday);
 
-            /*
-             * The count of days preceding december 31 is that year's day count
-             * minus one for december 31.
-             */
+            // The count of days preceding december 31 is that year's day count
+            // minus one for december 31.
 
             const uint64_t days_preceding_dec_31 =
                 year_get_day_count(year - 1) - 1;

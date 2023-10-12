@@ -337,7 +337,6 @@ struct cpu_features {
     enum cpu_feat_brbe brbe : 2;
     enum cpu_feat_bf16 bf16 : 2;
 
-    // Features introduced prior to 2020
     bool csv3 : 1;          // Cache Speculation Variant 3
     bool dgh : 1;           // Data Gathering Hint
     bool double_lock : 1;   // Double Lock

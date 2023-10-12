@@ -24,7 +24,7 @@ struct page {
                 struct page *head;
             };
 
-            // An order of 0xFF means this is a tail-page of a page in the lru
+            // An amount of 0 means this is a tail-page of a page in the lru
             // cache.
             uint32_t amount;
         } dirty_lru;

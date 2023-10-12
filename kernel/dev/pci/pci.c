@@ -429,7 +429,7 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
                 const uint16_t msg_control =
                     pci_read_cap_field(struct pci_spec_cap_msix, msg_control);
                 const uint16_t bitmap_size =
-                    (msg_control & __PCI_MSIX_CAP_TABLE_SIZE_MASK) + 1;
+                    (msg_control & __PCI_CAP_MSIX_TABLE_SIZE_MASK) + 1;
 
                 const struct bitmap bitmap = bitmap_alloc(bitmap_size);
                 if (bitmap.gbuffer.begin == NULL) {
@@ -522,7 +522,7 @@ static void free_inside_device_info(struct pci_device_info *const device) {
             PCI_BAR_COUNT_FOR_BRIDGE : PCI_BAR_COUNT_FOR_GENERAL;
 
     for (uint8_t i = 0; i != bar_count; i++) {
-        struct pci_device_bar_info *const bar = bar_list + i;
+        struct pci_device_bar_info *const bar = &bar_list[i];
         if (bar->is_mapped) {
             vunmap_mmio(bar->mmio);
         }
@@ -623,7 +623,7 @@ parse_function(struct pci_domain *const domain,
 
             pci_parse_capabilities(&info);
             for (uint8_t index = 0; index != info.max_bar_count; index++) {
-                struct pci_device_bar_info *bar = info.bar_list + index;
+                struct pci_device_bar_info *bar = &info.bar_list[index];
                 const uint8_t bar_index = index;
 
                 const enum parse_bar_result result =
@@ -678,7 +678,7 @@ parse_function(struct pci_domain *const domain,
 
             pci_parse_capabilities(&info);
             for (uint8_t index = 0; index != info.max_bar_count; index++) {
-                struct pci_device_bar_info *bar = info.bar_list + index;
+                struct pci_device_bar_info *bar = &info.bar_list[index];
 
                 const uint8_t bar_index = index;
                 const enum parse_bar_result result =

@@ -157,7 +157,6 @@ struct pci_spec_device_info {
 
     uint16_t subsystem_vendor_id;
     uint16_t subsystem_id;
-
     uint32_t expansion_rom_base_address;
 
     uint8_t capabilities_offset; /* Offset from start of this structure */
@@ -165,6 +164,7 @@ struct pci_spec_device_info {
 
     uint8_t interrupt_line;
     uint8_t interrupt_pin;
+
     const uint8_t min_grant;
     const uint8_t max_latency; // In units of 1/4 milliseconds
 
@@ -240,8 +240,8 @@ enum pci_spec_cap_msi_control_flags {
 };
 
 enum pci_spec_cap_msix_control_flags {
-    __PCI_MSIX_CAP_TABLE_SIZE_MASK = (1ull << 10) - 1,
-    __PCI_MSIX_CAP_CTRL_ENABLE = 1 << 15
+    __PCI_CAP_MSIX_TABLE_SIZE_MASK = (1ull << 10) - 1,
+    __PCI_CAP_MSIX_CTRL_ENABLE = 1 << 15
 };
 
 struct pci_spec_cap_msix_table_entry {

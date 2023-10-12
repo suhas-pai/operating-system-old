@@ -11,12 +11,12 @@ preprocess_for_append(struct mutable_buffer *const mbuffer,
                       uint32_t length,
                       uint32_t *const length_out)
 {
-    const uint32_t free_space = mbuffer_get_free_space(*mbuffer);
+    const uint32_t free_space = mbuffer_free_space(*mbuffer);
     if (length >= free_space) {
         length = free_space;
     }
 
-    uint8_t *const ptr = mbuffer_get_current_ptr(*mbuffer);
+    uint8_t *const ptr = mbuffer_current_ptr(*mbuffer);
 
     mbuffer->index += length;
     *length_out = length;
@@ -45,13 +45,13 @@ mbuffer_open_static(void *const buffer,
     return mbuffer;
 }
 
-__optimize(3) void *mbuffer_get_current_ptr(struct mutable_buffer mbuffer) {
+__optimize(3) void *mbuffer_current_ptr(const struct mutable_buffer mbuffer) {
     return mbuffer.begin + mbuffer.index;
 }
 
 __optimize(3)
-uint32_t mbuffer_get_free_space(const struct mutable_buffer mbuffer) {
-    return distance(mbuffer.end, mbuffer_get_current_ptr(mbuffer));
+uint32_t mbuffer_free_space(const struct mutable_buffer mbuffer) {
+    return distance(mbuffer.end, mbuffer_current_ptr(mbuffer));
 }
 
 __optimize(3) uint32_t mbuffer_used_size(const struct mutable_buffer mbuffer) {
@@ -64,28 +64,22 @@ __optimize(3) uint32_t mbuffer_capacity(const struct mutable_buffer mbuffer) {
 
 __optimize(3) bool
 mbuffer_can_add_size(const struct mutable_buffer mbuffer, const uint32_t size) {
-    return (size <= mbuffer_get_free_space(mbuffer));
+    return (size <= mbuffer_free_space(mbuffer));
 }
 
 __optimize(3) bool mbuffer_empty(const struct mutable_buffer mbuffer) {
     return (mbuffer_used_size(mbuffer) == 0);
 }
 
-__optimize(3) bool mbuffer_full(struct mutable_buffer mbuffer) {
-    const uint32_t used_size = mbuffer_used_size(mbuffer);
-    const uint32_t capacity = mbuffer_capacity(mbuffer);
-
-    return used_size == capacity;
+__optimize(3) bool mbuffer_full(const struct mutable_buffer mbuffer) {
+    return mbuffer_used_size(mbuffer) == mbuffer_capacity(mbuffer);
 }
 
 __optimize(3) uint32_t
 mbuffer_increment_ptr(struct mutable_buffer *const mbuffer,
                       const uint32_t bad_amt)
 {
-    const uint32_t free_space = mbuffer_get_free_space(*mbuffer);
-    const uint32_t increment_amt = min(free_space, bad_amt);
-
-    return increment_amt;
+    return min(mbuffer_free_space(*mbuffer), bad_amt);;
 }
 
 __optimize(3) uint32_t
@@ -132,8 +126,7 @@ __optimize(3) bool
 mbuffer_truncate(struct mutable_buffer *const mbuffer,
                  const uint32_t new_used_size)
 {
-    const uint32_t current_used_size = mbuffer_used_size(*mbuffer);
-    if (new_used_size > current_used_size) {
+    if (new_used_size > mbuffer_used_size(*mbuffer)) {
         return false;
     }
 

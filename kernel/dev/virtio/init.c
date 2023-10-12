@@ -6,7 +6,9 @@
 #include "dev/driver.h"
 #include "dev/printk.h"
 
+#include "drivers/block.h"
 #include "drivers/scsi.h"
+
 #include "lib/util.h"
 
 #include "device.h"
@@ -16,7 +18,53 @@ static struct list device_list = LIST_INIT(device_list);
 static uint64_t device_count = 0;
 
 static virtio_driver_init_t drivers[] = {
+    [VIRTIO_DEVICE_KIND_BLOCK_DEVICE] = virtio_block_driver_init,
     [VIRTIO_DEVICE_KIND_SCSI_HOST] = virtio_scsi_driver_init,
+};
+
+static struct string_view device_kind_string[] = {
+    [VIRTIO_DEVICE_KIND_INVALID] = SV_STATIC("reserved"),
+    [VIRTIO_DEVICE_KIND_NETWORK_CARD] = SV_STATIC("network-card"),
+    [VIRTIO_DEVICE_KIND_BLOCK_DEVICE] = SV_STATIC("block-device"),
+    [VIRTIO_DEVICE_KIND_CONSOLE] = SV_STATIC("entropy-source"),
+    [VIRTIO_DEVICE_KIND_MEM_BALLOON_TRAD] = SV_STATIC("memory-balloon-trad"),
+    [VIRTIO_DEVICE_KIND_IOMEM] = SV_STATIC("iomem"),
+    [VIRTIO_DEVICE_KIND_RPMSG] = SV_STATIC("rpmsg"),
+    [VIRTIO_DEVICE_KIND_SCSI_HOST] = SV_STATIC("scsi-host"),
+    [VIRTIO_DEVICE_KIND_9P_TRANSPORT] = SV_STATIC("9p-transport"),
+    [VIRTIO_DEVICE_KIND_MAC_80211_WLAN] = SV_STATIC("mac80211-wlan"),
+    [VIRTIO_DEVICE_KIND_RPROC_SERIAL] = SV_STATIC("rproc-serial"),
+    [VIRTIO_DEVICE_KIND_VIRTIO_CAIF] = SV_STATIC("virtio-caif"),
+    [VIRTIO_DEVICE_KIND_MEM_BALLOON] = SV_STATIC("mem-baloon"),
+    [VIRTIO_DEVICE_KIND_GPU_DEVICE] = SV_STATIC("gpu-device"),
+    [VIRTIO_DEVICE_KIND_TIMER_OR_CLOCK] = SV_STATIC("timer-or-clock"),
+    [VIRTIO_DEVICE_KIND_INPUT_DEVICE] = SV_STATIC("input-device"),
+    [VIRTIO_DEVICE_KIND_SOCKET_DEVICE] = SV_STATIC("socker-device"),
+    [VIRTIO_DEVICE_KIND_CRYPTO_DEVICE] = SV_STATIC("crypto-device"),
+    [VIRTIO_DEVICE_KIND_SIGNAL_DISTR_NODULE] =
+        SV_STATIC("signal-distribution-module"),
+    [VIRTIO_DEVICE_KIND_PSTORE_DEVICE] = SV_STATIC("pstore-device"),
+    [VIRTIO_DEVICE_KIND_IOMMU_DEVICE] = SV_STATIC("iommu-device"),
+    [VIRTIO_DEVICE_KIND_MEMORY_DEVICE] = SV_STATIC("audio-device"),
+    [VIRTIO_DEVICE_KIND_FS_DEVICE] = SV_STATIC("fs-device"),
+    [VIRTIO_DEVICE_KIND_PMEM_DEVICE] = SV_STATIC("pmem-device"),
+    [VIRTIO_DEVICE_KIND_RPMB_DEVICE] = SV_STATIC("rpmb-device"),
+    [VIRTIO_DEVICE_KIND_MAC_80211_HWSIM_WIRELESS_SIM_DEVICE] =
+        SV_STATIC("mac80211-hwsim-wireless-simulator-device"),
+    [VIRTIO_DEVICE_KIND_VIDEO_ENCODER_DEVICE] =
+        SV_STATIC("video-encoder-device"),
+    [VIRTIO_DEVICE_KIND_VIDEO_DECODER_DEVICE] =
+        SV_STATIC("video-decoder-device"),
+    [VIRTIO_DEVICE_KIND_SCMI_DEVICE] = SV_STATIC("scmi-device"),
+    [VIRTIO_DEVICE_KIND_NITRO_SECURE_MDOEL] = SV_STATIC("nitro-secure-model"),
+    [VIRTIO_DEVICE_KIND_I2C_ADAPTER] = SV_STATIC("i2c-adapter"),
+    [VIRTIO_DEVICE_KIND_WATCHDOG] = SV_STATIC("watchdog"),
+    [VIRTIO_DEVICE_KIND_CAN_DEVICE] = SV_STATIC("can-device"),
+    [VIRTIO_DEVICE_KIND_PARAM_SERVER] = SV_STATIC("parameter-server"),
+    [VIRTIO_DEVICE_KIND_AUDIO_POLICY_DEVICE] = SV_STATIC("audio-policy-device"),
+    [VIRTIO_DEVICE_KIND_BLUETOOTH_DEVICE] = SV_STATIC("bluetooth-device"),
+    [VIRTIO_DEVICE_KIND_GPIO_DEVICE] = SV_STATIC("gpio-device"),
+    [VIRTIO_DEVICE_KIND_RDMA_DEVICE] = SV_STATIC("rdma-device")
 };
 
 static uint64_t
@@ -49,7 +97,8 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
                mmio_read(&cfg->device_status) | VIRTIO_DEVSTATUS_DRIVER);
 
     const uint64_t features =
-        select_64_bits(&cfg->device_feature_select, &cfg->device_feature);
+        le_to_cpu(
+            select_64_bits(&cfg->device_feature_select, &cfg->device_feature));
 
     if ((features & VIRTIO_DEVFEATURE_VERSION_1) == 0) {
         mmio_write(&cfg->device_status, VIRTIO_DEVSTATUS_FEATURES_OK);
@@ -72,134 +121,6 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
                mmio_read(&cfg->device_status) | VIRTIO_DEVSTATUS_DRIVER_OK);
 
     return ret_device;
-}
-
-static const char *device_kind_string(const enum virtio_device_kind kind) {
-    const char *result = NULL;
-    switch (kind) {
-        case VIRTIO_DEVICE_KIND_INVALID:
-            result = "reserved";
-            break;
-        case VIRTIO_DEVICE_KIND_NETWORK_CARD:
-            result = "network-card";
-            break;
-        case VIRTIO_DEVICE_KIND_BLOCK_DEVICE:
-            result = "block-device";
-            break;
-        case VIRTIO_DEVICE_KIND_CONSOLE:
-            result = "console";
-            break;
-        case VIRTIO_DEVICE_KIND_ENTROPY_SRC:
-            result = "entropy-source";
-            break;
-        case VIRTIO_DEVICE_KIND_MEM_BALLOON_TRAD:
-            result = "memory-balloon-traditional";
-            break;
-        case VIRTIO_DEVICE_KIND_IOMEM:
-            result = "io-memory";
-            break;
-        case VIRTIO_DEVICE_KIND_RPMSG:
-            result = "rpmsg";
-            break;
-        case VIRTIO_DEVICE_KIND_SCSI_HOST:
-            result = "scsi-host";
-            break;
-        case VIRTIO_DEVICE_KIND_9P_TRANSPORT:
-            result = "9p-transport";
-            break;
-        case VIRTIO_DEVICE_KIND_MAC_80211_WLAN:
-            result = "mac80211-wlan";
-            break;
-        case VIRTIO_DEVICE_KIND_RPROC_SERIAL:
-            result = "rproc-serial";
-            break;
-        case VIRTIO_DEVICE_KIND_VIRTIO_CAIF:
-            result = "virtio-caif";
-            break;
-        case VIRTIO_DEVICE_KIND_MEM_BALLOON:
-            result = "mem-balloon";
-            break;
-        case VIRTIO_DEVICE_KIND_GPU_DEVICE:
-            result = "gpu-device";
-            break;
-        case VIRTIO_DEVICE_KIND_TIMER_OR_CLOCK:
-            result = "timer-or-clock";
-            break;
-        case VIRTIO_DEVICE_KIND_INPUT_DEVICE:
-            result = "input-device";
-            break;
-        case VIRTIO_DEVICE_KIND_SOCKET_DEVICE:
-            result = "socket-device";
-            break;
-        case VIRTIO_DEVICE_KIND_CRYPTO_DEVICE:
-            result = "crypto-device";
-            break;
-        case VIRTIO_DEVICE_KIND_SIGNAL_DISTR_NODULE:
-            result = "signal-distribution-module";
-            break;
-        case VIRTIO_DEVICE_KIND_PSTORE_DEVICE:
-            result = "pstore-device";
-            break;
-        case VIRTIO_DEVICE_KIND_IOMMU_DEVICE:
-            result = "iommu-device";
-            break;
-        case VIRTIO_DEVICE_KIND_MEMORY_DEVICE:
-            result = "memory-device";
-            break;
-        case VIRTIO_DEVICE_KIND_AUDIO_DEVICE:
-            result = "audio-device";
-            break;
-        case VIRTIO_DEVICE_KIND_FS_DEVICE:
-            result = "fs-device";
-            break;
-        case VIRTIO_DEVICE_KIND_PMEM_DEVICE:
-            result = "pmem-device";
-            break;
-        case VIRTIO_DEVICE_KIND_RPMB_DEVICE:
-            result = "rpmb-device";
-            break;
-        case VIRTIO_DEVICE_KIND_MAC_80211_HWSIM_WIRELESS_SIM_DEVICE:
-            result = "mac80211-hwsim-wireless-simulator-device";
-            break;
-        case VIRTIO_DEVICE_KIND_VIDEO_ENCODER_DEVICE:
-            result = "video-encoder-device";
-            break;
-        case VIRTIO_DEVICE_KIND_VIDEO_DECODER_DEVICE:
-            result = "video-decoder-device";
-            break;
-        case VIRTIO_DEVICE_KIND_SCMI_DEVICE:
-            result = "scmi-device";
-            break;
-        case VIRTIO_DEVICE_KIND_NITRO_SECURE_MDOEL:
-            result = "nitro-secure-module";
-            break;
-        case VIRTIO_DEVICE_KIND_I2C_ADAPTER:
-            result = "i2c-adapter";
-            break;
-        case VIRTIO_DEVICE_KIND_WATCHDOG:
-            result = "watchdog";
-            break;
-        case VIRTIO_DEVICE_KIND_CAN_DEVICE:
-            result = "can-device";
-            break;
-        case VIRTIO_DEVICE_KIND_PARAM_SERVER:
-            result = "parameter-server";
-            break;
-        case VIRTIO_DEVICE_KIND_AUDIO_POLICY_DEVICE:
-            result = "audio-policy-device";
-            break;
-        case VIRTIO_DEVICE_KIND_BLUETOOTH_DEVICE:
-            result = "bluetooth-device";
-            break;
-        case VIRTIO_DEVICE_KIND_GPIO_DEVICE:
-            result = "gpio-device";
-            break;
-        case VIRTIO_DEVICE_KIND_RDMA_DEVICE:
-            result = "rdma-device";
-            break;
-    }
-
-    return result;
 }
 
 static void init_from_pci(struct pci_device_info *const pci_device) {
@@ -253,7 +174,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
             return;
         }
 
-        kind = device_kind_string(device_kind);
+        kind = device_kind_string[device_kind].begin;
     }
 
     const bool is_trans = pci_device->revision_id == 0;
@@ -305,7 +226,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         }
 
         struct pci_device_bar_info *const bar =
-            pci_device->bar_list + bar_index;
+            &pci_device->bar_list[bar_index];
 
         if (!bar->is_present) {
             printk(LOGLEVEL_INFO,

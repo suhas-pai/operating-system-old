@@ -40,8 +40,7 @@ void madt_init(const struct acpi_madt *const madt) {
          offset += iter->length, index++)
     {
         iter =
-            (const struct acpi_madt_entry_header *)
-                (madt->madt_entries + offset);
+            (const struct acpi_madt_entry_header *)&madt->madt_entries[offset];
 
         switch (iter->kind) {
             case ACPI_MADT_ENTRY_KIND_CPU_LOCAL_APIC: {

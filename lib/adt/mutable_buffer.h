@@ -27,9 +27,9 @@ mbuffer_open(void *buffer, uint32_t used, uint32_t capacity);
 struct mutable_buffer
 mbuffer_open_static(void *buffer, uint32_t used, uint32_t capacity);
 
-void *mbuffer_get_current_ptr(struct mutable_buffer mbuffer);
+void *mbuffer_current_ptr(struct mutable_buffer mbuffer);
 
-uint32_t mbuffer_get_free_space(struct mutable_buffer mbuffer);
+uint32_t mbuffer_free_space(struct mutable_buffer mbuffer);
 uint32_t mbuffer_used_size(struct mutable_buffer mbuffer);
 uint32_t mbuffer_capacity(struct mutable_buffer mbuffer);
 

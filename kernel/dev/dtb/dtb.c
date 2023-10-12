@@ -94,7 +94,9 @@ dtb_get_reg_pairs(const void *const dtb,
     const uint32_t size_shift = sizeof_bits(uint64_t) / (uint32_t)size_cells;
 
     struct dtb_addr_size_pair *entry = pairs_out;
-    for (; entry != pairs_out + entry_spaces; entry++) {
+    const struct dtb_addr_size_pair *const end = &pairs_out[entry_spaces];
+
+    for (; entry != end; entry++) {
         if (addr_shift != sizeof_bits(uint64_t)) {
             for (int i = 0; i != addr_cells; i++) {
                 entry->address =

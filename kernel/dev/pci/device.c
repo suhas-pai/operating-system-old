@@ -135,7 +135,7 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
                                  msg_control);
 
         const uint32_t table_size =
-            (msg_control & __PCI_MSIX_CAP_TABLE_SIZE_MASK) + 1;
+            (msg_control & __PCI_CAP_MSIX_TABLE_SIZE_MASK) + 1;
 
         if (!index_in_bounds(vector, table_size)) {
             printk(LOGLEVEL_WARN,
@@ -192,7 +192,7 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
         mmio_write(&table[msix_vector].control, masked);
 
         /* Enable MSI-X after we setup the table-entry */
-        msg_control |= __PCI_MSIX_CAP_CTRL_ENABLE;
+        msg_control |= __PCI_CAP_MSIX_CTRL_ENABLE;
         pci_write_with_offset(device,
                               device->pcie_msix_offset,
                               struct pci_spec_cap_msix,

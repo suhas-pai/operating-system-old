@@ -22,7 +22,8 @@ struct string_view {
         .length = 0 \
     })
 
-#define SV_STATIC(c_str) sv_create_nocheck(c_str, LEN_OF(c_str))
+#define SV_STATIC(c_str) \
+    ((struct string_view){ .begin = c_str, .length = LEN_OF(c_str) })
 #define sv_foreach(sv, iter) \
     for (const char *iter = sv.begin; iter != (sv.begin + sv.length); iter++)
 

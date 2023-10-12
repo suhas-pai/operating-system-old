@@ -4,10 +4,9 @@
  */
 
 #pragma once
-#include <stdint.h>
 
 #include "dev/pci/structs.h"
-#include "lib/macros.h"
+#include "lib/endian.h"
 
 enum virtio_pci_trans_device_kind {
     VIRTIO_PCI_TRANS_DEVICE_KIND_NETWORK_CARD = 0x1000,
@@ -100,26 +99,31 @@ struct virtio_pci_cap64 {
 
 struct virtio_pci_common_cfg {
     /* About the whole device. */
-    uint32_t device_feature_select;
+    le32_t device_feature_select;
     const uint32_t device_feature;
-    uint32_t driver_feature_select;
-    uint32_t driver_feature;
-    uint16_t config_msix_vector;
-    const uint16_t num_queues;
+
+    le32_t driver_feature_select;
+    le32_t driver_feature;
+    le16_t config_msix_vector;
+
+    const le16_t num_queues;
     uint8_t device_status;
     const uint8_t config_generation;
 
     /* About a specific virtqueue. */
-    uint16_t queue_select;
-    uint16_t queue_size;
-    uint16_t queue_msix_vector;
-    uint16_t queue_enable;
-    const uint16_t queue_notify_off;
-    uint64_t queue_desc;
-    uint64_t queue_driver;
-    uint64_t queue_device;
-    const uint16_t queue_notify_data;
-    uint16_t queue_reset;
+    le16_t queue_select;
+    le16_t queue_size;
+    le16_t queue_msix_vector;
+    le16_t queue_enable;
+
+    const le16_t queue_notify_off;
+
+    le64_t queue_desc;
+    le64_t queue_driver;
+    le64_t queue_device;
+
+    const le16_t queue_notify_data;
+    le16_t queue_reset;
 } __packed;
 
 struct virtio_pci_notify_cfg_cap {
@@ -144,7 +148,7 @@ struct virtio_pci_cfg_cap {
      */
 
     struct virtio_pci_cap cap;
-    uint8_t pci_cfg_data[4]; /* Data for BAR access. */
+    volatile uint8_t pci_cfg_data[4]; /* Data for BAR access. */
 } __packed;
 
 struct virtio_pci_isr_cfg_cap {

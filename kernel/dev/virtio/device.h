@@ -15,6 +15,21 @@ struct virtio_device_shmem_region {
     uint8_t id;
 };
 
+struct virtio_device;
+struct virtio_config_space_operations {
+    void
+    (*read)(struct virtio_device *device,
+            uint64_t offset,
+            uint64_t size,
+            void *buf);
+
+    void
+    (*write)(struct virtio_device *device,
+             const void *buf,
+             uint64_t offset,
+             uint64_t size);
+};
+
 struct virtio_device {
     struct list list;
 
@@ -33,6 +48,8 @@ struct virtio_device {
 
     bool is_transitional : 1;
     enum virtio_device_kind kind;
+
+    struct virtio_config_space_operations ops;
 };
 
 #define VIRTIO_DEVICE_INIT(name) \

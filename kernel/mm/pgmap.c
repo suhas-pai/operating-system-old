@@ -56,7 +56,7 @@ split_large_page(struct pt_walker *const walker,
     assert(!curr_split->is_active);
 
     pte_t *const table = walker->tables[walker->level - 1];
-    pte_t *const pte = table + walker->indices[walker->level - 1];
+    pte_t *const pte = &table[walker->indices[walker->level - 1]];
 
     const pte_t entry = pte_read(pte);
     pte_write(pte, /*value=*/0);
@@ -153,7 +153,7 @@ override_pte(struct pt_walker *const walker,
     (void)virt_begin;
     if (level > walker->level) {
         pte_t *const pte =
-            walker->tables[level - 1] + walker->indices[level - 1];
+            &walker->tables[level - 1][walker->indices[level - 1]];
 
         //const pte_t entry = pte_read(pte);
         pte_write(pte, new_pte_value);
@@ -184,17 +184,17 @@ override_pte(struct pt_walker *const walker,
             }
 
             pte_t *const pte =
-                walker->tables[level - 1] + walker->indices[level - 1];
+                &walker->tables[level - 1][walker->indices[level - 1]];
 
             pte_write(pte, new_pte_value);
             return OVERRIDE_OK;
         }
 
         const pgt_index_t index = walker->indices[walker->level - 1];
-        entry = pte_read(walker->tables[walker->level - 1] + index);
+        entry = pte_read(&walker->tables[walker->level - 1][index]);
     } else {
         pte_t *const pte =
-            walker->tables[level - 1] + walker->indices[level - 1];
+            &walker->tables[level - 1][walker->indices[level - 1]];
 
         entry = pte_read(pte);
         if (!pte_is_present(entry)) {
@@ -238,7 +238,7 @@ override_pte(struct pt_walker *const walker,
         //pageop_flush_address(virt_begin + *offset_in);
     }
 
-    pte_t *const pte = walker->tables[level - 1] + walker->indices[level - 1];
+    pte_t *const pte = &walker->tables[level - 1][walker->indices[level - 1]];
     pte_write(pte, new_pte_value);
 
     return OVERRIDE_OK;
@@ -354,8 +354,8 @@ map_normal(struct pt_walker *const walker,
             }
 
             pte_t *const table = walker->tables[0];
-            pte_t *pte = table + walker->indices[0];
-            const pte_t *const end = table + PGT_PTE_COUNT;
+            pte_t *pte = &table[walker->indices[0]];
+            const pte_t *const end = &table[PGT_PTE_COUNT];
 
             do {
                 const pte_t new_pte_value =
@@ -491,7 +491,7 @@ map_large_at_top_level_no_overwrite(struct pt_walker *const walker,
     const uint64_t pte_flags = options->pte_flags;
 
     pte_t *const table = walker->tables[level - 1];
-    pte_t *pte = table + walker->indices[level - 1];
+    pte_t *pte = &table[walker->indices[level - 1]];
 
     do {
         const pte_t new_pte_value =
@@ -641,8 +641,8 @@ map_large_at_level_no_overwrite(struct pt_walker *const walker,
         }
 
         pte_t *const table = walker->tables[level - 1];
-        pte_t *pte = table + walker->indices[level - 1];
-        const pte_t *const end = table + PGT_PTE_COUNT;
+        pte_t *pte = &table[walker->indices[level - 1]];
+        const pte_t *const end = &table[PGT_PTE_COUNT];
 
         do {
             const pte_t new_pte_value =
@@ -706,8 +706,8 @@ map_large_at_level(struct pt_walker *const walker,
                    const pgt_level_t level,
                    const struct pgmap_options *const options)
 {
-    if (level != pgt_get_top_level()) {
-        if (!options->is_overwrite) {
+    if (__builtin_expect(level != pgt_get_top_level(), 1)) {
+        if (__builtin_expect(!options->is_overwrite, 1)) {
             return map_large_at_level_no_overwrite(walker,
                                                    phys_begin,
                                                    offset_in,
@@ -1023,7 +1023,7 @@ pgunmap_at(struct pagemap *const pagemap,
             }
 
             pte_t *const pte =
-                walker.tables[level - 1] + walker.indices[level - 1];
+                &walker.tables[level - 1][walker.indices[level - 1]];
 
             // Sanity check for the rare case where we're not actually dealing
             // with a large page (instead, a bug in pgmap because we have a
@@ -1055,7 +1055,7 @@ pgunmap_at(struct pagemap *const pagemap,
             }
         } else {
             pte_t *const pte =
-                walker.tables[level - 1] + walker.indices[level - 1];
+                &walker.tables[level - 1][walker.indices[level - 1]];
 
             if (should_free_pages) {
                 const pte_t entry = pte_read(pte);

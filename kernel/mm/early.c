@@ -89,7 +89,7 @@ static void claim_pages(const struct mm_memmap *const memmap) {
                 prev = iter;
             }
 
-            if (prev->list.next != &g_freepage_list) {
+            if (&prev->list != &g_freepage_list) {
                 // Use avail_page_count so we don't merge two memmaps that seem
                 // to connect but actually have a block of allocated pages
                 // separating them.
@@ -132,7 +132,7 @@ static void claim_pages(const struct mm_memmap *const memmap) {
 
 uint64_t early_alloc_page() {
     if (__builtin_expect(list_empty(&g_asc_freelist), 0)) {
-        printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
+        printk(LOGLEVEL_ERROR, "mm: ran out of free-pages\n");
         return INVALID_PHYS;
     }
 
@@ -159,7 +159,7 @@ uint64_t early_alloc_page() {
 
 uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
     if (__builtin_expect(list_empty(&g_asc_freelist), 0)) {
-        printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
+        printk(LOGLEVEL_ERROR, "mm: ran out of free-pages\n");
         return INVALID_PHYS;
     }
 
@@ -170,7 +170,7 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
         }
     }
 
-    if (info == NULL) {
+    if (&info->list == &g_asc_freelist) {
         return INVALID_PHYS;
     }
 
@@ -181,6 +181,14 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
     if (info->avail_page_count == 0) {
         list_delete(&info->list);
         list_delete(&info->asc_list);
+    }
+
+    const struct freepages_info *const prev =
+        list_prev_safe(&g_asc_freelist, info, asc_list);
+
+    if (prev != NULL && prev->avail_page_count > info->avail_page_count) {
+        list_remove(&info->asc_list);
+        add_to_asc_list(info);
     }
 
     const uint64_t free_page =
@@ -194,7 +202,7 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
 
 uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
     if (__builtin_expect(list_empty(&g_asc_freelist), 0)) {
-        printk(LOGLEVEL_ERROR, "Ran out of free-pages\n");
+        printk(LOGLEVEL_ERROR, "mm: ran out of free-pages\n");
         return INVALID_PHYS;
     }
 
@@ -239,11 +247,19 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
         info->total_page_count =
             info->avail_page_count + PAGE_COUNT(alloc_amount);
 
-        if (info->avail_page_count == 0) {
+        if (info->avail_page_count != 0) {
+            struct freepages_info *const info_prev = list_prev(info, asc_list);
+            if (&info->list != &g_asc_freelist &&
+                info_prev->avail_page_count > info->avail_page_count)
+            {
+                list_remove(&info->asc_list);
+                add_to_asc_list(info);
+            }
+        } else {
             prev = list_prev(info, list);
 
-            list_delete(&info->list);
             list_delete(&info->asc_list);
+            list_delete(&info->list);
         }
 
         const uint64_t new_info_phys = free_page + (PAGE_SIZE * alloc_amount);
@@ -269,6 +285,14 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
             list_delete(&info->list);
             list_delete(&info->asc_list);
         }
+
+        const struct freepages_info *const prev =
+            list_prev_safe(&g_asc_freelist, info, asc_list);
+
+        if (prev != NULL && prev->avail_page_count > info->avail_page_count) {
+            list_remove(&info->asc_list);
+            add_to_asc_list(info);
+        }
     }
 
     zero_multiple_pages(phys_to_virt(free_page), alloc_amount);
@@ -284,8 +308,9 @@ void mm_early_init() {
     printk(LOGLEVEL_INFO, "mm: hhdm at %p\n", (void *)HHDM_OFFSET);
     printk(LOGLEVEL_INFO, "mm: kernel at %p\n", (void *)KERNEL_BASE);
 
-    for (uint64_t index = 0; index != mm_get_memmap_count(); index++) {
-        const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
+    const uint64_t memmap_count = mm_get_memmap_count();
+    for (uint64_t index = 0; index != memmap_count; index++) {
+        const struct mm_memmap *const memmap = &mm_get_memmap_list()[index];
         const char *type_desc = "<unknown>";
 
         switch (memmap->kind) {
@@ -449,8 +474,8 @@ void mark_used_pages(const struct mm_section *const memmap) {
             continue;
         }
 
-        // Mark the range from the beginning of the memmap, to the first
-        // free page.
+        // Mark the range from the beginning of the memmap, to the first free
+        // page.
 
         struct page *const start = phys_to_page(memmap->range.front);
         struct page *page = start;
@@ -585,116 +610,33 @@ set_section_for_pages(const struct mm_section *const memmap,
         struct page *page = virt_to_page(iter);
         struct page *const end = page + iter->avail_page_count;
 
+        const uint64_t section_shifted =
+            (uint64_t)(section & SECTION_MASK) << SECTION_SHIFT;
+
         for (; page != end; page++) {
-            page->flags = (section & SECTION_MASK) << SECTION_SHIFT;
+            page->flags = section_shifted;
         }
     }
 }
 
-void mm_early_post_arch_init() {
-#if defined(__aarch64__)
-    init_table_page(virt_to_page(kernel_pagemap.lower_root));
-    init_table_page(virt_to_page(kernel_pagemap.higher_root));
-#else
-    init_table_page(virt_to_page(kernel_pagemap.root));
-#endif
-
-    // Claim bootloader-reclaimable memmaps now that we've switched to our own
-    // pagemap.
-    // FIXME: Avoid claiming thees pages until we setup our own stack.
-
-    for (uint64_t index = 0; index != mm_get_memmap_count(); index++) {
-        const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
-        if (memmap->kind == MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE) {
-            //claim_pages(memmap);
-        }
-    }
-
-    // Iterate over the usable-memmaps (sections) three times:
-    //  1. Iterate to mark used-pages first. This must be done first because
-    //     it needs to be done before memmaps are merged, as before the merge,
-    //     its obvious which pages are used.
-    //  2. Set the section mask in page->flags.
-    //  3. Setup the bitmap for each memmap. This needs to be separately, and
-    //     last, because it needs to call phys_to_page(), which only works after
-    //     the section-mask is setup.
-    //  4. Protect the pages user for each section's bitmap.
-
-    for (uint64_t index = 0; index != mm_get_usable_count(); index++) {
-        mark_used_pages(mm_get_usable_list() + index);
-    }
-
-    mark_last_part_of_structpage_table();
-    boot_merge_usable_memmaps();
-
-    for (uint64_t index = 0; index != mm_get_usable_count(); index++) {
-        struct mm_section *const section = mm_get_usable_list() + index;
-        set_section_for_pages(section, /*section=*/index);
-    }
-
-    for (uint64_t index = 0; index != mm_get_usable_count(); index++) {
-        struct mm_section *const section = mm_get_usable_list() + index;
-        const uint64_t alloc_page_count =
-            div_round_up(PAGE_COUNT(section->range.size),
-                         bytes_to_bits(PAGE_SIZE));
-
-        const uint64_t bitmap_pages_phys =
-            early_alloc_multiple_pages(alloc_page_count);
-        section->used_pages_bitmap =
-            bitmap_open(phys_to_virt(bitmap_pages_phys),
-                        alloc_page_count * PAGE_SIZE);
-
-        mark_used_pages_for_bitmap(section);
-    }
-
-    for (uint64_t index = 0; index != mm_get_usable_count(); index++) {
-        struct mm_section *const section = mm_get_usable_list() + index;
-
-        void *const bitmap_begin = section->used_pages_bitmap.gbuffer.begin;
-        const uint64_t page_count =
-            PAGE_COUNT(
-                distance(bitmap_begin, section->used_pages_bitmap.gbuffer.end));
-
-        struct page *page = virt_to_page(bitmap_begin);
-        const struct page *end = page + page_count;
-
-        for (; page != end; page++) {
-            page->flags = PAGE_NOT_USABLE;
-        }
-
-        struct mm_section *const page_section = page_to_mm_section(page);
-        const uint64_t start_index =
-            (virt_to_phys(bitmap_begin) -
-             page_section->range.front) >> PAGE_SHIFT;
-
-        bitmap_set_range(&page_section->used_pages_bitmap,
-                         range_create(start_index, page_count),
-                         /*value=*/true);
-    }
-
-    printk(LOGLEVEL_INFO, "mm: finished setting up structpage table\n");
-    pagezones_init();
-
+static uint64_t free_all_pages() {
     // TODO: Claim acpi-reclaimable pages
     struct freepages_info *iter = NULL;
     struct freepages_info *tmp = NULL;
 
     /*
-     * Free pages into the buddy allocator by freeing in the range of `forder`,
-     * but ensure that
-     *  (1) The range of pages belong to the same zone. This check is done by
-     *      making sure the first page and the last page belong to the same
-     *      zone.
-     *  (2) The buddies of the first page for each order from 0...forder are
+     * Free pages into the buddy allocator while ensuring
+     *  (1) The range of pages belong to the same zone.
+     *  (2) The buddies of the first page for each order from 0...order are
      *      located after the first page.
      */
 
     uint64_t free_page_count = 0;
-    list_foreach_mut(iter, tmp, &g_freepage_list, list) {
+    list_foreach_reverse_mut(iter, tmp, &g_asc_freelist, asc_list) {
         uint64_t phys = virt_to_phys(iter);
         uint64_t avail = iter->avail_page_count;
-        uint64_t page_pfn = phys_to_pfn(phys);
 
+        uint64_t page_pfn = phys_to_pfn(phys);
         struct page *page = pfn_to_page(page_pfn);
 
         // iorder is log2() of the count of available pages, here we use a for
@@ -727,38 +669,149 @@ void mm_early_post_arch_init() {
                 }
             }
 
-            // max_free_order is the order of pages, starting from the current
-            // page, that can be added to the freelist.
-            // This number should be equal to jorder, but can at times be less
-            // than jorder because a buddy of page at some order 0..=jorder is
-            // located before the current page.
+            const uint64_t total_in_zone = 1ull << jorder;
+            uint64_t avail_in_zone = total_in_zone;
 
-            int8_t max_free_order = jorder;
-            for (int8_t korder = jorder; korder >= 0; korder--) {
-                const uint64_t buddy_pfn = buddy_of(page_pfn, (uint8_t)korder);
-                if (buddy_pfn < page_pfn) {
-                    max_free_order = korder;
+            do {
+                // max_free_order is the order of pages, starting from the
+                // current page, that can be added to the freelist.
+                // This number should be equal to jorder, but can at times be
+                // less than jorder because a buddy of page at some order
+                // 0..=jorder is located before the current page.
+
+                int8_t max_free_order = jorder;
+                for (int8_t korder = jorder; korder >= 0; korder--) {
+                    const uint64_t buddy_pfn =
+                        buddy_of(page_pfn, (uint8_t)korder);
+
+                    if (buddy_pfn < page_pfn) {
+                        max_free_order = korder;
+                    }
                 }
-            }
 
-            early_free_pages_to_zone(page, zone, (uint8_t)max_free_order);
+                early_free_pages_to_zone(page, zone, (uint8_t)max_free_order);
+                const uint64_t freed_count = 1ull << max_free_order;
 
-            const uint64_t page_count = 1ull << max_free_order;
-            avail -= page_count;
+                page += freed_count;
+                page_pfn += freed_count;
+                avail_in_zone -= freed_count;
 
-            if (avail == 0) {
-                break;
-            }
+                if (avail_in_zone == 0) {
+                    break;
+                }
 
-            page += page_count;
-            page_pfn += page_count;
-            phys += page_count << PAGE_SHIFT;
-        } while (true);
+                for (; jorder >= 0; jorder--) {
+                    if (avail_in_zone >= (1ull << jorder)) {
+                        break;
+                    }
+                }
+            } while (jorder >= 0);
+
+            avail -= total_in_zone;
+            phys += total_in_zone << PAGE_SHIFT;
+
+            const struct range freed_range = range_create(phys, 1ull << jorder);
+            printk(LOGLEVEL_INFO,
+                   "mm: freed %" PRIu64 " pages at " RANGE_FMT " to zone %s\n",
+                   total_in_zone,
+                   RANGE_FMT_ARGS(freed_range),
+                   zone->name);
+        } while (avail != 0);
 
         list_delete(&iter->list);
         free_page_count += iter->avail_page_count;
     }
 
+    return free_page_count;
+}
+
+void mm_early_post_arch_init() {
+#if defined(__aarch64__)
+    init_table_page(virt_to_page(kernel_pagemap.lower_root));
+    init_table_page(virt_to_page(kernel_pagemap.higher_root));
+#else
+    init_table_page(virt_to_page(kernel_pagemap.root));
+#endif
+
+    // Claim bootloader-reclaimable memmaps now that we've switched to our own
+    // pagemap.
+    // FIXME: Avoid claiming thees pages until we setup our own stack.
+
+    const uint64_t memmap_count = mm_get_memmap_count();
+    for (uint64_t index = 0; index != memmap_count; index++) {
+        const struct mm_memmap *const memmap = mm_get_memmap_list() + index;
+        if (memmap->kind == MM_MEMMAP_KIND_BOOTLOADER_RECLAIMABLE) {
+            //claim_pages(memmap);
+        }
+    }
+
+    // Iterate over the usable-memmaps (sections) three times:
+    //  1. Iterate to mark used-pages first. This must be done first because
+    //     it needs to be done before memmaps are merged, as before the merge,
+    //     its obvious which pages are used.
+    //  2. Set the section mask in page->flags.
+    //  3. Setup the bitmap for each memmap. This needs to be separately, and
+    //     last, because it needs to call phys_to_page(), which only works after
+    //     the section-mask is setup.
+    //  4. Protect the pages user for each section's bitmap.
+
+    struct mm_section *const begin = mm_get_usable_list();
+    const struct mm_section *const end = begin + mm_get_usable_count();
+
+    for (__auto_type section = begin; section != end; section++) {
+        mark_used_pages(section);
+    }
+
+    mark_last_part_of_structpage_table();
+    boot_merge_usable_memmaps();
+
+    uint64_t number = 0;
+    for (__auto_type section = begin; section != end; section++, number++) {
+        set_section_for_pages(section, /*section=*/number);
+    }
+
+    for (__auto_type section = begin; section != end; section++) {
+        const uint64_t alloc_page_count =
+            div_round_up(PAGE_COUNT(section->range.size),
+                         bytes_to_bits(PAGE_SIZE));
+
+        const uint64_t bitmap_pages_phys =
+            early_alloc_multiple_pages(alloc_page_count);
+        section->used_pages_bitmap =
+            bitmap_open(phys_to_virt(bitmap_pages_phys),
+                        alloc_page_count * PAGE_SIZE);
+
+        mark_used_pages_for_bitmap(section);
+    }
+
+    for (__auto_type section = begin; section != end; section++) {
+        void *const bitmap_begin = section->used_pages_bitmap.gbuffer.begin;
+        const void *const bitmap_end = section->used_pages_bitmap.gbuffer.end;
+
+        const uint64_t page_count =
+            PAGE_COUNT(distance(bitmap_begin, bitmap_end));
+
+        struct page *const bitmap_page = virt_to_page(bitmap_begin);
+        const struct page *bitmap_page_end = bitmap_page + page_count;
+
+        for (struct page *page = bitmap_page; page != bitmap_page_end; page++) {
+            page->flags = PAGE_NOT_USABLE;
+        }
+
+        struct mm_section *const page_section = page_to_mm_section(bitmap_page);
+        const uint64_t start_index =
+            (virt_to_phys(bitmap_begin) -
+             page_section->range.front) >> PAGE_SHIFT;
+
+        bitmap_set_range(&page_section->used_pages_bitmap,
+                         range_create(start_index, page_count),
+                         /*value=*/true);
+    }
+
+    printk(LOGLEVEL_INFO, "mm: finished setting up structpage table\n");
+    pagezones_init();
+
+    const uint64_t free_page_count = free_all_pages();
     for_each_page_zone(zone) {
         printk(LOGLEVEL_INFO,
                "mm: zone %s has %" PRIu64 " pages\n",

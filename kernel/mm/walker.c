@@ -117,7 +117,7 @@ ptwalker_create_for_pagemap(struct pt_walker *const walker,
             const pgt_level_t parent_level = level + 1;
             const pgt_index_t index = walker->indices[parent_level - 1];
 
-            const pte_t entry = pte_read(prev_table + index);
+            const pte_t entry = pte_read(&prev_table[index]);
             if (pte_is_present(entry)) {
                 if (!pte_level_can_have_large(parent_level) ||
                     !pte_is_large(entry))
@@ -230,10 +230,10 @@ ptwalker_drop_lowest(struct pt_walker *const walker,
 }
 
 __optimize(3) static inline bool
-alloc_single_pte(struct pt_walker *const walker,
-                 void *const alloc_pgtable_cb_info,
-                 const pgt_level_t level,
-                 pte_t *const pte_in_parent)
+alloc_table_at_pte(struct pt_walker *const walker,
+                   pte_t *const pte_in_parent,
+                   const pgt_level_t level,
+                   void *const alloc_pgtable_cb_info)
 {
     const uint64_t phys =
         walker->alloc_pgtable(walker, alloc_pgtable_cb_info);
@@ -271,12 +271,12 @@ alloc_levels_down_to(struct pt_walker *const walker,
     do {
         // Get pte in (level + 1), where the index would be ((level + 1) - 1)
         pte_t *parent_table = walker->tables[level];
-        pte_t *const pte_in_parent = parent_table + walker->indices[level];
+        pte_t *const pte_in_parent = &parent_table[walker->indices[level]];
 
-        if (!alloc_single_pte(walker,
-                              alloc_pgtable_cb_info,
-                              level,
-                              pte_in_parent))
+        if (!alloc_table_at_pte(walker,
+                                pte_in_parent,
+                                level,
+                                alloc_pgtable_cb_info))
         {
             walker->level = level + 1;
             ptwalker_drop_lowest(walker, free_pgtable_cb_info);
@@ -323,7 +323,7 @@ ptwalker_next_with_options(struct pt_walker *const walker,
         reset_levels_lower_than(walker, level);
     }
 
-    pgt_index_t *indices_ptr = walker->indices + (level - 1);
+    pgt_index_t *indices_ptr = &walker->indices[level - 1];
     pgt_index_t index = ++*indices_ptr;
 
     if (index < PGT_PTE_COUNT) {
@@ -331,7 +331,7 @@ ptwalker_next_with_options(struct pt_walker *const walker,
             return E_PT_WALKER_OK;
         }
 
-        pte_t *const pte = walker->tables[level - 1] + index;
+        pte_t *const pte = &walker->tables[level - 1][index];
         const pte_t entry = pte_read(pte);
 
         if (!pte_is_present(entry)) {
@@ -356,7 +356,7 @@ ptwalker_next_with_options(struct pt_walker *const walker,
     }
 
     // Start tables from level + 1, as level is incremented soon anyways.
-    pte_t **tables_ptr = walker->tables + level;
+    pte_t **tables_ptr = &walker->tables[level];
     const pgt_level_t orig_level = level;
 
     do {
@@ -378,7 +378,7 @@ ptwalker_next_with_options(struct pt_walker *const walker,
             continue;
         }
 
-        pte_t *const pte = *tables_ptr + index;
+        pte_t *const pte = &((*tables_ptr)[index]);
         const pte_t entry = pte_read(pte);
 
         if (!pte_is_present(entry)) {
@@ -447,7 +447,7 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
         reset_levels_lower_than(walker, level);
     }
 
-    pgt_index_t *indices_ptr = walker->indices + (level - 1);
+    pgt_index_t *indices_ptr = &walker->indices[level - 1];
     pgt_index_t index = *indices_ptr;
 
     if (index != 0) {
@@ -458,7 +458,7 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
             return E_PT_WALKER_OK;
         }
 
-        pte_t *const pte = walker->tables[level - 1] + index;
+        pte_t *const pte = &walker->tables[level - 1][index];
         const pte_t entry = pte_read(pte);
 
         if (!pte_is_present(entry)) {
@@ -482,7 +482,7 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
         return E_PT_WALKER_OK;
     }
 
-    pte_t **tables_ptr = walker->tables + level;
+    pte_t **tables_ptr = &walker->tables[level];
     *indices_ptr = PGT_PTE_COUNT - 1;
 
     const pgt_level_t orig_level = level;
@@ -511,7 +511,7 @@ ptwalker_prev_with_options(struct pt_walker *const walker,
         index--;
         *indices_ptr = index;
 
-        pte_t *const pte = *tables_ptr + index;
+        pte_t *const pte = &((*tables_ptr)[index]);
         const pte_t entry = pte_read(pte);
 
         if (!pte_level_can_have_large(level)) {

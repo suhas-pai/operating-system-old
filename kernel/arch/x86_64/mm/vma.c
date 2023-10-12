@@ -53,12 +53,11 @@ arch_make_mapping(struct pagemap *const pagemap,
                   const enum vma_cachekind cachekind,
                   const bool is_overwrite)
 {
-    const uint64_t pte_flags = flags_from_info(pagemap, prot, cachekind);
     const bool supports_1gib_pages =
         get_cpu_capabilities()->supports_1gib_pages;
 
     const struct pgmap_options options = {
-        .pte_flags = pte_flags,
+        .pte_flags = flags_from_info(pagemap, prot, cachekind),
 
         .alloc_pgtable_cb_info = NULL,
         .free_pgtable_cb_info = NULL,

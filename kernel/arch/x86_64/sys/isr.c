@@ -16,7 +16,7 @@ static isr_vector_t g_free_vector = 0x21;
 static isr_vector_t g_timer_vector = 0;
 static isr_vector_t g_spur_vector = 0;
 
-isr_vector_t isr_alloc_vector() {
+__optimize(3) isr_vector_t isr_alloc_vector() {
     assert(g_free_vector != 0xff);
 
     const isr_vector_t result = g_free_vector;
@@ -25,11 +25,11 @@ isr_vector_t isr_alloc_vector() {
     return result;
 }
 
-isr_vector_t isr_get_timer_vector() {
+__optimize(3) isr_vector_t isr_get_timer_vector() {
     return g_timer_vector;
 }
 
-isr_vector_t isr_get_spur_vector() {
+__optimize(3) isr_vector_t isr_get_spur_vector() {
     return g_spur_vector;
 }
 

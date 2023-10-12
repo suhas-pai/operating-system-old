@@ -3,13 +3,14 @@
  * © suhas pai
  */
 
-#include "asm/rdrand.h"
 #include "dev/ps2/driver.h"
 
 #include "dev/time/hpet.h"
 #include "dev/time/rtc.h"
 
 #include "acpi/api.h"
+#include "asm/rdrand.h"
+
 #include "dev/printk.h"
 #include "time/kstrftime.h"
 

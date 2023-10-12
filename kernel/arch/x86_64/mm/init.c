@@ -63,8 +63,8 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
             }
 
             pte_t *table = pt_walker.tables[2];
-            pte_t *pte = table + pt_walker.indices[2];
-            const pte_t *end = table + PGT_PTE_COUNT;
+            pte_t *pte = &table[pt_walker.indices[2]];
+            const pte_t *end = &table[PGT_PTE_COUNT];
 
             do {
                 const uint64_t page =
@@ -97,7 +97,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
                     table = pt_walker.tables[2];
                     pte = table;
-                    end = table + PGT_PTE_COUNT;
+                    end = &table[PGT_PTE_COUNT];
 
                     break;
                 }
@@ -127,8 +127,8 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
             }
 
             pte_t *table = pt_walker.tables[1];
-            pte_t *pte = table + pt_walker.indices[1];
-            const pte_t *end = table + PGT_PTE_COUNT;
+            pte_t *pte = &table[pt_walker.indices[1]];
+            const pte_t *end = &table[PGT_PTE_COUNT];
 
             do {
                 const uint64_t page =
@@ -143,13 +143,16 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                 pte++;
 
                 if (pte == end) {
+                    const bool should_fill_in =
+                        pt_walker.indices[2] != PGT_PTE_COUNT;
+
                     pt_walker.indices[1] = PGT_PTE_COUNT - 1;
                     walker_result =
                         ptwalker_next_with_options(
                             &pt_walker,
                             /*level=*/2,
-                            /*alloc_parents=*/true,
-                            /*alloc_level=*/true,
+                            /*alloc_parents=*/should_fill_in,
+                            /*alloc_level=*/should_fill_in,
                             /*should_ref=*/false,
                             /*alloc_pgtable_cb_info=*/NULL,
                             /*free_pgtable_cb_info=*/NULL);
@@ -164,7 +167,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
                     table = pt_walker.tables[1];
                     pte = table;
-                    end = pte + PGT_PTE_COUNT;
+                    end = &pte[PGT_PTE_COUNT];
                 }
 
                 map_size -= PAGE_SIZE_2MIB;
@@ -191,8 +194,8 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
             }
 
             pte_t *table = pt_walker.tables[0];
-            pte_t *pte = table + pt_walker.indices[0];
-            const pte_t *end = table + PGT_PTE_COUNT;
+            pte_t *pte = &table[pt_walker.indices[0]];
+            const pte_t *end = &table[PGT_PTE_COUNT];
 
             do {
                 const uint64_t page = early_alloc_page();
@@ -210,13 +213,16 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
                 pte++;
                 if (pte == end) {
+                    const bool should_fill_in =
+                        pt_walker.indices[1] != PGT_PTE_COUNT;
+
                     pt_walker.indices[0] = PGT_PTE_COUNT - 1;
                     walker_result =
                         ptwalker_next_with_options(
                             &pt_walker,
                             /*level=*/1,
-                            /*alloc_parents=*/true,
-                            /*alloc_level=*/true,
+                            /*alloc_parents=*/should_fill_in,
+                            /*alloc_level=*/should_fill_in,
                             /*should_ref=*/false,
                             /*alloc_pgtable_cb_info=*/NULL,
                             /*free_pgtable_cb_info=*/NULL);
@@ -235,7 +241,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
                     table = pt_walker.tables[0];
                     pte = table;
-                    end = table + PGT_PTE_COUNT;
+                    end = &table[PGT_PTE_COUNT];
                 }
 
                 virt_addr += PAGE_SIZE;
@@ -308,7 +314,7 @@ static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
 
     const struct mm_memmap *const memmap_begin = mm_get_memmap_list();
     const struct mm_memmap *const memmap_end =
-        memmap_begin + mm_get_memmap_count();
+        &memmap_begin[mm_get_memmap_count()];
 
     for (const struct mm_memmap *memmap = memmap_begin;
          memmap != memmap_end;
@@ -350,7 +356,7 @@ static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
     // struct page
 
     for (uint64_t i = 0; i != mm_get_memmap_count(); i++) {
-        const struct mm_memmap *const memmap = mm_get_memmap_list() + i;
+        const struct mm_memmap *const memmap = &mm_get_memmap_list()[i];
         if (memmap->kind == MM_MEMMAP_KIND_BAD_MEMORY ||
             memmap->kind == MM_MEMMAP_KIND_RESERVED)
         {

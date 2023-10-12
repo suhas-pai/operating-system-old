@@ -31,18 +31,18 @@
 #define CPUID_VENDOR_PARALLELS    " lrpepyh vr"
 
 enum {
-    __CPUID_FEAT_EAX_AVXVNNI    = 1ull << 4,
+    __CPUID_FEAT_EAX_AVXVNNI = 1ull << 4,
     __CPUID_FEAT_EAX_AVX512BF16 = 1ull << 5,
-    __CPUID_FEAT_EAX_HRESET     = 1ull << 22,
+    __CPUID_FEAT_EAX_HRESET = 1ull << 22,
 
     /* SSE3 = Streaming SIMD Extensions 3 */
-    __CPUID_FEAT_ECX_SSE3    = 1ull << 0,
+    __CPUID_FEAT_ECX_SSE3 = 1ull << 0,
 
     /* PCLMUL = Polynomial Multiplication */
-    __CPUID_FEAT_ECX_PCLMUL  = 1ull << 1,
+    __CPUID_FEAT_ECX_PCLMUL = 1ull << 1,
 
     /* DTES64 = 64-bit Debug Store */
-    __CPUID_FEAT_ECX_DTES64  = 1ull << 2,
+    __CPUID_FEAT_ECX_DTES64 = 1ull << 2,
 
     /* Supports MONITOR/MWAIT instructions */
     __CPUID_FEAT_ECX_MONITOR = 1ull << 3,
