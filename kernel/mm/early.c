@@ -631,8 +631,7 @@ static uint64_t free_all_pages() {
         uint64_t phys = virt_to_phys(iter);
         uint64_t avail = iter->avail_page_count;
 
-        uint64_t page_pfn = phys_to_pfn(phys);
-        struct page *page = pfn_to_page(page_pfn);
+        struct page *page = phys_to_page(phys);
 
         // iorder is log2() of the count of available pages, here we use a for
         // loop to calculate that, but in the future, it may be worth it to
@@ -668,27 +667,10 @@ static uint64_t free_all_pages() {
             uint64_t avail_in_zone = total_in_zone;
 
             do {
-                // max_free_order is the order of pages, starting from the
-                // current page, that can be added to the freelist.
-                // This number should be equal to jorder, but can at times be
-                // less than jorder because a buddy of page at some order
-                // 0..=jorder is located before the current page.
-
-                int8_t max_free_order = jorder;
-                for (int8_t korder = jorder; korder >= 0; korder--) {
-                    const uint64_t buddy_pfn =
-                        buddy_of(page_pfn, (uint8_t)korder);
-
-                    if (buddy_pfn < page_pfn) {
-                        max_free_order = korder;
-                    }
-                }
-
-                early_free_pages_to_zone(page, zone, (uint8_t)max_free_order);
-                const uint64_t freed_count = 1ull << max_free_order;
+                early_free_pages_to_zone(page, zone, (uint8_t)jorder);
+                const uint64_t freed_count = 1ull << jorder;
 
                 page += freed_count;
-                page_pfn += freed_count;
                 avail_in_zone -= freed_count;
 
                 if (avail_in_zone == 0) {
@@ -700,12 +682,12 @@ static uint64_t free_all_pages() {
                         break;
                     }
                 }
-            } while (jorder >= 0);
+            } while (true);
 
             avail -= total_in_zone;
             phys += total_in_zone << PAGE_SHIFT;
 
-            const struct range freed_range = range_create(phys, 1ull << jorder);
+            const struct range freed_range = range_create(phys, total_in_zone);
             printk(LOGLEVEL_INFO,
                    "mm: freed %" PRIu64 " pages at " RANGE_FMT " to zone %s\n",
                    total_in_zone,

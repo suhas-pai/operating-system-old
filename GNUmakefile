@@ -90,7 +90,7 @@ run-hdd-aarch64: ovmf-aarch64 $(IMAGE_NAME).hdd
 .PHONY: run-riscv64
 run-riscv64: QEMU_RUN = 1
 run-riscv64: ovmf-riscv64 $(IMAGE_NAME).iso
-	qemu-system-riscv64 -M virt -cpu rv64 -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -drive if=pflash,unit=0,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-cd,drive=cd0 -drive id=cd0,format=raw,file=$(IMAGE_NAME).iso $(EXTRA_QEMU_ARGS) -smp $(SMP)
+	qemu-system-riscv64 -M virt -cpu rv64,sv57=on -device ramfb -device qemu-xhci -device usb-kbd -m $(MEM) -drive if=pflash,unit=0,format=raw,file=ovmf-riscv64/OVMF.fd -device virtio-scsi-pci,id=scsi -device scsi-cd,drive=cd0 -drive id=cd0,format=raw,file=$(IMAGE_NAME).iso $(EXTRA_QEMU_ARGS) -smp $(SMP)
 
 .PHONY: run-hdd-riscv64
 run-hdd-riscv64: QEMU_RUN = 1

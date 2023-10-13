@@ -95,12 +95,13 @@ free_pages_to_zone_unlocked(struct page *page,
                             struct page_zone *const zone,
                             uint8_t order)
 {
-    uint64_t page_pfn = page_to_pfn(page);
-    uint64_t page_section = page->section;
+    const uint64_t page_section = page->section;
+    const uint64_t section_pfn = mm_get_usable_list()[page_section].pfn;
 
+    uint64_t page_pfn = page_to_pfn(page) - section_pfn;
     for (; order < MAX_ORDER - 1; order++) {
         const uint64_t buddy_pfn = buddy_of(page_pfn, order);
-        struct page *buddy = pfn_to_page(buddy_pfn);
+        struct page *buddy = pfn_to_page(section_pfn + buddy_pfn);
 
         if (page_get_state(buddy) != PAGE_STATE_FREE_LIST) {
             break;
@@ -125,7 +126,6 @@ free_pages_to_zone_unlocked(struct page *page,
         if (buddy_pfn < page_pfn) {
             page = buddy;
             page_pfn = buddy_pfn;
-            page_section = buddy_section;
         }
     }
 
@@ -151,8 +151,10 @@ free_range_of_pages(struct page *page,
                     struct page_zone *const zone,
                     const uint64_t amount)
 {
+    const struct mm_section *const section = page_to_mm_section(page);
+
+    uint64_t page_pfn = page_to_pfn(page) - section->pfn;
     uint64_t avail = amount;
-    uint64_t page_pfn = page_to_pfn(page);
 
     int8_t order = MAX_ORDER - 1;
     for (; order >= 0; order--) {
@@ -447,8 +449,8 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
 
     if (__builtin_expect(zone == NULL, 0)) {
         printk(LOGLEVEL_WARN,
-               "mm: alloc_large_page() page_alloc_flags_to_zone() returned "
-               "null\n");
+               "mm: page_alloc_flags_to_zone() returned "
+               "null in alloc_large_page()\n");
         return NULL;
     }
 
