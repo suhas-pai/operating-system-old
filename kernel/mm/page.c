@@ -60,6 +60,7 @@ __optimize(3) enum page_state page_get_state(const struct page *const page) {
     return atomic_load_explicit(&page->state, memory_order_relaxed);
 }
 
+__optimize(3)
 void page_set_state(struct page *const page, const enum page_state state) {
     atomic_store_explicit(&page->state, state, memory_order_relaxed);
 }

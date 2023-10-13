@@ -96,9 +96,12 @@ free_pages_to_zone_unlocked(struct page *page,
                             uint8_t order)
 {
     const uint64_t page_section = page->section;
-    const uint64_t section_pfn = mm_get_usable_list()[page_section].pfn;
+    const struct mm_section *const section =
+        &mm_get_usable_list()[page_section];
 
+    const uint64_t section_pfn = section->pfn;
     uint64_t page_pfn = page_to_pfn(page) - section_pfn;
+
     for (; order < MAX_ORDER - 1; order++) {
         const uint64_t buddy_pfn = buddy_of(page_pfn, order);
         struct page *buddy = pfn_to_page(section_pfn + buddy_pfn);
@@ -116,7 +119,10 @@ free_pages_to_zone_unlocked(struct page *page,
             break;
         }
 
-        if (zone != page_to_zone(buddy)) {
+        const uint64_t buddy_phys =
+            section->range.front + (buddy_pfn << PAGE_SHIFT);
+
+        if (zone != phys_to_zone(buddy_phys)) {
             break;
         }
 
@@ -308,7 +314,8 @@ struct page *
 setup_alloced_page(struct page *const page,
                    const enum page_state state,
                    const uint64_t alloc_flags,
-                   const uint8_t order)
+                   const uint8_t order,
+                   const struct largepage_level_info *const largeinfo)
 {
     struct mm_section *const memmap = page_to_mm_section(page);
     const uint64_t page_index = page_to_pfn(page) - memmap->pfn;
@@ -347,6 +354,8 @@ setup_alloced_page(struct page *const page,
             refcount_init(&page->largehead.page_refcount);
 
             list_init(&page->largehead.delayed_free_list);
+            page->largehead.level = largeinfo->level;
+
             for (struct page *iter = page + 1; iter != end; iter++) {
                 page_set_state(iter, PAGE_STATE_LARGE_TAIL);
                 refcount_init(&iter->largetail.refcount);
@@ -354,7 +363,7 @@ setup_alloced_page(struct page *const page,
                 iter->largetail.head = page;
             }
 
-            break;
+            return page;
         }
         case PAGE_STATE_LARGE_TAIL:
             verify_not_reached();
@@ -397,7 +406,11 @@ alloc_pages(const enum page_state state,
     while (zone != NULL) {
         page = alloc_pages_from_zone(zone, order, state);
         if (page != NULL) {
-            return setup_alloced_page(page, state, alloc_flags, order);
+            return setup_alloced_page(page,
+                                      state,
+                                      alloc_flags,
+                                      order,
+                                      /*largeinfo=*/NULL);
         }
 
         zone = zone->fallback_zone;
@@ -479,7 +492,8 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
             return setup_alloced_page(page,
                                       PAGE_STATE_LARGE_HEAD,
                                       alloc_flags,
-                                      order);
+                                      order,
+                                      info);
         }
 
         zone = zone->fallback_zone;
