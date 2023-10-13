@@ -83,6 +83,10 @@ get_from_freelist(struct page_zone *const zone,
     struct page *page =
         list_head(&freelist->page_list, struct page, buddy.freelist);
 
+    if (__builtin_expect(&page->buddy.freelist == &freelist->page_list, 0)) {
+        return NULL;
+    }
+
     return take_off_freelist(zone, freelist, page, state);
 }
 
@@ -206,6 +210,10 @@ get_large_from_freelist(struct page_zone *const zone,
     const uint8_t freelist_order = freelist - zone->freelist_list;
     struct page *head =
         list_head(&freelist->page_list, struct page, buddy.freelist);
+
+    if (&head->buddy.freelist == &freelist->page_list) {
+        return NULL;
+    }
 
     struct page *page = head;
     uint64_t page_phys = page_to_phys(page);
@@ -361,6 +369,10 @@ setup_alloced_page(struct page *const page,
                 refcount_init(&iter->largetail.refcount);
 
                 iter->largetail.head = page;
+            }
+
+            if (alloc_flags & __ALLOC_ZERO) {
+                zero_multiple_pages(page_to_virt(page), 1ull << order);
             }
 
             return page;
@@ -530,7 +542,7 @@ void free_large_page_to_zone(struct page *head, struct page_zone *const zone) {
     const pgt_level_t level = head->largehead.level;
     const uint64_t page_count = 1ull << largepage_level_info_list[level].order;
 
-    struct mm_section *const memmap = page_to_mm_section(head);
+    struct mm_section *const section = page_to_mm_section(head);
     const struct page *const end = head + page_count;
 
     for (struct page *page = head; page < end;) {
@@ -550,10 +562,10 @@ void free_large_page_to_zone(struct page *head, struct page_zone *const zone) {
         page = iter + 1;
     }
 
-    const uint64_t page_index = page_to_pfn(head) - memmap->pfn;
+    const uint64_t page_index = page_to_pfn(head) - section->pfn;
     const struct range set_range = range_create(page_index, page_count);
 
-    bitmap_set_range(&memmap->used_pages_bitmap,
+    bitmap_set_range(&section->used_pages_bitmap,
                      set_range,
                      /*value=*/false);
 
