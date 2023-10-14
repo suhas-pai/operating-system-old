@@ -22,9 +22,11 @@ add_to_freelist(struct page_zone *const zone,
     list_init(&page->buddy.freelist);
     list_add(&freelist->page_list, &page->buddy.freelist);
 
-    freelist->count++;
-
     const uint8_t freelist_order = freelist - zone->freelist_list;
+
+    freelist->count++;
+    zone->total_free += 1ull << freelist_order;
+
     if (zone->min_order > freelist_order) {
         zone->min_order = freelist_order;
     }
@@ -42,6 +44,8 @@ early_add_to_freelist(struct page_zone *const zone,
     freelist->count++;
 
     const uint8_t freelist_order = freelist - zone->freelist_list;
+    zone->total_free += 1ull << freelist_order;
+
     if (zone->min_order > freelist_order) {
         zone->min_order = freelist_order;
     }
@@ -180,7 +184,7 @@ free_range_of_pages(struct page *page,
             }
         }
 
-        free_pages_to_zone_unlocked(page, zone, max_free_order);
+        add_to_freelist(zone, &zone->freelist_list[max_free_order], page);
 
         const uint64_t page_count = 1ull << max_free_order;
         avail -= page_count;
@@ -192,11 +196,16 @@ free_range_of_pages(struct page *page,
         page += page_count;
         page_pfn += page_count;
 
-        for (; order >= 0; order--) {
+        do {
             if (avail >= (1ull << order)) {
                 break;
             }
-        }
+
+            order--;
+            if (order < 0) {
+                return;
+            }
+        } while (true);
     } while (true);
 }
 
@@ -525,8 +534,6 @@ early_free_pages_to_zone(struct page *const page,
                          const uint8_t order)
 {
     page->buddy.order = order;
-    zone->total_free += 1ull << order;
-
     early_add_to_freelist(zone, &zone->freelist_list[order], page);
 }
 

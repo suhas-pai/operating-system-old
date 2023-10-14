@@ -640,6 +640,7 @@ static uint64_t free_all_pages() {
         // out of the loop to minimize log2() calculation.
 
         int8_t iorder = MAX_ORDER - 1;
+
         do {
             for (; iorder >= 0; iorder--) {
                 if (avail >= (1ull << iorder)) {
@@ -677,13 +678,19 @@ static uint64_t free_all_pages() {
                     break;
                 }
 
-                for (; jorder >= 0; jorder--) {
+                do {
                     if (avail_in_zone >= (1ull << jorder)) {
                         break;
                     }
-                }
+
+                    jorder--;
+                    if (jorder < 0) {
+                        goto done;
+                    }
+                } while (true);
             } while (true);
 
+        done:
             const struct range freed_range = range_create(phys, total_in_zone);
             printk(LOGLEVEL_INFO,
                    "mm: freed %" PRIu64 " pages at " RANGE_FMT " to zone %s\n",
