@@ -184,7 +184,7 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
     }
 
     const struct freepages_info *const prev =
-        list_prev_safe(&g_asc_freelist, info, asc_list);
+        list_prev_safe(info, asc_list, &g_asc_freelist);
 
     if (prev != NULL && prev->avail_page_count > info->avail_page_count) {
         list_remove(&info->asc_list);
@@ -280,18 +280,18 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
             add_to_asc_list(new_info);
         }
     } else {
+        const struct freepages_info *const prev =
+            list_prev_safe(info, asc_list, &g_asc_freelist);
+
         info->avail_page_count -= alloc_amount;
         if (info->avail_page_count == 0) {
             list_delete(&info->list);
             list_delete(&info->asc_list);
-        }
-
-        const struct freepages_info *const prev =
-            list_prev_safe(&g_asc_freelist, info, asc_list);
-
-        if (prev != NULL && prev->avail_page_count > info->avail_page_count) {
-            list_remove(&info->asc_list);
-            add_to_asc_list(info);
+        } else if (prev != NULL) {
+            if (prev->avail_page_count > info->avail_page_count) {
+                list_remove(&info->asc_list);
+                add_to_asc_list(info);
+            }
         }
     }
 
@@ -684,16 +684,20 @@ static uint64_t free_all_pages() {
                 }
             } while (true);
 
-            avail -= total_in_zone;
-            phys += total_in_zone << PAGE_SHIFT;
-
             const struct range freed_range = range_create(phys, total_in_zone);
             printk(LOGLEVEL_INFO,
                    "mm: freed %" PRIu64 " pages at " RANGE_FMT " to zone %s\n",
                    total_in_zone,
                    RANGE_FMT_ARGS(freed_range),
                    zone->name);
-        } while (avail != 0);
+
+            avail -= total_in_zone;
+            if (avail == 0) {
+                break;
+            }
+
+            phys += total_in_zone << PAGE_SHIFT;
+        } while (true);
 
         list_delete(&iter->list);
         free_page_count += iter->avail_page_count;

@@ -76,10 +76,10 @@ __optimize(3) static inline void list_delete(struct list *const elem) {
 #define list_prev(ob, name) container_of(ob->name.prev, typeof(*(ob)), name)
 #define list_next(ob, name) container_of(ob->name.next, typeof(*(ob)), name)
 
-#define list_prev_safe(list, ob, name) \
+#define list_prev_safe(ob, name, list) \
     (ob->name.prev != (list) ? list_prev(ob, name) : NULL)
 
-#define list_next_safe(list, ob, name) \
+#define list_next_safe(ob, name, list) \
     (ob->name.next != (list) ? list_next(ob, name) : NULL)
 
 #define list_head(list, type, name) \
