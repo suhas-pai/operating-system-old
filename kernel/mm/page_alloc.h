@@ -16,8 +16,6 @@
 
 enum page_alloc_flags {
     __ALLOC_ZERO = 1 << 0,
-    __ALLOC_LOW4G = 1 << 3,
-    __ALLOC_HIGHMEM = 1 << 4,
 };
 
 uint64_t buddy_of(uint64_t page_pfn, uint8_t order);
@@ -34,9 +32,25 @@ __malloclike __malloc_dealloc(free_pages, 1)
 struct page *
 alloc_pages(enum page_state state, uint64_t alloc_flags, uint8_t order);
 
+struct page_zone;
+
+__malloclike __malloc_dealloc(free_pages, 1)
+struct page *
+alloc_pages_in_zone(struct page_zone *zone,
+                    enum page_state state,
+                    uint64_t alloc_flags,
+                    uint8_t order,
+                    bool fallback);
+
 __malloclike __malloc_dealloc(free_pages, 1)
 struct page *alloc_large_page(uint64_t alloc_flags, pgt_level_t level);
-struct page_zone;
+
+__malloclike __malloc_dealloc(free_pages, 1)
+struct page *
+alloc_large_page_in_zone(struct page_zone *zone,
+                         uint64_t alloc_flags,
+                         pgt_level_t level,
+                         bool fallback);
 
 void
 free_pages_to_zone(struct page *page,

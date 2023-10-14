@@ -60,16 +60,8 @@ struct page_zone *page_zone_iternext(struct page_zone *const zone) {
     return zone->fallback_zone;
 }
 
-__optimize(3) struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
-    if (flags & __ALLOC_HIGHMEM) {
-        return &zone_highmem;
-    }
-
-    if (flags & __ALLOC_LOW4G) {
-        return &zone_low4g;
-    }
-
-    return &zone_default;
+__optimize(3) struct page_zone *page_zone_low4g() {
+    return &zone_low4g;
 }
 
 void pagezones_init() {

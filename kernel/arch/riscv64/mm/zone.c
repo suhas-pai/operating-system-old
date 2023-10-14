@@ -6,7 +6,7 @@
 #include "lib/size.h"
 #include "mm/zone.h"
 
-static struct page_zone zone_low4G = {
+static struct page_zone zone_low4g = {
     .lock = SPINLOCK_INIT(),
     .name = "low4g",
 
@@ -21,7 +21,7 @@ static struct page_zone zone_default = {
     .name = "default",
 
     .freelist_list = {},
-    .fallback_zone = &zone_low4G,
+    .fallback_zone = &zone_low4g,
 
     .min_order = MAX_ORDER,
 };
@@ -38,7 +38,7 @@ static struct page_zone zone_highmem = {
 
 __optimize(3) struct page_zone *phys_to_zone(const uint64_t phys) {
     if (phys < gib(4)) {
-        return &zone_low4G;
+        return &zone_low4g;
     }
 
     if (phys >= gib(896)) {
@@ -57,16 +57,8 @@ struct page_zone *page_zone_iternext(struct page_zone *const zone) {
     return zone->fallback_zone;
 }
 
-__optimize(3) struct page_zone *page_alloc_flags_to_zone(const uint64_t flags) {
-    if (flags & __ALLOC_HIGHMEM) {
-        return &zone_highmem;
-    }
-
-    if (flags & __ALLOC_LOW4G) {
-        return &zone_low4G;
-    }
-
-    return &zone_default;
+__optimize(3) struct page_zone *page_zone_low4g() {
+    return &zone_low4g;
 }
 
 void pagezones_init() {

@@ -418,17 +418,9 @@ alloc_pages(const enum page_state state,
         return NULL;
     }
 
-    struct page_zone *const start = page_alloc_flags_to_zone(alloc_flags);
-    struct page_zone *zone = start;
-
-    if (__builtin_expect(zone == NULL, 0)) {
-        printk(LOGLEVEL_WARN,
-               "mm: page_alloc_flags_to_zone() returned null in "
-               "alloc_pages()\n");
-        return NULL;
-    }
-
+    struct page_zone *zone = page_zone_iterstart();
     struct page *page = NULL;
+
     while (zone != NULL) {
         page = alloc_pages_from_zone(zone, order, state);
         if (page != NULL) {
@@ -441,6 +433,48 @@ alloc_pages(const enum page_state state,
 
         zone = zone->fallback_zone;
     }
+
+    return NULL;
+}
+
+struct page *
+alloc_pages_in_zone(struct page_zone *zone,
+                    const enum page_state state,
+                    const uint64_t alloc_flags,
+                    const uint8_t order,
+                    const bool fallback)
+{
+    if (order >= MAX_ORDER) {
+        printk(LOGLEVEL_WARN, "mm: alloc_pages() got order >= MAX_ORDER\n");
+        return NULL;
+    }
+
+    struct page *page = alloc_pages_from_zone(zone, order, state);
+    if (page != NULL) {
+    setup:
+        return setup_alloced_page(page,
+                                  state,
+                                  alloc_flags,
+                                  order,
+                                  /*largeinfo=*/NULL);
+    }
+
+    if (!fallback) {
+        return NULL;
+    }
+
+    do {
+        zone = zone->fallback_zone;
+        if (zone == NULL) {
+            break;
+        }
+
+        page = alloc_pages_from_zone(zone, order, state);
+        if (page != NULL) {
+            goto setup;
+        }
+
+    } while (true);
 
     return NULL;
 }
@@ -483,16 +517,7 @@ alloc_large_page_from_zone(struct page_zone *const zone,
 
 struct page *
 alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
-    struct page_zone *const start = page_alloc_flags_to_zone(alloc_flags);
-    struct page_zone *zone = start;
-
-    if (__builtin_expect(zone == NULL, 0)) {
-        printk(LOGLEVEL_WARN,
-               "mm: page_alloc_flags_to_zone() returned "
-               "null in alloc_large_page()\n");
-        return NULL;
-    }
-
+    struct page_zone *zone = page_zone_iterstart();
     if (__builtin_expect(!largepage_level_info_list[level].is_supported, 0)) {
         printk(LOGLEVEL_WARN,
                "mm: alloc_large_page() allocating at level %" PRIu8 " is not "
@@ -524,6 +549,59 @@ alloc_large_page(const uint64_t alloc_flags, const pgt_level_t level) {
 
         zone = zone->fallback_zone;
     }
+
+    return NULL;
+}
+
+struct page *
+alloc_large_page_in_zone(struct page_zone *zone,
+                         const uint64_t alloc_flags,
+                         const pgt_level_t level,
+                         const bool fallback)
+{
+    if (__builtin_expect(!largepage_level_info_list[level].is_supported, 0)) {
+        printk(LOGLEVEL_WARN,
+               "mm: alloc_large_page() allocating at level %" PRIu8 " is not "
+               "supported\n",
+               level);
+        return NULL;
+    }
+
+    const struct largepage_level_info *const info =
+        &largepage_level_info_list[level];
+
+    const uint8_t order = info->order;
+    if (__builtin_expect(order >= MAX_ORDER, 0)) {
+        printk(LOGLEVEL_WARN,
+               "mm: alloc_large_page() can't allocate large-page, too large\n");
+        return NULL;
+    }
+
+    struct page *page = alloc_large_page_from_zone(zone, info);
+    if (page != NULL) {
+    setup:
+        return setup_alloced_page(page,
+                                  PAGE_STATE_LARGE_HEAD,
+                                  alloc_flags,
+                                  order,
+                                  info);
+    }
+
+    if (!fallback) {
+        return NULL;
+    }
+
+    do {
+        zone = zone->fallback_zone;
+        if (zone == NULL) {
+            break;
+        }
+
+        page = alloc_large_page_from_zone(zone, info);
+        if (page != NULL) {
+            goto setup;
+        }
+    } while (true);
 
     return NULL;
 }
