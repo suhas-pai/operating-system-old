@@ -26,6 +26,12 @@ void serial_init() {
                /*baudrate=*/115200,
                /*data_bits=*/8,
                /*stop_bits=*/1);
+#elif defined(__riscv64)
+    uart8250_init((port_t)0x10000000,
+                  /*baudrate=*/115200,
+                  /*in_freq=*/0,
+                  /*reg_width=*/sizeof(uint8_t),
+                  /*reg_shift=*/0);
 #endif
 
     dtb_init_early();
