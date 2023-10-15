@@ -102,7 +102,7 @@ pci_bar_parse_size(struct pci_device_info *const dev,
     return E_PARSE_BAR_OK;
 }
 
-/* index_in is incremented assuming index += 1 will be called by the caller */
+// index_in is incremented assuming index += 1 will be called by the caller
 static enum parse_bar_result
 pci_parse_bar(struct pci_device_info *const dev,
               uint8_t *const index_in,
@@ -135,7 +135,7 @@ pci_parse_bar(struct pci_device_info *const dev,
         return E_PARSE_BAR_UNKNOWN_MEM_KIND;
     }
 
-    /* Check if we even have another register left */
+    // Check if we even have another register left
     const uint8_t last_index =
         is_bridge ?
             (PCI_BAR_COUNT_FOR_BRIDGE - 1) : (PCI_BAR_COUNT_FOR_GENERAL - 1);
@@ -148,7 +148,7 @@ pci_parse_bar(struct pci_device_info *const dev,
     base_addr |= (uint64_t)read_bar(bar_0_index + 1) << 32;
     bar->is_64_bit = true;
 
-    /* Increment once more since we read another register */
+    // Increment once more since we read another register
     *index_in += 1;
     result = pci_bar_parse_size(dev, bar, base_addr, bar_0_index, bar_0);
 

@@ -252,14 +252,14 @@ avltree_fixup(struct avltree *const tree,
         const int64_t balance = node_balance(node);
 
         if (balance > 1) {
-            /* Right-heavy */
+            // Right-heavy
 
             new_node = node->right;
             const bool double_rotate =
                 node_height(new_node->left) > node_height(new_node->right);
 
             if (double_rotate) {
-                /* We need to perform a double rotation - Right-Left rotation */
+                // We need to perform a double rotation - Right-Left rotation
                 new_node = rotate_right(new_node);
                 node->right = new_node;
 
@@ -277,14 +277,14 @@ avltree_fixup(struct avltree *const tree,
 
             node = new_node;
         } else if (balance < -1) {
-            /* Left-Heavy */
+            // Left-Heavy
 
             new_node = node->left;
             const bool double_rotate =
                 node_height(new_node->left) < node_height(new_node->right);
 
             if (double_rotate) {
-                /* We need to perform a double rotation - Left-Right rotation */
+                // We need to perform a double rotation - Left-Right rotation
                 new_node = rotate_left(new_node);
                 node->left = new_node;
 

@@ -16,7 +16,7 @@
 #include "mm/mmio.h"
 
 struct pci_config_space {
-    uint16_t domain_segment; /* PCIe only. 0 for PCI Local bus */
+    uint16_t domain_segment; // PCIe only. 0 for PCI Local bus
 
     uint8_t bus;
     uint8_t device_slot;
@@ -120,7 +120,7 @@ struct pci_device_info {
     uint16_t status;
     uint8_t revision_id;
 
-    /* prog_if = "Programming Interface" */
+    // prog_if = "Programming Interface"
     uint8_t prog_if;
     uint8_t header_kind;
 

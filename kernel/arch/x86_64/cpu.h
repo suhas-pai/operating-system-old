@@ -27,7 +27,7 @@ struct cpu_info {
     struct pagemap *pagemap;
     struct list pagemap_node;
 
-    /* Keep track of spurious interrupts for every lapic. */
+    // Keep track of spurious interrupts for every lapic.
     uint64_t spur_int_count;
 };
 

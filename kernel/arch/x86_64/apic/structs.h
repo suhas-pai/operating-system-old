@@ -45,13 +45,13 @@ struct lapic_registers {
     _Alignas(16) volatile const uint32_t error_status;
     _Alignas(16) volatile uint32_t reserved_4[24];
 
-    /* Local Vector Table Corrected Machine Check Interrupt (CMCI) */
+    // Local Vector Table Corrected Machine Check Interrupt (CMCI)
     _Alignas(16) volatile uint32_t lvt_cmci[4];
 
-    /* Icr = Interrupt Command Register */
+    // Icr = Interrupt Command Register
     _Alignas(16) volatile struct lapic_aligned_value icr[2];
 
-    /* Local Vector Table Timer Interrupt (TIMER) */
+    // Local Vector Table Timer Interrupt (TIMER)
     _Alignas(16) volatile uint32_t lvt_timer;
     _Alignas(16) volatile uint32_t lvt_thermal;
     _Alignas(16) volatile uint32_t lvt_performance_monitoring_counter;
@@ -73,7 +73,7 @@ enum apic_lvt_delivery_mode {
     APIC_LVT_DELIVERY_MODE_LOWEST,
     APIC_LVT_DELIVERY_MODE_SMI,
 
-    /* 0b11 is reserved */
+    // 0b11 is reserved
 
     APIC_LVT_DELIVERY_MODE_NMI = 0b100,
     APIC_LVT_DELIVERY_MODE_INIT,

@@ -51,10 +51,10 @@ static void spur_tick(const uint64_t int_no, irq_context_t *const frame) {
 }
 
 void isr_init() {
-    /* Setup Timer */
+    // Setup Timer
     g_timer_vector = isr_alloc_vector();
 
-    /* Setup Spurious Interrupt */
+    // Setup Spurious Interrupt
     g_spur_vector = isr_alloc_vector();
 
     isr_set_vector(g_spur_vector,

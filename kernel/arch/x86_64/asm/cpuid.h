@@ -6,8 +6,8 @@
 #pragma once
 #include <stdint.h>
 
-/* Vendor-strings. */
-/* early engineering samples of AMD K5 processor */
+// Vendor-strings.
+// early engineering samples of AMD K5 processor
 #define CPUID_VENDOR_OLDAMD       "AMDisbetter!"
 #define CPUID_VENDOR_AMD          "AuthenticAMD"
 #define CPUID_VENDOR_INTEL        "GenuineIntel"
@@ -24,7 +24,7 @@
 #define CPUID_VENDOR_VORTEX       "Vortex86 SoC"
 #define CPUID_VENDOR_VIA_OTHER    "VIA VIA VIA "
 
-/* Vendor-strings from Virtual Machines. */
+// Vendor-strings from Virtual Machines.
 #define CPUID_VENDOR_VMWARE       "VMwareVMware"
 #define CPUID_VENDOR_XENHVM       "XenVMMXenVMM"
 #define CPUID_VENDOR_MICROSOFT_HV "Microsoft Hv"

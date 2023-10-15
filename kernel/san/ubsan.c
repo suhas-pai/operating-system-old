@@ -46,7 +46,7 @@ __ubsan_handle_type_mismatch_v1(struct type_mismatch_info_v1 *const info,
                pointer,
                info->type->name);
     } else {
-        /* We ignore misaligned accesses for now. */
+        // We ignore misaligned accesses for now.
     }
 }
 

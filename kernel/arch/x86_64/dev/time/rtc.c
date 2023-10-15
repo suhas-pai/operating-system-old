@@ -17,7 +17,7 @@ enum cmos_rtc_reg_status_a_masks {
 enum cmos_rtc_reg_status_b_masks {
     __CMOS_RTC_REGSTATUS_B_DAYLIGHT_SAVING = 1 << 0,
 
-    /* Otherwise 12-hour mode */
+    // Otherwise 12-hour mode
     __CMOS_RTC_REGSTATUS_B_24HR_MODE = 1 << 1,
     __CMOS_RTC_REGSTATUS_B_DATE_BINFMT  = 1 << 2,
 
@@ -126,7 +126,7 @@ bool rtc_read_cmos_info(struct rtc_cmos_info *const info_out) {
         return false;
     }
 
-    /* Get the century-number */
+    // Get the century-number
     uint8_t century_lower_2_digits = cmos_read(get_acpi_info()->fadt->century);
     if (!rtc_is_date_in_binary_format(info.reg_status_b)) {
         const uint8_t hour = info.time.hour & 0x7F;
@@ -141,7 +141,7 @@ bool rtc_read_cmos_info(struct rtc_cmos_info *const info_out) {
         century_lower_2_digits = convert_bcd_to_binary(century_lower_2_digits);
     }
 
-    /* We expect 24-hour real-time info */
+    // We expect 24-hour real-time info
     if (!rtc_is_in_24_hour_mode(info.reg_status_b)) {
         const bool is_pm = info.time.hour & 0x80;
         info.time.hour = hour_12_to_24hour(info.time.hour, is_pm);

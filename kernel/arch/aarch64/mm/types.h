@@ -10,7 +10,7 @@
 
 #include "lib/macros.h"
 
-#define MAX_ORDER 21
+#define MAX_ORDER 31
 
 #define PML1_SHIFT 12
 #define PML2_SHIFT 21

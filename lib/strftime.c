@@ -20,7 +20,7 @@ time_format_to_string_sv_callback(
     struct mutable_buffer *const mbuffer = (struct mutable_buffer *)cb_info;
     const uint64_t result = mbuffer_append_sv(mbuffer, sv);
 
-    /* We have filled up the buffer if result isn't equal to sv-length */
+    // We have filled up the buffer if result isn't equal to sv-length
     if (result != sv.length || mbuffer_full(*mbuffer)) {
         *should_cont_out = false;
     }

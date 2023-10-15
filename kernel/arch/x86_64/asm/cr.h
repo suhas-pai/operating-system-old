@@ -53,70 +53,70 @@ __optimize(3) static inline void write_cr4(const uint64_t cr4) {
 }
 
 enum {
-    /* Protection Enable */
+    // Protection Enable
     CR0_BIT_PE = (1ull << 0),
 
-    /* Monitor Co-processor */
+    // Monitor Co-processor
     CR0_BIT_MP = (1ull << 1),
 
-    /* Emulation - Set for no x87 FPU, Clear for x87 FPu */
+    // Emulation - Set for no x87 FPU, Clear for x87 FPu
     CR0_BIT_EM = (1ull << 2),
 
-    /* Task switched */
+    // Task switched
     CR0_BIT_TS = (1ull << 3),
 
-    /* Extension type */
+    // Extension type
     CR0_BIT_ET = (1ull << 4),
 
-    /* Numeric Error */
+    // Numeric Error
     CR0_BIT_NE = (1ull << 5),
 
-    /* bits 6-15 are reserved */
-    /* Write Protect */
+    // bits 6-15 are reserved
+    // Write Protect
 
     CR0_BIT_WP = (1ull << 16),
 
-    /* bit 17 is reserved */
-    /* Alignment Mask */
+    // bit 17 is reserved
+    // Alignment Mask
 
     CR0_BIT_AM = (1ull << 18),
 
-    /* bits 19-28 are reserved */
-    /* Not-Write Through */
+    // bits 19-28 are reserved
+    // Not-Write Through
 
     CR0_BIT_NW = (1ull << 29),
 
-    /* Cache Disable */
+    // Cache Disable
 
     CR0_BIT_CD = (1ull << 30),
 
-    /* Paging */
+    // Paging
     CR0_BIT_PG = (1ull << 31)
 };
 
 enum {
-    /* Virtual-8086 Mode Extensions */
+    // Virtual-8086 Mode Extensions
     CR4_BIT_VME = (1ull << 0),
 
-    /* Protected Mode Virtual Interrupts */
+    // Protected Mode Virtual Interrupts
     CR4_BIT_PVI = (1ull << 1),
 
-    /* Time Stamp enabled only in ring 0 */
+    // Time Stamp enabled only in ring 0
     CR4_BIT_TSD = (1ull << 2),
 
-    /* Debugging Extensions */
+    // Debugging Extensions
     CR4_BIT_DE = (1ull << 3),
 
-    /* Page Size Extension */
+    // Page Size Extension
     CR4_BIT_PSE = (1ull << 4),
 
-    /* Physical Address Extension */
+    // Physical Address Extension
     CR4_BIT_PAE = (1ull << 5),
 
-    /* Machine Check Exception */
+    // Machine Check Exception
     CR4_BIT_MCE = (1ull << 6),
 
-    /* Page Global Enable */
+    // Page Global Enable
     CR4_BIT_PGE = (1ull << 7),
 
     /*
@@ -188,20 +188,19 @@ enum {
 
     CR4_BIT_LA57 = (1ull << 12),
 
-    /* VMXE = Virtual Machine Extensions Enable */
-
+    // VMXE = Virtual Machine Extensions Enable
     CR4_BIT_VMXE = (1ull << 13),
 
-    /* SMXE = Safer Mode Extensions Enable */
+    // SMXE = Safer Mode Extensions Enable
     CR4_BIT_SMXE = (1ull << 14),
 
-    /* bit 15 is reserved */
+    // bit 15 is reserved
 
-    /* Enables the instructions RDFSBASE, RDGSBASE, WRFSBASE, and WRGSBASE. */
+    // Enables the instructions RDFSBASE, RDGSBASE, WRFSBASE, and WRGSBASE.
     CR4_BIT_FSGSBASE = (1ull << 16),
 
-    /* PCID Enable */
-    /* PCID = Page-Level Caching Identifiers */
+    // PCID Enable
+    // PCID = Page-Level Caching Identifiers
 
     CR4_BIT_PCIDE = (1ull << 17),
 
@@ -235,10 +234,10 @@ enum {
 
     CR4_BIT_KEY_LOCKER = (1ull << 19),
 
-    /* Supervisor Mode Executions Protection Enable */
+    // Supervisor Mode Executions Protection Enable
     CR4_BIT_SMEP = (1ull << 20),
 
-    /* Supervisor Mode Access Protection Enable */
+    // Supervisor Mode Access Protection Enable
     CR4_BIT_SMAP = (1ull << 21),
 
     /*
@@ -266,7 +265,7 @@ enum {
 
     CR4_BIT_CET = (1ull << 23),
 
-    /* Enable protection keys for supervisor-mode pages */
+    // Enable protection keys for supervisor-mode pages
     /*
      * 4-level paging and 5-level paging associate each supervisor-mode linear
      * address with a protection key. When set, this flag allows use of the
@@ -358,12 +357,12 @@ enum {
 
     XCR0_BIT_HI16_ZMM = 1ull << 7,
 
-    /* Bit 8 is reserved */
+    // Bit 8 is reserved
 
-    /* If 1, the XSAVE feature set can be used to manage the PKRU register */
+    // If 1, the XSAVE feature set can be used to manage the PKRU register
     XCR0_BIT_PKRU = 1ull << 9,
 
-    /* Bits 10 - 16 are reserved */
+    // Bits 10 - 16 are reserved
 
     /*
      * If 1, and if XCR0.TILEDATA is also 1, Intel AMX instructions can be

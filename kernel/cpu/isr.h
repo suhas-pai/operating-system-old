@@ -10,7 +10,7 @@
 #include "cpu/info.h"
 #include "sys/isr.h"
 
-/* Returns -1 on alloc failure */
+// Returns -1 on alloc failure
 void isr_init();
 isr_vector_t isr_alloc_vector();
 

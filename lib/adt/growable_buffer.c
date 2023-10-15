@@ -8,10 +8,10 @@
 
 #include "growable_buffer.h"
 
-struct growable_buffer gbuffer_alloc(const uint32_t init_cap) {
+struct growable_buffer gbuffer_alloc(const uint32_t capacity) {
     uint64_t size = 0;
     const struct growable_buffer gbuffer = {
-        .begin = malloc_size(init_cap, &size),
+        .begin = malloc_size(capacity, &size),
         .end = gbuffer.begin + size,
         .is_alloc = true
     };
@@ -239,7 +239,7 @@ __optimize(3) void gbuffer_destroy(struct growable_buffer *const gb) {
     if (gb->is_alloc) {
         free(gb->begin);
     } else {
-        /* Even if just a stack buffer, clear out memory for safety */
+        // Even if just a stack buffer, clear out memory for safety
         bzero(gb->begin, gbuffer_capacity(*gb));
     }
 

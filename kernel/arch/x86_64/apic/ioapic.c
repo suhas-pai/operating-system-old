@@ -22,8 +22,7 @@ create_ioapic_redirect_request(
     const uint8_t lapic_id)
 {
     const bool is_active_low = flags & __ACPI_MADT_ENTRY_ISO_ACTIVE_LOW;
-    const bool is_level_triggered =
-        flags & __ACPI_MADT_ENTRY_ISO_LEVEL_TRIGGER;
+    const bool is_level_triggered = flags & __ACPI_MADT_ENTRY_ISO_LEVEL_TRIGGER;
 
     const uint64_t result =
         vector |
@@ -40,7 +39,7 @@ create_ioapic_redirect_request(
 static struct ioapic_info *ioapic_info_for_gsi(const uint32_t gsi) {
     array_foreach(&ioapic_list, struct ioapic_info, item) {
         const uint32_t gsi_base = item->gsi_base;
-        if (gsi_base <= gsi && gsi_base + item->max_redirect_count > gsi) {
+        if (gsi > gsi_base && gsi < gsi_base + item->max_redirect_count) {
             return item;
         }
     }

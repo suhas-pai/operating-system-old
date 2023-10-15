@@ -17,7 +17,7 @@ struct terminal {
     void (*emit_ch)(struct terminal *term, char ch, uint32_t amt);
     void (*emit_sv)(struct terminal *term, struct string_view sv);
 
-    /* Useful for panic() */
+    // Useful for panic()
     void (*bust_locks)(struct terminal *);
 };
 

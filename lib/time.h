@@ -196,7 +196,7 @@
 
 #define femto_mod_days(femto) ((femto) % FEMTO_IN_DAYS)
 
-/* Stop colliding with Apple's time.h */
+// Stop colliding with Apple's time.h
 #ifndef _TIME_H_
     typedef uint64_t time_t;
     struct tm {

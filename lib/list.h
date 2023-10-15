@@ -10,7 +10,7 @@
 
 #include "macros.h"
 
-/* list is a circular doubly-linked list */
+// list is a circular doubly-linked list
 struct list {
     struct list *prev;
     struct list *next;

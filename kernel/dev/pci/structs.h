@@ -8,9 +8,9 @@
 #include <stdint.h>
 #include "lib/macros.h"
 
-#define PCI_MAX_BUS_COUNT 255 /* Maximum number of PCI Buses */
-#define PCI_MAX_DEVICE_COUNT 32 /* Each bus has upto 32 devices */
-#define PCI_MAX_FUNCTION_COUNT 8 /* Each device has upto 8 functions */
+#define PCI_MAX_BUS_COUNT 255 // Maximum number of PCI Buses
+#define PCI_MAX_DEVICE_COUNT 32 // Each bus has upto 32 devices
+#define PCI_MAX_FUNCTION_COUNT 8 // Each device has upto 8 functions
 
 #define PCI_BAR_COUNT_FOR_GENERAL 6
 #define PCI_BAR_COUNT_FOR_BRIDGE 2
@@ -137,7 +137,7 @@ struct pci_spec_device_info_base {
     uint16_t command;
     uint16_t status;
 
-    /* prog_if = "Programming Interface" */
+    // prog_if = "Programming Interface"
     uint8_t revision_id;
     uint8_t prog_if;
     uint8_t subclass;
@@ -159,7 +159,7 @@ struct pci_spec_device_info {
     uint16_t subsystem_id;
     uint32_t expansion_rom_base_address;
 
-    uint8_t capabilities_offset; /* Offset from start of this structure */
+    uint8_t capabilities_offset; // Offset from start of this structure
     uint8_t reserved[7];
 
     uint8_t interrupt_line;
@@ -259,7 +259,7 @@ struct pci_spec_cap_msi {
 
     union {
         struct {
-            uint32_t msg_address_upper; /* Only if 64-bit capable */
+            uint32_t msg_address_upper; // Only if 64-bit capable
             uint16_t msg_data;
             uint32_t mask_bits;
             uint32_t pending_bits;
@@ -281,7 +281,7 @@ struct pci_spec_cap_msix {
     struct pci_spec_capability base;
     uint16_t msg_control;
     uint32_t msg_address_upper;
-    uint32_t table_offset; /* Lower 3 Bits are the BIR */
+    uint32_t table_offset; // Lower 3 Bits are the BIR
 } __packed;
 
 struct pci_spec_pci_to_cardbus_bridge_device_info {

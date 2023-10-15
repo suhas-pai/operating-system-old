@@ -11,22 +11,22 @@
 #include "mm/mmio.h"
 
 struct ioapic_registers {
-    _Alignas(16) volatile uint32_t selector; /* IOREGSEL */
-    _Alignas(16) volatile uint32_t data;     /* IOWIN */
+    _Alignas(16) volatile uint32_t selector; // IOREGSEL
+    _Alignas(16) volatile uint32_t data;     // IOWIN
 } __packed;
 
 enum ioapic_redirect_req_delivery_mode {
     IOAPIC_REDIRECT_REQ_DELIVERY_MODE_FIXED,
     IOAPIC_REDIRECT_REQ_DELIVERY_MODE_LOWEST,
 
-    /* SMI = "System Management Interrupt" */
+    // SMI = "System Management Interrupt"
     IOAPIC_REDIRECT_REQ_DELIVERY_MODE_SMI,
 
-    /* NMI = "Non-maskable Interrupt" */
+    // NMI = "Non-maskable Interrupt"
     IOAPIC_REDIRECT_REQ_DELIVERY_MODE_NMI = 0b100,
     IOAPIC_REDIRECT_REQ_DELIVERY_MODE_INIT,
 
-    /* ExtINT = "External Interrupt" */
+    // ExtINT = "External Interrupt"
     IOAPIC_REDIRECT_REQ_DELIVERY_MODE_EXTINT = 0b111,
 };
 
@@ -59,7 +59,7 @@ struct ioapic_info {
 
     uint32_t gsi_base;
 
-    /* gsib = Global System Interrupt Base */
+    // gsib = Global System Interrupt Base
     struct mmio_region *regs_mmio;
     volatile struct ioapic_registers *regs;
 };
@@ -76,12 +76,12 @@ void
 ioapic_redirect_irq(uint8_t lapic_id, uint8_t irq, uint8_t vector, bool masked);
 
 static inline uint8_t ioapic_id_reg_get_arbid(const uint32_t version) {
-    /* Bits [24:27] of the id register holds the id */
+    // Bits [24:27] of the id register holds the id
     return (version >> 24) & 0b1111;
 }
 
 static inline uint8_t ioapic_version_reg_get_version(const uint32_t version) {
-    /* Bits [0:8] of the version register holds the version */
+    // Bits [0:8] of the version register holds the version
     return (uint8_t)version;
 }
 

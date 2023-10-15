@@ -14,11 +14,11 @@ enum ia32_msr {
     IA32_MSR_GS_BASE = 0xC0000101,
     IA32_MSR_KERNEL_GS_BASE = 0xC0000102,
 
-    /* IA32_MSR_LSTAR is the address SYSCALL jumps to from ring3 */
+    // IA32_MSR_LSTAR is the address SYSCALL jumps to from ring3
     IA32_MSR_LSTAR = 0xC0000082,
 
-    /* IA32_MSR_FMASK is a mask of bits to be removed from RFLAGS */
-    /* In SYSCALL, RFLAGS &= ~IA32_MSR_FMASK */
+    // IA32_MSR_FMASK is a mask of bits to be removed from RFLAGS
+    // In SYSCALL, RFLAGS &= ~IA32_MSR_FMASK
 
     IA32_MSR_FMASK = 0xC0000084,
 
@@ -43,16 +43,16 @@ enum ia32_msr {
 };
 
 enum ia32_msr_efer_flags {
-    /* System Call Extensions */
+    // System Call Extensions
     __IA32_MSR_EFER_BIT_SCE = 1ull << 0,
 
-    /* Long Mode Enable */
+    // Long Mode Enable
     __IA32_MSR_EFER_BIT_LME = 1ull << 8,
 
-    /* Long Mode Active */
+    // Long Mode Active
     __IA32_MSR_EFER_BIT_LMA = 1ull << 10,
 
-    /* No Execute Enable */
+    // No Execute Enable
     __IA32_MSR_EFER_BIT_NXE = 1ull << 11,
 };
 
@@ -79,28 +79,28 @@ enum msr_pat_encoding {
 };
 
 enum msr_pat_indexes {
-    /* PAT=0, PCD=0, PWT=0 */
+    // PAT=0, PCD=0, PWT=0
     MSR_PAT_INDEX_PAT0 = 0,
 
-    /* PAT=0, PCD=0, PWT=1 */
+    // PAT=0, PCD=0, PWT=1
     MSR_PAT_INDEX_PAT1 = 8,
 
-    /* PAT=0, PCD=1, PWT=0 */
+    // PAT=0, PCD=1, PWT=0
     MSR_PAT_INDEX_PAT2 = 16,
 
-    /* PAT=0, PCD=1, PWT=1 */
+    // PAT=0, PCD=1, PWT=1
     MSR_PAT_INDEX_PAT3 = 24,
 
-    /* PAT=1, PCD=0, PWT=0 */
+    // PAT=1, PCD=0, PWT=0
     MSR_PAT_INDEX_PAT4 = 32,
 
-    /* PAT=1, PCD=0, PWT=1 */
+    // PAT=1, PCD=0, PWT=1
     MSR_PAT_INDEX_PAT5 = 40,
 
-    /* PAT=1, PCD=1, PWT=0 */
+    // PAT=1, PCD=1, PWT=0
     MSR_PAT_INDEX_PAT6 = 48,
 
-    /* PAT=1, PCD=1, PWT=1 */
+    // PAT=1, PCD=1, PWT=1
     MSR_PAT_INDEX_PAT7 = 56,
 };
 

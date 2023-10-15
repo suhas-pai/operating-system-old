@@ -747,7 +747,7 @@ bitmap_set_range(struct bitmap *const bitmap,
         ptr += memset_byte_count;
     }
 
-    /* Set values for last byte. */
+    // Set values for last byte.
     if (bits_left != 0) {
         set_bits_for_mask((uint8_t *)ptr, mask_for_n_bits(bits_left), value);
     }

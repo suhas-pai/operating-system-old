@@ -62,20 +62,20 @@ enum virtio_device_kind {
 };
 
 enum virtio_pci_cap_cfg {
-    /* Common configuration */
+    // Common configuration
     VIRTIO_PCI_CAP_COMMON_CFG = 1,
     VIRTIO_PCI_CAP_CFG_MIN = VIRTIO_PCI_CAP_COMMON_CFG,
-    /* Notifications */
+    // Notifications
     VIRTIO_PCI_CAP_NOTIFY_CFG,
-    /* ISR Status */
+    // ISR Status
     VIRTIO_PCI_CAP_ISR_CFG,
-    /* Device specific configuration */
+    // Device specific configuration
     VIRTIO_PCI_CAP_DEVICE_CFG,
-    /* PCI configuration access */
+    // PCI configuration access
     VIRTIO_PCI_CAP_PCI_CFG,
-    /* Shared memory region */
+    // Shared memory region
     VIRTIO_PCI_CAP_SHARED_MEMORY_CFG = 8,
-    /* Vendor-specific data */
+    // Vendor-specific data
     VIRTIO_PCI_CAP_VENDOR_CFG,
     VIRTIO_PCI_CAP_CFG_MAX = VIRTIO_PCI_CAP_VENDOR_CFG
 };
@@ -83,12 +83,12 @@ enum virtio_pci_cap_cfg {
 struct virtio_pci_cap {
     struct pci_spec_capability cap;
     uint8_t cap_len;
-    uint8_t cfg_type; /* Identifies the structure. */
-    uint8_t bar; /* Where to find it. */
-    uint8_t id; /* Multiple capabilities of the same type */
-    uint8_t padding[2]; /* Pad to full dword. */
-    uint32_t offset; /* Offset within bar. */
-    uint32_t length; /* Length of the structure, in bytes. */
+    uint8_t cfg_type; // Identifies the structure.
+    uint8_t bar; // Where to find it.
+    uint8_t id; // Multiple capabilities of the same type
+    uint8_t padding[2]; // Pad to full dword.
+    uint32_t offset; // Offset within bar.
+    uint32_t length; // Length of the structure, in bytes.
 } __packed;
 
 struct virtio_pci_cap64 {
@@ -98,7 +98,7 @@ struct virtio_pci_cap64 {
 } __packed;
 
 struct virtio_pci_common_cfg {
-    /* About the whole device. */
+    // About the whole device.
     le32_t device_feature_select;
     const uint32_t device_feature;
 
@@ -110,7 +110,7 @@ struct virtio_pci_common_cfg {
     uint8_t device_status;
     const uint8_t config_generation;
 
-    /* About a specific virtqueue. */
+    // About a specific virtqueue.
     le16_t queue_select;
     le16_t queue_size;
     le16_t queue_msix_vector;
@@ -128,7 +128,7 @@ struct virtio_pci_common_cfg {
 
 struct virtio_pci_notify_cfg_cap {
     struct virtio_pci_cap cap;
-    uint32_t notify_off_multiplier; /* Multiplier for queue_notify_off. */
+    uint32_t notify_off_multiplier; // Multiplier for queue_notify_off.
 } __packed;
 
 struct virtio_pci_cfg_cap {
@@ -148,7 +148,7 @@ struct virtio_pci_cfg_cap {
      */
 
     struct virtio_pci_cap cap;
-    volatile uint8_t pci_cfg_data[4]; /* Data for BAR access. */
+    volatile uint8_t pci_cfg_data[4]; // Data for BAR access.
 } __packed;
 
 struct virtio_pci_isr_cfg_cap {
@@ -173,10 +173,10 @@ enum virtio_device_status {
 
     VIRTIO_DEVSTATUS_ACKNOWLEDGE = 1 << 0,
 
-    /* Indicates that the guest OS knows how to drive the device */
+    // Indicates that the guest OS knows how to drive the device
     VIRTIO_DEVSTATUS_DRIVER = 1 << 1,
 
-    /* Indicates that the driver is set up and ready to drive the device. */
+    // Indicates that the driver is set up and ready to drive the device.
     VIRTIO_DEVSTATUS_DRIVER_OK = 1 << 2,
 
     /*

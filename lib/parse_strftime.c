@@ -127,7 +127,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'A': { /* Full weekday name */
+        case 'A': { // Full weekday name
             const enum weekday weekday = (enum weekday)tm->tm_wday;
             if (weekday_is_valid(weekday)) {
                 CALL_CALLBACK(GET_SV_FROM_FUNC(weekday_to_sv, weekday));
@@ -138,7 +138,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             break;
         }
         case 'b':
-        case 'h': { /* weekday name abbreviated */
+        case 'h': { // weekday name abbreviated
             const enum month month = tm_mon_to_month(tm->tm_mon);
             if (month_is_valid(month)) {
                 CALL_CALLBACK(GET_SV_FROM_FUNC(month_to_sv_abbrev, month));
@@ -148,7 +148,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'B': { /* Full Month name */
+        case 'B': { // Full Month name
             const enum month month = tm_mon_to_month(tm->tm_mon);
             if (month_is_valid(month)) {
                 CALL_CALLBACK(GET_SV_FROM_FUNC(month_to_sv, month));
@@ -158,7 +158,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'c': /* Equivalent to "%a %b %e %T %Y" */
+        case 'c': // Equivalent to "%a %b %e %T %Y"
             RECURSIVE_CALL_FOR_SPEC('a');
             CALL_CALLBACK(SV_STATIC(" "));
 
@@ -178,9 +178,9 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
          * TODO: 'N' requires locale support. For now we just print out the
          * century
          */
-        case 'N': /* Emperor/Era name */
+        case 'N': // Emperor/Era name
 #endif /* defined(HAVE_HPUX_EXT) */
-        case 'C': { /* Year divided by 100 (Last two digits) */
+        case 'C': { // Year divided by 100 (Last two digits)
             const uint64_t year = tm_year_to_year(tm->tm_year) / 100;
             const struct string_view sv =
                 unsigned_to_string_view(year,
@@ -191,7 +191,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             CALL_CALLBACK(sv);
             break;
         }
-        case 'd': { /* Day of month, zero-padded */
+        case 'd': { // Day of month, zero-padded
             struct string_view sv =
                 unsigned_to_string_view((uint64_t)tm->tm_mday,
                                         NUMERIC_BASE_10,
@@ -203,7 +203,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'D': /* Equivalent to %m/%d/%y */
+        case 'D': // Equivalent to %m/%d/%y
             RECURSIVE_CALL_FOR_SPEC('m');
             CALL_CALLBACK(SV_STATIC("/"));
 
@@ -212,7 +212,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             RECURSIVE_CALL_FOR_SPEC('y');
             break;
-        case 'e': { /* Day of month, space-padded */
+        case 'e': { // Day of month, space-padded
             struct string_view sv =
                 unsigned_to_string_view((uint64_t)tm->tm_mday,
                                         NUMERIC_BASE_10,
@@ -224,7 +224,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'F': /* Equivalent to %Y-%m-%d */
+        case 'F': // Equivalent to %Y-%m-%d
             RECURSIVE_CALL_FOR_SPEC('Y');
             CALL_CALLBACK(SV_STATIC("-"));
 
@@ -233,8 +233,8 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             RECURSIVE_CALL_FOR_SPEC('d');
             break;
-        case 'g': /* ISO 8601 Week-based year, last two digits (00-99) */
-        case 'G': /* ISO 8601 Week-based year */ {
+        case 'g': // ISO 8601 Week-based year, last two digits (00-99)
+        case 'G': { // ISO 8601 Week-based year
             const enum month month = tm_mon_to_month(tm->tm_mon);
             uint64_t year = tm_year_to_year(tm->tm_year);
             const uint8_t week_number =
@@ -280,7 +280,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             CALL_CALLBACK(sv);
             break;
         }
-        case 'H': /* Hour in 24-hour format */ {
+        case 'H': { // Hour in 24-hour format
             struct string_view sv =
                 unsigned_to_string_view((uint8_t)tm->tm_hour,
                                         NUMERIC_BASE_10,
@@ -292,7 +292,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'I': /* Hour in 12-hour format */ {
+        case 'I': { // Hour in 12-hour format
             const uint64_t hour = hour_24_to_12hour((uint8_t)tm->tm_hour);
             struct string_view sv =
                 unsigned_to_string_view(hour,
@@ -305,7 +305,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'j': /* Day of the year */ {
+        case 'j': { // Day of the year
             /*
              * Add one since tm_yday is days since january 1st, while day of the
              * year is expected to start at 1.
@@ -322,7 +322,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'm': /* Month as decimal number */ {
+        case 'm': { // Month as decimal number
             struct string_view sv =
                 unsigned_to_string_view(tm_mon_to_month(tm->tm_mon),
                                         NUMERIC_BASE_10,
@@ -334,7 +334,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'M': /* Minute */ {
+        case 'M': { // Minute
             struct string_view sv =
                 unsigned_to_string_view((uint16_t)tm->tm_min,
                                         NUMERIC_BASE_10,
@@ -346,15 +346,15 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'n': /* new-line */
+        case 'n': // new-line
             CALL_CALLBACK(SV_STATIC("\n"));
             break;
-        case 'p': /* AM or PM */
+        case 'p': // AM or PM
             CALL_CALLBACK(
                 hour_24_is_pm((uint8_t)tm->tm_hour) ?
                     SV_STATIC("PM") : SV_STATIC("AM"));
             break;
-        case 'r': /* Same as "%I:%M:%S %p" */
+        case 'r': // Same as "%I:%M:%S %p"
             RECURSIVE_CALL_FOR_SPEC('I');
             CALL_CALLBACK(SV_STATIC(":"));
 
@@ -366,13 +366,13 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             RECURSIVE_CALL_FOR_SPEC('p');
             break;
-        case 'R': /* Same as "%H:%M" */
+        case 'R': // Same as "%H:%M"
             RECURSIVE_CALL_FOR_SPEC('H');
             CALL_CALLBACK(SV_STATIC(":"));
             RECURSIVE_CALL_FOR_SPEC('M');
 
             break;
-        case 'S': /* Second */ {
+        case 'S': { // Second
             struct string_view sv =
                 unsigned_to_string_view((uint64_t)tm->tm_sec,
                                         NUMERIC_BASE_10,
@@ -384,11 +384,11 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 't': /* Horizontal-Tab */
+        case 't': // Horizontal-Tab
             CALL_CALLBACK(SV_STATIC("\t"));
             break;
         case 'T':
-        case 'X': /* Same as "%H:%M:%S" */
+        case 'X': // Same as "%H:%M:%S"
             RECURSIVE_CALL_FOR_SPEC('H');
             CALL_CALLBACK(SV_STATIC(":"));
 
@@ -398,7 +398,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             RECURSIVE_CALL_FOR_SPEC('S');
             break;
         case 'u': {
-            /* ISO 8601: Weekday as decimal number. Monday = 1, Range = [0,7] */
+            // ISO 8601: Weekday as decimal number. Monday = 1, Range = [0,7]
             const uint8_t number =
                 weekday_to_decimal_monday_one((enum weekday)tm->tm_wday);
             struct string_view sv =
@@ -412,7 +412,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'U': /* Week of year where Sunday is first day */ {
+        case 'U': { // Week of year where Sunday is first day
             const uint64_t week_number =
                 get_week_count_at_day((enum weekday)tm->tm_wday,
                                       /*days_since_jan_1=*/tm->tm_yday,
@@ -428,7 +428,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'V': /* Week of year where Sunday is first day (iso 8601) */ {
+        case 'V': { // Week of year where Sunday is first day (iso 8601)
             const uint64_t week_number =
                 iso_8601_get_week_number((enum weekday)tm->tm_wday,
                                          tm_mon_to_month(tm->tm_mon),
@@ -446,7 +446,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'w': /* Weekday as decimal number. Sunday = 0, Range = [0, 6] */ {
+        case 'w': { // Weekday as decimal number. Sunday = 0, Range = [0, 6]
             struct string_view sv =
                 unsigned_to_string_view((uint8_t)tm->tm_wday,
                                         NUMERIC_BASE_10,
@@ -458,7 +458,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'W': /* Week of year where Monday is first day of the week */ {
+        case 'W': { // Week of year where Monday is first day of the week
             const uint64_t week_number =
                 get_week_count_at_day((enum weekday)tm->tm_wday,
                                       tm->tm_yday,
@@ -474,7 +474,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'x': /* Same as "%m/%d/%y" */
+        case 'x': // Same as "%m/%d/%y"
             RECURSIVE_CALL_FOR_SPEC('m');
             CALL_CALLBACK(SV_STATIC("/"));
 
@@ -483,7 +483,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             RECURSIVE_CALL_FOR_SPEC('y');
             break;
-        case 'y': /* Year without century (Last two digits) */ {
+        case 'y': { // Year without century (Last two digits)
             const uint64_t last_two_digits = tm_year_to_year(tm->tm_year) % 100;
             struct string_view sv =
                 unsigned_to_string_view(last_two_digits,
@@ -496,7 +496,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'Y': /* Year */ {
+        case 'Y': { // Year
             struct string_view sv =
                 unsigned_to_string_view(tm_year_to_year(tm->tm_year),
                                         NUMERIC_BASE_10,
@@ -507,7 +507,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             break;
         }
 #if HAVE_SUNOS_EXT
-        case 'k': /* 24-hour format with space-pad */ {
+        case 'k': { // 24-hour format with space-pad
             struct string_view sv =
                 unsigned_to_string_view((uint64_t)tm->tm_hour,
                                         NUMERIC_BASE_10,
@@ -519,7 +519,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
 
             break;
         }
-        case 'l': /* 12-hour format with space-pad */ {
+        case 'l': { // 12-hour format with space-pad
             const uint8_t hour = (uint8_t)hour_24_to_12hour(tm->tm_hour);
             struct string_view sv =
                 unsigned_to_string_view(hour,
@@ -534,7 +534,7 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
         }
 #endif /* HAVE_SUNOS_EXT */
 #if HAVE_VMS_EXT
-        case 'v': /* date as dd-bbb-YYYY */ {
+        case 'v': { // date as dd-bbb-YYYY
             RECURSIVE_CALL_FOR_SPEC('d');
             CALL_CALLBACK(SV_STATIC("-"));
 
@@ -556,12 +556,11 @@ handle_strftime_spec(const struct strftime_spec_info *const spec_info,
             break;
         }
 #endif /* defined(HAVE_VMS_EXT) */
-        /* We don't support %+ as it requires detecting timezones */
-        /* 'z' not supported (yet). */
-        case '%': {
+        // We don't support %+ as it requires detecting timezones
+        // 'z' not supported (yet).
+        case '%':
             CALL_CALLBACK(SV_STATIC("%"));
             break;
-        }
         default:
             return false;
     }
@@ -606,7 +605,7 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
         const char *orig_iter = iter;
         bool v_continue = true;
 
-        /* Skip past the '%' char. */
+        // Skip past the '%' char.
         iter++;
 
         spec_info.mods = parse_strftime_mods(iter, &iter);
@@ -624,7 +623,7 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
             break;
         }
 
-        /* Reset the unformat-buffer. */
+        // Reset the unformat-buffer.
         iter++;
         if (valid_spec) {
             unformat_buffer_ptr = iter;

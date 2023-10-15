@@ -34,7 +34,7 @@ enum ps2_keyboard_special_byte {
     PS2_KBD_SPECIAL_BYTE_SELF_TEST_PASS = 0xAA,
     PS2_KBD_SPECIAL_BYTE_ECHO           = 0xEE,
 
-    /* Both bytes are sent as responses to self-test. */
+    // Both bytes are sent as responses to self-test.
     PS2_KBD_SPECIAL_BYTE_SELF_TEST_1 = 0xFC,
     PS2_KBD_SPECIAL_BYTE_SELF_TEST_2 = 0xFD,
 

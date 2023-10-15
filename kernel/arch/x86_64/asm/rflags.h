@@ -9,32 +9,32 @@
 #include "lib/macros.h"
 
 enum rflags {
-    RFLAGS_CARRY = 1 << 0,
-    RFLAGS_PARITY = 1 << 2,
+    __RFLAGS_CARRY = 1 << 0,
+    __RFLAGS_PARITY = 1 << 2,
 
-    /* Auxilary carry */
-    RFLAGS_ADJUST = 1 << 4,
-    RFLAGS_ZERO = 1 << 6,
-    RFLAGS_SIGN = 1 << 7,
+    // Auxilary carry
+    __RFLAGS_ADJUST = 1 << 4,
+    __RFLAGS_ZERO = 1 << 6,
+    __RFLAGS_SIGN = 1 << 7,
 
-    /* Single-Step Interrupts */
-    RFLAGS_TRAP = 1 << 8,
-    RFLAGS_INTERRUPTS_ENABLED = 1 << 9,
+    // Single-Step Interrupts
+    __RFLAGS_TRAP = 1 << 8,
+    __RFLAGS_INTERRUPTS_ENABLED = 1 << 9,
 
-    /* String-processing direction */
-    RFLAGS_DIRECTION = 1 << 10,
-    RFLAGS_OVERFLOW = 1 << 11,
+    // String-processing direction
+    __RFLAGS_DIRECTION = 1 << 10,
+    __RFLAGS_OVERFLOW = 1 << 11,
 
-    RFLAGS_IO_PRIVILEGE_LEVEL = (1 << 13) | (1 << 12),
-    RFLAGS_RESUME = 1 << 16,
-    RFLAGS_VIRTUAL_8086_MODE = 1 << 17,
-    RFLAGS_ALIGNMENT_CHECK = 1 << 18,
+    __RFLAGS_IO_PRIVILEGE_LEVEL = 1 << 13 | 1 << 12,
+    __RFLAGS_RESUME = 1 << 16,
+    __RFLAGS_VIRTUAL_8086_MODE = 1 << 17,
+    __RFLAGS_ALIGNMENT_CHECK = 1 << 18,
 
-    RFLAGS_VIRTUAL_INTERRUPT_FLAG = 1 << 19,
-    RFLAGS_VIRTUAL_INTERRUPT_PENDING = 1 << 20,
+    __RFLAGS_VIRTUAL_INTERRUPT_FLAG = 1 << 19,
+    __RFLAGS_VIRTUAL_INTERRUPT_PENDING = 1 << 20,
 
-    /* cpuid is supported if this bit can be modified. */
-    RFLAGS_CPUID_BIT = 1 << 21
+    // cpuid is supported if this bit can be modified.
+    __RFLAGS_CPUID_BIT = 1 << 21
 };
 
 __optimize(3) static inline uint64_t read_rflags() {

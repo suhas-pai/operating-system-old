@@ -66,7 +66,7 @@ static void calibrate_timer() {
 
     while (mmio_read(&lapic_regs->timer_current_count) != 0) {}
 
-    /* Because the timer ticks down, init_tick_count > end_tick_count */
+    // Because the timer ticks down, init_tick_count > end_tick_count
     const uint16_t pit_end_tick_number = pit_get_current_tick();
     const uint16_t pit_tick_count = pit_init_tick_number - pit_end_tick_number;
     const uint32_t lapic_timer_freq_multiple = sample_count / pit_tick_count;

@@ -259,7 +259,7 @@ __optimize(3) int tolower(const C_TYPE c) {
         return c;
     }
 
-    /* return (c - 'A') + 'a' */
+    // return (c - 'A') + 'a'
     return c + 32;
 }
 
@@ -268,6 +268,6 @@ __optimize(3) int toupper(const C_TYPE c) {
         return c;
     }
 
-    /* return (c - 'a') + 'A' */
+    // return (c - 'a') + 'A'
     return c - 32;
 }

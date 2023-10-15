@@ -536,7 +536,6 @@ struct acpi_fadt {
 
     /* field used in ACPI 1.0; no longer in use, for compatibility only */
     uint8_t reserved;
-
     uint8_t preferred_power_management_profile;
 
     uint16_t sci_interrupt;

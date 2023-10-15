@@ -15,29 +15,29 @@ enum lapic_version_reg_flags {
 };
 
 enum lapic_reg {
-    /* ICR = "Interrupt Command Register" */
+    // ICR = "Interrupt Command Register"
     LAPIC_REG_ID = 0x20,
     LAPIC_REG_VERSION = 0x30,
 
-    /* TPR = "Task Priority Register" */
+    // TPR = "Task Priority Register"
     LAPIC_REG_TPR = 0x80,
 
-    /* APR = "Arbitration Priority Register" */
+    // APR = "Arbitration Priority Register"
     LAPIC_REG_APR = 0x90,
 
-    /* PPR = "Processor Priority Register" */
+    // PPR = "Processor Priority Register"
     LAPIC_REG_PPR = 0xA0,
     LAPIC_REG_EOI = 0xB0,
 
-    /* RRD = "Remote Read Register" */
+    // RRD = "Remote Read Register"
     LAPIC_REG_RRD = 0xC0,
 
-    /* LDR = "Logical Destination Register" */
+    // LDR = "Logical Destination Register"
     LAPIC_REG_LDR = 0xD0,
 
     LAPIC_REG_SPURIOUS = 0xF0,
 
-    /* ISR = "In-Service Register" */
+    // ISR = "In-Service Register"
     LAPIC_REG_ISR_0 = 0x100,
     LAPIC_REG_ISR_1 = 0x110,
     LAPIC_REG_ISR_2 = 0x120,
@@ -47,7 +47,7 @@ enum lapic_reg {
     LAPIC_REG_ISR_6 = 0x160,
     LAPIC_REG_ISR_7 = 0x170,
 
-    /* TMR = "Trigger Mode Register" */
+    // TMR = "Trigger Mode Register"
     LAPIC_REG_TMR_0 = 0x180,
     LAPIC_REG_TMR_1 = 0x190,
     LAPIC_REG_TMR_2 = 0x1A0,
@@ -57,7 +57,7 @@ enum lapic_reg {
     LAPIC_REG_TMR_6 = 0x1E0,
     LAPIC_REG_TMR_7 = 0x1F0,
 
-    /* IRR = "Interrupt Request Register" */
+    // IRR = "Interrupt Request Register"
     LAPIC_REG_IRR_0 = 0x200,
     LAPIC_REG_IRR_1 = 0x210,
     LAPIC_REG_IRR_2 = 0x220,
@@ -69,16 +69,16 @@ enum lapic_reg {
 
     LAPIC_REG_ERROR_STATUS = 0x280,
 
-    /* LVT = "Local Vector Table" */
-    /* CMCI = "Corrected Machine Check Interrupt" */
+    // LVT = "Local Vector Table"
+    // CMCI = "Corrected Machine Check Interrupt"
 
     LAPIC_REG_LVT_CMCI = 0x2F0,
 
-    /* ICR = "Interrupt Command Register" */
+    // ICR = "Interrupt Command Register"
     LAPIC_REG_ICR_0 = 0x300,
     LAPIC_REG_ICR_1 = 0x310,
 
-    /* LVT = "Local Vector Table" */
+    // LVT = "Local Vector Table"
     LAPIC_REG_LVT_TIMER = 0x320,
     LAPIC_REG_LVT_THERMAL = 0x330,
     LAPIC_REG_LVT_PERF_MONITOR_COUNTER = 0x340,
@@ -89,7 +89,7 @@ enum lapic_reg {
     LAPIC_REG_INIT_TIMER_COUNT = 0X380,
     LAPIC_REG_CUR_TIMER_COUNT = 0X390,
 
-    /* DVR = "Divide Configuration Register" */
+    // DVR = "Divide Configuration Register"
     LAPIC_REG_TIMER_DVR = 0x3E0,
 };
 
@@ -150,7 +150,7 @@ enum x2apic_lapic_reg {
 enum lapic_ipi {
     LAPIC_IPI_INIT = 0x4500,
 
-    /* Send IPI to all APs */
+    // Send IPI to all APs
     LAPIC_IPI_SIPI = 0x4600,
 };
 

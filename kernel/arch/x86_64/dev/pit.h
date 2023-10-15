@@ -13,7 +13,7 @@ enum pit_timer_channel {
     PIT_TIMER_CHANNEL_3 = (1 << 7) | (1 << 6)
 };
 
-/* The PIT has a frequency of 1193180 Hz or 1.1931816666 MHz */
+// The PIT has a frequency of 1193180 Hz or 1.1931816666 MHz
 #define PIT_FREQUENCY 1193180
 #define PIT_TIMER_CHANNEL_MASK ((1 << 7) | (1 << 6))
 

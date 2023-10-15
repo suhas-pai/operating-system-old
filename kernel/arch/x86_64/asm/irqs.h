@@ -9,12 +9,12 @@
 #include "rflags.h"
 
 enum irq_number {
-    IRQ_TIMER    = 0,
+    IRQ_TIMER = 0,
     IRQ_KEYBOARD = 1,
 };
 
 static inline bool are_interrupts_enabled() {
-    return (read_rflags() & RFLAGS_INTERRUPTS_ENABLED) != 0;
+    return read_rflags() & __RFLAGS_INTERRUPTS_ENABLED;
 }
 
 static inline void disable_all_interrupts() { asm volatile("cli"); }

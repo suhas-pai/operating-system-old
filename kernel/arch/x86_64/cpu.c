@@ -190,11 +190,11 @@ static void init_cpuid_features() {
 
     write_cr4(read_cr4() | cr4_bits);
 
-    /* Enable Syscalls and Fast-FPU */
+    // Enable Syscalls and Fast-FPU
     write_msr(IA32_MSR_EFER,
               (read_msr(IA32_MSR_EFER) | __IA32_MSR_EFER_BIT_SCE));
 
-    /* Setup Syscall MSRs */
+    // Setup Syscall MSRs
     write_msr(IA32_MSR_STAR,
               ((uint64_t)gdt_get_kernel_code_segment() << 32 |
                (uint64_t)gdt_get_user_data_segment() << 48));
