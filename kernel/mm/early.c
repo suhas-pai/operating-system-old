@@ -76,7 +76,9 @@ static void claim_pages(const struct mm_memmap *const memmap) {
 
     freepages_list_count++;
     if (freepages_list_count != 1) {
-        struct freepages_info *prev = NULL;
+        struct freepages_info *prev =
+            list_tail(&g_freepage_list, struct freepages_info, list);
+
         if (prev > info) {
             prev = container_of(&g_freepage_list, struct freepages_info, list);
             struct freepages_info *iter = NULL;
@@ -104,8 +106,6 @@ static void claim_pages(const struct mm_memmap *const memmap) {
                     list_delete(&next->list);
                 }
             }
-        } else {
-            prev = list_tail(&g_freepage_list, struct freepages_info, list);
         }
 
         if (&prev->list != &g_freepage_list) {
@@ -139,7 +139,7 @@ uint64_t early_alloc_page() {
     struct freepages_info *const info =
         list_head(&g_asc_freelist, struct freepages_info, asc_list);
 
-    // Take the last page out of the list, because first page stores the
+    // Take the last page out of the list, because the first page stores the
     // freepage_info struct.
 
     info->avail_page_count -= 1;
@@ -174,21 +174,21 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
         return INVALID_PHYS;
     }
 
-    // Take the last several pages out of the list, because first page stores
-    // the freepage_info struct.
+    // Take the last several pages out of the list, because the first page
+    // stores the freepage_info struct.
+
+    const struct freepages_info *const prev =
+        list_prev_safe(info, asc_list, &g_asc_freelist);
 
     info->avail_page_count -= alloc_amount;
     if (info->avail_page_count == 0) {
         list_delete(&info->list);
         list_delete(&info->asc_list);
-    }
-
-    const struct freepages_info *const prev =
-        list_prev_safe(info, asc_list, &g_asc_freelist);
-
-    if (prev != NULL && prev->avail_page_count > info->avail_page_count) {
-        list_remove(&info->asc_list);
-        add_to_asc_list(info);
+    } else if (prev != NULL) {
+        if (prev->avail_page_count > info->avail_page_count) {
+            list_remove(&info->asc_list);
+            add_to_asc_list(info);
+        }
     }
 
     const uint64_t free_page =
