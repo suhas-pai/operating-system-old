@@ -16,9 +16,12 @@ struct array {
 
 #define array_foreach(array, type, item) \
     assert(sizeof(type) == (array)->object_size);                              \
-    const type *const VAR_CONCAT(__end__, __LINE__) = array_end(*(array));     \
-    for (type *item = (type *)array_begin(*(array));                           \
-         item != VAR_CONCAT(__end__, __LINE__);                                \
+    type *const VAR_CONCAT(__begin__, __LINE__) =                              \
+        (type *)array_begin(*(array));                                         \
+    const type *const VAR_CONCAT(__end__, __LINE__) =                          \
+        VAR_CONCAT(__begin__, __LINE__) + array_item_count(*(array));          \
+    for (type *item = VAR_CONCAT(__begin__, __LINE__);                         \
+         item < VAR_CONCAT(__end__, __LINE__);                                 \
          item = (type *)((uint64_t)item + (array)->object_size))
 
 #define ARRAY_INIT(size) \

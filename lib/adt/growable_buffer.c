@@ -9,7 +9,7 @@
 #include "growable_buffer.h"
 
 struct growable_buffer gbuffer_alloc(const uint32_t capacity) {
-    uint64_t size = 0;
+    uint32_t size = 0;
     const struct growable_buffer gbuffer = {
         .begin = malloc_size(capacity, &size),
         .end = gbuffer.begin + size,
@@ -58,20 +58,20 @@ gbuffer_open_mbuffer(const struct mutable_buffer mbuffer, const bool is_alloc) {
 bool
 gbuffer_ensure_can_add_capacity(struct growable_buffer *const gb, uint32_t add)
 {
-    const uint32_t free_space = gbuffer_free_space(*gb);
-    if (add <= free_space) {
+    if (gbuffer_free_space(*gb) >= add) {
         return true;
     }
 
-    void *new_alloc = NULL;
-    const uint32_t realloc_size = check_add_assert(gbuffer_capacity(*gb), add);
+    // Avoid using realloc() here because by using malloc_size() we know that
+    // we've used up all memory that was available to us.
+
+    uint32_t realloc_size = check_add_assert(gbuffer_capacity(*gb), add);
+    void *const new_alloc = malloc_size(realloc_size, &realloc_size);
 
     if (gb->is_alloc) {
-        new_alloc = realloc(gb->begin, realloc_size);
-    } else {
-        new_alloc = malloc(realloc_size);
         memcpy(new_alloc, gb->begin, gbuffer_used_size(*gb));
-
+        free(gb->begin);
+    } else {
         gb->is_alloc = true;
     }
 

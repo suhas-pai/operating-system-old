@@ -113,6 +113,10 @@ free_pages_to_zone_unlocked(struct page *page,
         const uint64_t buddy_pfn = buddy_of(page_pfn, order);
         struct page *buddy = pfn_to_page(section_pfn + buddy_pfn);
 
+        if (__builtin_expect((uint64_t)buddy >= PAGE_END, 0)) {
+            break;
+        }
+
         if (page_get_state(buddy) != PAGE_STATE_FREE_LIST) {
             break;
         }

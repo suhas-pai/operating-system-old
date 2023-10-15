@@ -79,6 +79,12 @@ static void claim_pages(const struct mm_memmap *const memmap) {
         struct freepages_info *prev =
             list_tail(&g_freepage_list, struct freepages_info, list);
 
+        /*
+         * g_freepage_list must be in the ascending order of the physical
+         * address. Try finding the appropriate place in the linked-list if
+         * we're not directly after the tail memmap.
+         */
+
         if (prev > info) {
             prev = container_of(&g_freepage_list, struct freepages_info, list);
             struct freepages_info *iter = NULL;
@@ -91,28 +97,21 @@ static void claim_pages(const struct mm_memmap *const memmap) {
                 prev = iter;
             }
 
-            if (&prev->list != &g_freepage_list) {
-                // Use avail_page_count so we don't merge two memmaps that seem
-                // to connect but actually have a block of allocated pages
-                // separating them.
+            // Merge with the memmap after prev if possible.
 
-                struct freepages_info *next = list_next(prev, list);
-                const uint64_t info_size = info->avail_page_count * PAGE_SIZE;
+            struct freepages_info *next = list_next(prev, list);
+            const uint64_t info_size = info->avail_page_count * PAGE_SIZE;
 
-                if ((void *)info + info_size == (void *)next) {
-                    info->avail_page_count += page_count;
-                    info->total_page_count += page_count;
+            if ((void *)info + info_size == (void *)next) {
+                info->avail_page_count += page_count;
+                info->total_page_count += page_count;
 
-                    list_delete(&next->list);
-                }
+                list_delete(&next->list);
             }
         }
 
+        // Merge with the previous memmap, if possible.
         if (&prev->list != &g_freepage_list) {
-            // Use avail_page_count so we don't merge two memmaps that seem to
-            // connect but actually have a block of allocated pages separating
-            // them.
-
             const uint64_t back_size = prev->avail_page_count * PAGE_SIZE;
             if ((void *)prev + back_size == (void *)info) {
                 prev->avail_page_count += page_count;
@@ -170,7 +169,7 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
         }
     }
 
-    if (&info->list == &g_asc_freelist) {
+    if (__builtin_expect(&info->list == &g_asc_freelist, 0)) {
         return INVALID_PHYS;
     }
 
@@ -248,8 +247,10 @@ uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
             info->avail_page_count + PAGE_COUNT(alloc_amount);
 
         if (info->avail_page_count != 0) {
-            struct freepages_info *const info_prev = list_prev(info, asc_list);
-            if (&info->list != &g_asc_freelist &&
+            struct freepages_info *const info_prev =
+                list_prev_safe(info, asc_list, &g_asc_freelist);
+
+            if (info_prev != NULL &&
                 info_prev->avail_page_count > info->avail_page_count)
             {
                 list_remove(&info->asc_list);
@@ -450,13 +451,13 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
                 struct page *const page =
                     virt_to_page(walker.tables[level - 1]);
 
-                ref_up(&page->table.refcount);
+                page->table.refcount.count++;
             }
         }
 
         struct page *const page = virt_to_page(walker.tables[walker.level - 1]);
 
-        ref_up(&page->table.refcount);
+        page->table.refcount.count++;
         i += PAGE_SIZE_AT_LEVEL(walker.level);
 
         prev_level = walker.level;
@@ -549,7 +550,6 @@ void mark_used_pages(const struct mm_section *const memmap) {
 void mark_last_part_of_structpage_table() {
     const struct mm_section *const last_section =
         &mm_get_usable_list()[mm_get_usable_count() - 1];
-
     struct page *page =
         pfn_to_page(last_section->pfn + PAGE_COUNT(last_section->range.size));
 

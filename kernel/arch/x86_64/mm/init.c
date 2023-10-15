@@ -253,9 +253,12 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 extern uint64_t structpage_page_count;
 
 static void setup_pagestructs_table() {
-    uint64_t map_size = structpage_page_count * SIZEOF_STRUCTPAGE;
+    const uint64_t table_size = structpage_page_count * SIZEOF_STRUCTPAGE;
+    uint64_t map_size = table_size;
+
     if (!align_up(map_size, PAGE_SIZE, &map_size)) {
-        panic("mm: failed to initialize memory, overflow error when aligning");
+        panic("mm: failed to initialize memory, overflow error when aligning "
+              "structpage-table size to PAGE_SIZE");
     }
 
     printk(LOGLEVEL_INFO,
@@ -266,7 +269,7 @@ static void setup_pagestructs_table() {
     const uint64_t pte_flags = __PTE_WRITE | __PTE_GLOBAL | __PTE_NOEXEC;
 
     alloc_region(PAGE_OFFSET, map_size, pte_flags);
-    PAGE_END = PAGE_OFFSET + map_size;
+    PAGE_END = PAGE_OFFSET + table_size;
 
     printk(LOGLEVEL_INFO, "mm: finished mapping structpage-table\n");
 }

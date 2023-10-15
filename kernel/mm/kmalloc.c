@@ -37,7 +37,7 @@ void kmalloc_init() {
 }
 
 __optimize(3) __malloclike __malloc_dealloc(kfree, 1) __alloc_size(1)
-void *kmalloc(const uint64_t size) {
+void *kmalloc(const uint32_t size) {
     assert_msg(__builtin_expect(kmalloc_is_initialized, 1),
                "mm: kmalloc() called before kmalloc_init()");
 
@@ -48,7 +48,7 @@ void *kmalloc(const uint64_t size) {
 
     if (__builtin_expect(size > KMALLOC_MAX, 0)) {
         printk(LOGLEVEL_WARN,
-               "mm: kmalloc() can't allocate %" PRIu64 " bytes, max is %d "
+               "mm: kmalloc() can't allocate %" PRIu32 " bytes, max is %d "
                "bytes\n",
                size,
                KMALLOC_MAX);
@@ -64,7 +64,7 @@ void *kmalloc(const uint64_t size) {
 }
 
 __optimize(3) __malloclike __malloc_dealloc(kfree, 1) __alloc_size(1)
-void *kmalloc_size(const uint64_t size, uint64_t *const size_out) {
+void *kmalloc_size(const uint32_t size, uint32_t *const size_out) {
     assert_msg(__builtin_expect(kmalloc_is_initialized, 1),
                "mm: kmalloc_size() called before kmalloc_init()");
 
@@ -75,7 +75,7 @@ void *kmalloc_size(const uint64_t size, uint64_t *const size_out) {
 
     if (__builtin_expect(size > KMALLOC_MAX, 0)) {
         printk(LOGLEVEL_WARN,
-               "mm: kmalloc_size() can't allocate %" PRIu64 " bytes, max is %d "
+               "mm: kmalloc_size() can't allocate %" PRIu32 " bytes, max is %d "
                "bytes\n",
                size,
                KMALLOC_MAX);
@@ -96,7 +96,7 @@ void *kmalloc_size(const uint64_t size, uint64_t *const size_out) {
     return NULL;
 }
 
-__optimize(3) void *krealloc(void *const buffer, const uint64_t size) {
+__optimize(3) void *krealloc(void *const buffer, const uint32_t size) {
     assert_msg(__builtin_expect(kmalloc_is_initialized, 1),
                "mm: krealloc() called before kmalloc_init()");
 
