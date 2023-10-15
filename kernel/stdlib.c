@@ -238,39 +238,62 @@ DECL_MEM_COPY_BACK_FUNC(uint64_t)
 __optimize(3) void *memmove(void *dst, const void *src, unsigned long n) {
     void *ret = dst;
     if (src > dst) {
-        memcpy(dst, src, n);
-        return ret;
-    }
+    #if defined(__x86_64__)
+        if (n >= REP_MOVSB_MIN) {
+            asm volatile ("std;"
+                          "rep movsb;"
+                          "cld"
+                          :: "D"(dst), "S"(src), "c"(n) : "memory");
+            return ret;
+        }
+    #endif /* defined(__x86_64__) */
+        const uint64_t diff = distance(dst, src);
+        if (diff >= sizeof(uint64_t)) {
+            memcpy(dst, src, n);
+        } else if (diff >= sizeof(uint32_t)) {
+            n = _memcpy_uint32_t(dst, src, n, &dst, &src);
+            n = _memcpy_uint16_t(dst, src, n, &dst, &src);
 
-#if defined(__x86_64__)
-    if (n >= REP_MOVSB_MIN) {
-        void *dst_back = &((uint8_t *)dst)[n - 1];
-        const void *src_back = &((const uint8_t *)src)[n - 1];
+            _memcpy_uint8_t(dst, src, n, &dst, &src);
+        } else if (diff >= sizeof(uint16_t)) {
+            n = _memcpy_uint16_t(dst, src, n, &dst, &src);
+            _memcpy_uint8_t(dst, src, n, &dst, &src);
+        } else if (diff >= sizeof(uint8_t)) {
+            _memcpy_uint8_t(dst, src, n, &dst, &src);
+        }
+    } else {
+    #if defined(__x86_64__)
+        if (n >= REP_MOVSB_MIN) {
+            void *dst_back = &((uint8_t *)dst)[n - 1];
+            const void *src_back = &((const uint8_t *)src)[n - 1];
 
-        asm volatile ("std;"
-                      "rep movsb;"
-                      "cld"
-                      :: "D"(dst_back), "S"(src_back), "c"(n) : "memory");
-    }
-#endif /* defined(__x86_64__) */
+            asm volatile (
+                "std;"
+                "rep movsb;"
+                "cld"
+                :: "D"(dst_back), "S"(src_back), "c"(n) : "memory");
 
-    const uint64_t diff = distance(src, dst);
-    if (diff >= sizeof(uint64_t)) {
-        n = _memcpy_bw_uint64_t(dst, src, n, &dst, &src);
-        n = _memcpy_bw_uint32_t(dst, src, n, &dst, &src);
-        n = _memcpy_bw_uint16_t(dst, src, n, &dst, &src);
+            return ret;
+        }
+    #endif /* defined(__x86_64__) */
+        const uint64_t diff = distance(src, dst);
+        if (diff >= sizeof(uint64_t)) {
+            n = _memcpy_bw_uint64_t(dst, src, n, &dst, &src);
+            n = _memcpy_bw_uint32_t(dst, src, n, &dst, &src);
+            n = _memcpy_bw_uint16_t(dst, src, n, &dst, &src);
 
-        _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
-    } else if (diff >= sizeof(uint32_t)) {
-        n = _memcpy_bw_uint32_t(dst, src, n, &dst, &src);
-        n = _memcpy_bw_uint16_t(dst, src, n, &dst, &src);
+            _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
+        } else if (diff >= sizeof(uint32_t)) {
+            n = _memcpy_bw_uint32_t(dst, src, n, &dst, &src);
+            n = _memcpy_bw_uint16_t(dst, src, n, &dst, &src);
 
-        _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
-    } else if (diff >= sizeof(uint16_t)) {
-        n = _memcpy_bw_uint16_t(dst, src, n, &dst, &src);
-        _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
-    } else if (diff >= sizeof(uint8_t)) {
-        _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
+            _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
+        } else if (diff >= sizeof(uint16_t)) {
+            n = _memcpy_bw_uint16_t(dst, src, n, &dst, &src);
+            _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
+        } else if (diff >= sizeof(uint8_t)) {
+            _memcpy_bw_uint8_t(dst, src, n, &dst, &src);
+        }
     }
 
     return ret;

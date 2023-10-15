@@ -262,12 +262,10 @@ static void setup_pagestructs_table() {
            "mm: structpage table is %" PRIu64 " bytes\n",
            map_size);
 
-    // Map struct page table
     const uint64_t pte_flags = __PTE_WRITE | __PTE_GLOBAL;
-
     alloc_region(PAGE_OFFSET, map_size, pte_flags);
-    PAGE_END = PAGE_OFFSET + table_size;
 
+    PAGE_END = PAGE_OFFSET + table_size;
     printk(LOGLEVEL_INFO, "mm: finished mapping structpage-table\n");
 }
 

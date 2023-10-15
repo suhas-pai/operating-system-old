@@ -175,18 +175,18 @@ static void init_cpuid_features() {
         }
     }
 
-    write_cr0(read_cr0() | CR0_BIT_MP);
+    write_cr0(read_cr0() | __CR0_BIT_MP);
 
     const uint64_t cr4_bits =
-        CR4_BIT_TSD |
-        CR4_BIT_DE |
-        CR4_BIT_PGE |
-        CR4_BIT_OSFXSR |
-        CR4_BIT_OSXMMEXCPTO |
-        CR4_BIT_FSGSBASE |
-        CR4_BIT_SMEP |
-        CR4_BIT_SMAP |
-        CR4_BIT_OSXSAVE;
+        __CR4_BIT_TSD |
+        __CR4_BIT_DE |
+        __CR4_BIT_PGE |
+        __CR4_BIT_OSFXSR |
+        __CR4_BIT_OSXMMEXCPTO |
+        __CR4_BIT_FSGSBASE |
+        __CR4_BIT_SMEP |
+        __CR4_BIT_SMAP |
+        __CR4_BIT_OSXSAVE;
 
     write_cr4(read_cr4() | cr4_bits);
 

@@ -54,70 +54,70 @@ __optimize(3) static inline void write_cr4(const uint64_t cr4) {
 
 enum {
     // Protection Enable
-    CR0_BIT_PE = (1ull << 0),
+    __CR0_BIT_PE = (1ull << 0),
 
     // Monitor Co-processor
-    CR0_BIT_MP = (1ull << 1),
+    __CR0_BIT_MP = (1ull << 1),
 
     // Emulation - Set for no x87 FPU, Clear for x87 FPu
-    CR0_BIT_EM = (1ull << 2),
+    __CR0_BIT_EM = (1ull << 2),
 
     // Task switched
-    CR0_BIT_TS = (1ull << 3),
+    __CR0_BIT_TS = (1ull << 3),
 
     // Extension type
-    CR0_BIT_ET = (1ull << 4),
+    __CR0_BIT_ET = (1ull << 4),
 
     // Numeric Error
-    CR0_BIT_NE = (1ull << 5),
+    __CR0_BIT_NE = (1ull << 5),
 
     // bits 6-15 are reserved
     // Write Protect
 
-    CR0_BIT_WP = (1ull << 16),
+    __CR0_BIT_WP = (1ull << 16),
 
     // bit 17 is reserved
     // Alignment Mask
 
-    CR0_BIT_AM = (1ull << 18),
+    __CR0_BIT_AM = (1ull << 18),
 
     // bits 19-28 are reserved
     // Not-Write Through
 
-    CR0_BIT_NW = (1ull << 29),
+    __CR0_BIT_NW = (1ull << 29),
 
     // Cache Disable
 
-    CR0_BIT_CD = (1ull << 30),
+    __CR0_BIT_CD = (1ull << 30),
 
     // Paging
-    CR0_BIT_PG = (1ull << 31)
+    __CR0_BIT_PG = (1ull << 31)
 };
 
 enum {
     // Virtual-8086 Mode Extensions
-    CR4_BIT_VME = (1ull << 0),
+    __CR4_BIT_VME = (1ull << 0),
 
     // Protected Mode Virtual Interrupts
-    CR4_BIT_PVI = (1ull << 1),
+    __CR4_BIT_PVI = (1ull << 1),
 
     // Time Stamp enabled only in ring 0
-    CR4_BIT_TSD = (1ull << 2),
+    __CR4_BIT_TSD = (1ull << 2),
 
     // Debugging Extensions
-    CR4_BIT_DE = (1ull << 3),
+    __CR4_BIT_DE = (1ull << 3),
 
     // Page Size Extension
-    CR4_BIT_PSE = (1ull << 4),
+    __CR4_BIT_PSE = (1ull << 4),
 
     // Physical Address Extension
-    CR4_BIT_PAE = (1ull << 5),
+    __CR4_BIT_PAE = (1ull << 5),
 
     // Machine Check Exception
-    CR4_BIT_MCE = (1ull << 6),
+    __CR4_BIT_MCE = (1ull << 6),
 
     // Page Global Enable
-    CR4_BIT_PGE = (1ull << 7),
+    __CR4_BIT_PGE = (1ull << 7),
 
     /*
      * Performance Monitoring Counter Enable
@@ -127,7 +127,7 @@ enum {
      * executed only at protection level 0 when clear.
      */
 
-    CR4_BIT_PCE = (1ull << 8),
+    __CR4_BIT_PCE = (1ull << 8),
 
     /*
      * Operating System Support for FXSAVE and FXRSTOR instructions
@@ -151,7 +151,7 @@ enum {
      *  POPCNT. The operating system or executive must explicitly set this flag.
      */
 
-    CR4_BIT_OSFXSR = (1ull << 9),
+    __CR4_BIT_OSFXSR = (1ull << 9),
 
     /*
      * OS Support for unmasked simd floating point exceptions
@@ -167,7 +167,7 @@ enum {
      * (#UD) whenever it detects an unmasked SIMD floating-point exception.
      */
 
-    CR4_BIT_OSXMMEXCPTO = (1ull << 10),
+    __CR4_BIT_OSXMMEXCPTO = (1ull << 10),
 
     /*
      * When set, the following instructions cannot be executed if CPL > 0:
@@ -175,7 +175,7 @@ enum {
      * general-protection exception (#GP)
      */
 
-    CR4_BIT_UMIP = (1ull << 11),
+    __CR4_BIT_UMIP = (1ull << 11),
 
     /*
      * 57-bit linear addresses
@@ -186,23 +186,23 @@ enum {
      * modified in IA-32e mode.
      */
 
-    CR4_BIT_LA57 = (1ull << 12),
+    __CR4_BIT_LA57 = (1ull << 12),
 
     // VMXE = Virtual Machine Extensions Enable
-    CR4_BIT_VMXE = (1ull << 13),
+    __CR4_BIT_VMXE = (1ull << 13),
 
     // SMXE = Safer Mode Extensions Enable
-    CR4_BIT_SMXE = (1ull << 14),
+    __CR4_BIT_SMXE = (1ull << 14),
 
     // bit 15 is reserved
 
     // Enables the instructions RDFSBASE, RDGSBASE, WRFSBASE, and WRGSBASE.
-    CR4_BIT_FSGSBASE = (1ull << 16),
+    __CR4_BIT_FSGSBASE = (1ull << 16),
 
     // PCID Enable
     // PCID = Page-Level Caching Identifiers
 
-    CR4_BIT_PCIDE = (1ull << 17),
+    __CR4_BIT_PCIDE = (1ull << 17),
 
     /*
      * XSAVE And Processor Extended States Enable
@@ -219,7 +219,7 @@ enum {
      *       order to read and write XCR0.
      */
 
-    CR4_BIT_OSXSAVE = (1ull << 18),
+    __CR4_BIT_OSXSAVE = (1ull << 18),
 
     /*
      * Key-Locker-Enable
@@ -232,13 +232,13 @@ enum {
      * invalid-opcode exception (#UD).
      */
 
-    CR4_BIT_KEY_LOCKER = (1ull << 19),
+    __CR4_BIT_KEY_LOCKER = (1ull << 19),
 
     // Supervisor Mode Executions Protection Enable
-    CR4_BIT_SMEP = (1ull << 20),
+    __CR4_BIT_SMEP = (1ull << 20),
 
     // Supervisor Mode Access Protection Enable
-    CR4_BIT_SMAP = (1ull << 21),
+    __CR4_BIT_SMAP = (1ull << 21),
 
     /*
      * Enable protection keys for user-mode pages
@@ -254,7 +254,7 @@ enum {
      * WRPKRU instructions.
      */
 
-    CR4_BIT_PKE = (1ull << 22),
+    __CR4_BIT_PKE = (1ull << 22),
 
     /*
      * Enable Control-flow Enforcement Technology
@@ -263,7 +263,7 @@ enum {
      * CR0.WP can be cleared
      */
 
-    CR4_BIT_CET = (1ull << 23),
+    __CR4_BIT_CET = (1ull << 23),
 
     // Enable protection keys for supervisor-mode pages
     /*
@@ -274,7 +274,7 @@ enum {
      * written.
      */
 
-    CR4_BIT_PKS = (1ull << 24),
+    __CR4_BIT_PKS = (1ull << 24),
 
     /*
      * User Interrupts Enable Bit
@@ -284,7 +284,7 @@ enum {
      * instructions
      */
 
-    CR4_BIT_UINTR = (1ull << 25),
+    __CR4_BIT_UINTR = (1ull << 25),
 
     /*
      * This sets the threshold value corresponding to the highest-priority
@@ -294,7 +294,7 @@ enum {
      * interrupts will be disabled.
      */
 
-    CR4_BIT_TPL = (1ull << 26),
+    __CR4_BIT_TPL = (1ull << 26),
 };
 
 enum {
@@ -303,14 +303,14 @@ enum {
      * exception.
      */
 
-    XCR0_BIT_X87 = 1ull << 0,
+    __XCR0_BIT_X87 = 1ull << 0,
 
     /*
      * If 1, the XSAVE feature set can be used to manage MXCSR and the XMM
      * registers (XMM0- XMM15 in 64-bit mode; otherwise XMM0-XMM7)
      */
 
-    XCR0_BIT_SSE = 1ull << 1,
+    __XCR0_BIT_SSE = 1ull << 1,
 
     /*
      * If 1, Intel AVX instructions can be executed and the XSAVE feature set
@@ -318,28 +318,28 @@ enum {
      * in 64-bit mode; otherwise YMM0-YMM7).
      */
 
-    XCR0_BIT_AVX = 1ull << 2,
+    __XCR0_BIT_AVX = 1ull << 2,
 
     /*
      * XCR0.BNDREG (bit 3): If 1, Intel MPX instructions can be executed and the
      * XSAVE feature set can be used to manage the bounds registers BND0–BND3.
      */
 
-    XCR0_BIT_BNDREG = 1ull << 3,
+    __XCR0_BIT_BNDREG = 1ull << 3,
 
     /*
      * If 1, Intel MPX instructions can be executed and the XSAVE feature set
      * can be used to manage the BNDCFGU and BNDSTATUS registers
      */
 
-    XCR0_BIT_BNDCSR = 1ull << 4,
+    __XCR0_BIT_BNDCSR = 1ull << 4,
 
     /*
      * If 1, Intel AVX-512 instructions can be executed and the XSAVE feature
      * set can be used to manage the opmask registers k0–k7
      */
 
-    XCR0_BIT_OPMASK = 1ull << 5,
+    __XCR0_BIT_OPMASK = 1ull << 5,
 
     /*
      * If 1, Intel AVX-512 instructions can be executed and the XSAVE feature
@@ -347,7 +347,7 @@ enum {
      * (ZMM0-ZMM15 in 64-bit mode; otherwise ZMM0- ZMM7).
      */
 
-    XCR0_BIT_ZMM_HI256 = 1ull << 6,
+    __XCR0_BIT_ZMM_HI256 = 1ull << 6,
 
     /*
      * If 1, Intel AVX-512 instructions can be executed and the XSAVE feature
@@ -355,12 +355,12 @@ enum {
      * 64-bit mode).
      */
 
-    XCR0_BIT_HI16_ZMM = 1ull << 7,
+    __XCR0_BIT_HI16_ZMM = 1ull << 7,
 
     // Bit 8 is reserved
 
     // If 1, the XSAVE feature set can be used to manage the PKRU register
-    XCR0_BIT_PKRU = 1ull << 9,
+    __XCR0_BIT_PKRU = 1ull << 9,
 
     // Bits 10 - 16 are reserved
 
@@ -369,12 +369,12 @@ enum {
      * executed and the XSAVE feature set can be used to manage TILECFG
      */
 
-    XCR0_BIT_TILECFG = 1ull << 17,
+    __XCR0_BIT_TILECFG = 1ull << 17,
 
     /*
      * If 1, and if XCR0.TILECFG is also 1, Intel AMX instructions can be
      * executed and the XSAVE feature set can be used to manage TILEDATA
      */
 
-    XCR0_BIT_TILEDATA = 1ull << 18,
+    __XCR0_BIT_TILEDATA = 1ull << 18,
 };
