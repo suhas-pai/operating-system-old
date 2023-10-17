@@ -180,7 +180,7 @@ override_pte(struct pt_walker *const walker,
                                     options->alloc_pgtable_cb_info,
                                     options->free_pgtable_cb_info);
 
-            if (ptwalker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
                 panic("mm: failed to pgmap, result=%d\n", ptwalker_result);
             }
 
@@ -225,7 +225,7 @@ override_pte(struct pt_walker *const walker,
                                        /*alloc_pgtable_cb_info=*/NULL,
                                        /*free_pgtable_cb_info=*/NULL);
 
-        if (result != E_PT_WALKER_OK) {
+        if (__builtin_expect(result != E_PT_WALKER_OK, 0)) {
             panic("mm: failed to pgmap, result=%d", result);
         }
 
@@ -245,7 +245,7 @@ override_pte(struct pt_walker *const walker,
     return OVERRIDE_OK;
 }
 
-enum map_result
+__optimize(3) enum map_result
 map_normal(struct pt_walker *const walker,
            struct current_split_info *const curr_split,
            struct pageop *const pageop,
@@ -256,7 +256,7 @@ map_normal(struct pt_walker *const walker,
            const struct pgmap_options *const options)
 {
     uint64_t offset = *offset_in;
-    if (offset >= size) {
+    if (__builtin_expect(offset >= size, 0)) {
         return MAP_DONE;
     }
 
@@ -276,7 +276,7 @@ map_normal(struct pt_walker *const walker,
                                     alloc_pgtable_cb_info,
                                     free_pgtable_cb_info);
 
-            if (ptwalker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
             panic:
                 panic("mm: failed to pgmap, result=%d\n", ptwalker_result);
             }
@@ -315,7 +315,7 @@ map_normal(struct pt_walker *const walker,
                                                alloc_pgtable_cb_info,
                                                free_pgtable_cb_info);
 
-                if (ptwalker_result != E_PT_WALKER_OK) {
+                if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
                     goto panic;
                 }
 
@@ -350,7 +350,7 @@ map_normal(struct pt_walker *const walker,
                                     options->alloc_pgtable_cb_info,
                                     options->free_pgtable_cb_info);
 
-            if (ptwalker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
                 panic("mm: failed to pgmap, result=%d\n", ptwalker_result);
             }
 
@@ -378,7 +378,9 @@ map_normal(struct pt_walker *const walker,
                                                    alloc_pgtable_cb_info,
                                                    free_pgtable_cb_info);
 
-                    if (ptwalker_result != E_PT_WALKER_OK) {
+                    if (__builtin_expect(
+                            ptwalker_result != E_PT_WALKER_OK, 0))
+                    {
                         goto panic;
                     }
 
@@ -404,7 +406,7 @@ map_normal(struct pt_walker *const walker,
     }
 }
 
-enum map_result
+__optimize(3) enum map_result
 map_large_at_top_level_overwrite(struct pt_walker *const walker,
                                  struct current_split_info *const curr_split,
                                  struct pageop *const pageop,
@@ -459,7 +461,7 @@ map_large_at_top_level_overwrite(struct pt_walker *const walker,
                                        alloc_pgtable_cb_info,
                                        free_pgtable_cb_info);
 
-        if (ptwalker_result != E_PT_WALKER_OK) {
+        if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
             panic("mm: failed to pgmap, result=%d\n", ptwalker_result);
         }
 
@@ -474,7 +476,7 @@ map_large_at_top_level_overwrite(struct pt_walker *const walker,
     return MAP_CONTINUE;
 }
 
-enum map_result
+__optimize(3) enum map_result
 map_large_at_top_level_no_overwrite(struct pt_walker *const walker,
                                     const uint64_t phys_begin,
                                     uint64_t *const offset_in,
@@ -514,7 +516,7 @@ map_large_at_top_level_no_overwrite(struct pt_walker *const walker,
     return MAP_CONTINUE;
 }
 
-enum map_result
+__optimize(3) enum map_result
 map_large_at_level_overwrite(struct pt_walker *const walker,
                              struct current_split_info *const curr_split,
                              struct pageop *const pageop,
@@ -541,7 +543,7 @@ map_large_at_level_overwrite(struct pt_walker *const walker,
                             alloc_pgtable_cb_info,
                             free_pgtable_cb_info);
 
-    if (ptwalker_result != E_PT_WALKER_OK) {
+    if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
     panic:
         panic("mm: failed to pgmap, result=%d\n", ptwalker_result);
     }
@@ -580,7 +582,7 @@ map_large_at_level_overwrite(struct pt_walker *const walker,
                                        alloc_pgtable_cb_info,
                                        free_pgtable_cb_info);
 
-        if (ptwalker_result != E_PT_WALKER_OK) {
+        if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
             goto panic;
         }
 
@@ -607,7 +609,7 @@ map_large_at_level_overwrite(struct pt_walker *const walker,
     return MAP_CONTINUE;
 }
 
-enum map_result
+__optimize(3) enum map_result
 map_large_at_level_no_overwrite(struct pt_walker *const walker,
                                 const uint64_t phys_begin,
                                 uint64_t *const offset_in,
@@ -636,7 +638,7 @@ map_large_at_level_no_overwrite(struct pt_walker *const walker,
                                 alloc_pgtable_cb_info,
                                 free_pgtable_cb_info);
 
-        if (ptwalker_result != E_PT_WALKER_OK) {
+        if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
         panic:
             panic("mm: failed to pgmap, result=%d\n", ptwalker_result);
         }
@@ -671,7 +673,7 @@ map_large_at_level_no_overwrite(struct pt_walker *const walker,
                                                alloc_pgtable_cb_info,
                                                free_pgtable_cb_info);
 
-                if (ptwalker_result != E_PT_WALKER_OK) {
+                if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0)) {
                     goto panic;
                 }
 
@@ -1081,7 +1083,7 @@ pgunmap_at(struct pagemap *const pagemap,
         walker.level = level;
         const enum pt_walker_result walker_result = ptwalker_next(&walker);
 
-        if (walker_result != E_PT_WALKER_OK) {
+        if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
             return false;
         }
 

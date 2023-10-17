@@ -421,7 +421,7 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
                                        /*alloc_pgtable_cb_info=*/NULL,
                                        /*free_pgtable_cb_info=*/NULL);
 
-        if (advance_result != E_PT_WALKER_OK) {
+        if (__builtin_expect(advance_result != E_PT_WALKER_OK, 0)) {
             panic("mm: failed to setup kernel pagemap, result=%d\n",
                   advance_result);
         }
@@ -699,15 +699,11 @@ void mm_early_post_arch_init() {
         }
     }
 
-    // Iterate over the usable-memmaps (sections) three times:
+    // Iterate over the usable-memmaps (sections)  times:
     //  1. Iterate to mark used-pages first. This must be done first because
     //     it needs to be done before memmaps are merged, as before the merge,
     //     its obvious which pages are used.
     //  2. Set the section mask in page->flags.
-    //  3. Setup the bitmap for each memmap. This needs to be separately, and
-    //     last, because it needs to call phys_to_page(), which only works after
-    //     the section-mask is setup.
-    //  4. Protect the pages user for each section's bitmap.
 
     struct mm_section *const begin = mm_get_usable_list();
     const struct mm_section *const end = begin + mm_get_usable_count();

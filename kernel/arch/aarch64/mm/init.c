@@ -51,59 +51,58 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                                     /*alloc_pgtable_cb_info=*/NULL,
                                     /*free_pgtable_cb_info=*/NULL);
 
-            if (walker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
             panic:
                 panic("mm: failed to setup page-structs, ran out of memory\n");
             }
 
+            pte_t *table = pt_walker.tables[2];
+            pte_t *pte = &table[pt_walker.indices[2]];
+            const pte_t *end = &table[PGT_PTE_COUNT];
+
             do {
-                pte_t *const table = pt_walker.tables[2];
-                pte_t *pte = &table[pt_walker.indices[2]];
-                const pte_t *const end = &table[PGT_PTE_COUNT];
+                const uint64_t page =
+                    early_alloc_large_page(
+                        /*amount=*/PGT_PTE_COUNT * PGT_PTE_COUNT);
 
-                do {
-                    const uint64_t page =
-                        early_alloc_large_page(
-                            /*amount=*/PGT_PTE_COUNT * PGT_PTE_COUNT);
+                if (page == INVALID_PHYS) {
+                    // We failed to alloc a 1gib page, so try 2mib pages next.
+                    break;
+                }
 
-                    if (page == INVALID_PHYS) {
-                        // We failed to alloc a 1gib page, so try 2mib pages
-                        // next.
-                        break;
+                *pte = phys_create_pte(page) | PTE_LARGE_FLAGS(3) | pte_flags;
+                pte++;
+
+                if (pte == end) {
+                    pt_walker.indices[2] = PGT_PTE_COUNT - 1;
+                    walker_result =
+                        ptwalker_next_with_options(
+                            &pt_walker,
+                            /*level=*/3,
+                            /*alloc_parents=*/true,
+                            /*alloc_level=*/true,
+                            /*should_ref=*/false,
+                            /*alloc_pgtable_cb_info=*/NULL,
+                            /*free_pgtable_cb_info=*/NULL);
+
+                    if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
+                        goto panic;
                     }
 
-                    *pte =
-                        phys_create_pte(page) | PTE_LARGE_FLAGS(3) |
-                        __PTE_INNER_SH | pte_flags;
+                    table = pt_walker.tables[2];
+                    pte = table;
+                    end = &table[PGT_PTE_COUNT];
 
-                    pte++;
-                    if (pte == end) {
-                        pt_walker.indices[2] = PGT_PTE_COUNT - 1;
-                        walker_result =
-                            ptwalker_next_with_options(
-                                &pt_walker,
-                                /*level=*/3,
-                                /*alloc_parents=*/true,
-                                /*alloc_level=*/true,
-                                /*should_ref=*/false,
-                                /*alloc_pgtable_cb_info=*/NULL,
-                                /*free_pgtable_cb_info=*/NULL);
+                    break;
+                }
 
-                        if (walker_result != E_PT_WALKER_OK) {
-                            goto panic;
-                        }
+                map_size -= PAGE_SIZE_1GIB;
+                if (map_size < PAGE_SIZE_1GIB) {
+                    pt_walker.indices[2] = pte - table;
+                    goto try_2mib;
+                }
 
-                        break;
-                    }
-
-                    map_size -= PAGE_SIZE_1GIB;
-                    if (map_size < PAGE_SIZE_1GIB) {
-                        pt_walker.indices[2] = pte - table;
-                        goto try_2mib;
-                    }
-
-                    virt_addr += PAGE_SIZE_1GIB;
-                } while (true);
+                virt_addr += PAGE_SIZE_1GIB;
             } while (true);
         }
 
@@ -117,64 +116,61 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                                     /*alloc_pgtable_cb_info=*/NULL,
                                     /*free_pgtable_cb_info=*/NULL);
 
-            if (walker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
                 goto panic;
             }
 
+            pte_t *table = pt_walker.tables[1];
+            pte_t *pte = &table[pt_walker.indices[1]];
+            const pte_t *end = &table[PGT_PTE_COUNT];
+
             do {
-                pte_t *const table = pt_walker.tables[1];
-                pte_t *pte = &table[pt_walker.indices[1]];
-                const pte_t *const end = &table[PGT_PTE_COUNT];
+                const uint64_t page =
+                    early_alloc_large_page(/*amount=*/PGT_PTE_COUNT);
 
-                do {
-                    const uint64_t page =
-                        early_alloc_large_page(/*amount=*/PGT_PTE_COUNT);
+                if (page == INVALID_PHYS) {
+                    // We failed to alloc a 2mib page, so try 4kib pages next.
+                    break;
+                }
 
-                    if (page == INVALID_PHYS) {
-                        // We failed to alloc a 2mib page, so try 4kib pages
-                        // next.
-                        break;
+                *pte = phys_create_pte(page) | PTE_LARGE_FLAGS(2) | pte_flags;
+                pte++;
+
+                if (pte == end) {
+                    const bool should_fill_in =
+                        pt_walker.indices[2] != PGT_PTE_COUNT;
+
+                    pt_walker.indices[1] = PGT_PTE_COUNT - 1;
+                    walker_result =
+                        ptwalker_next_with_options(
+                            &pt_walker,
+                            /*level=*/2,
+                            /*alloc_parents=*/should_fill_in,
+                            /*alloc_level=*/should_fill_in,
+                            /*should_ref=*/false,
+                            /*alloc_pgtable_cb_info=*/NULL,
+                            /*free_pgtable_cb_info=*/NULL);
+
+                    if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
+                        goto panic;
                     }
 
-                    *pte =
-                        phys_create_pte(page) | PTE_LARGE_FLAGS(2) |
-                        __PTE_INNER_SH | pte_flags;
-
-                    pte++;
-                    if (pte == end) {
-                        const bool should_fill_in =
-                            pt_walker.indices[2] != PGT_PTE_COUNT;
-
-                        pt_walker.indices[1] = PGT_PTE_COUNT - 1;
-                        walker_result =
-                            ptwalker_next_with_options(
-                                &pt_walker,
-                                /*level=*/2,
-                                /*alloc_parents=*/should_fill_in,
-                                /*alloc_level=*/should_fill_in,
-                                /*should_ref=*/false,
-                                /*alloc_pgtable_cb_info=*/NULL,
-                                /*free_pgtable_cb_info=*/NULL);
-
-                        if (walker_result != E_PT_WALKER_OK) {
-                            goto panic;
-                        }
-
-                        if (pt_walker.indices[2] == 0) {
-                            goto try_1gib;
-                        }
-
-                        break;
+                    if (pt_walker.indices[2] == 0) {
+                        goto try_1gib;
                     }
 
-                    map_size -= PAGE_SIZE_2MIB;
-                    if (map_size < PAGE_SIZE_2MIB) {
-                        pt_walker.indices[1] = pte - table;
-                        goto try_normal;
-                    }
+                    table = pt_walker.tables[1];
+                    pte = table;
+                    end = &pte[PGT_PTE_COUNT];
+                }
 
-                    virt_addr += PAGE_SIZE_2MIB;
-                } while (true);
+                map_size -= PAGE_SIZE_2MIB;
+                if (map_size < PAGE_SIZE_2MIB) {
+                    pt_walker.indices[1] = pte - table;
+                    goto try_normal;
+                }
+
+                virt_addr += PAGE_SIZE_2MIB;
             } while (true);
         }
 
@@ -187,7 +183,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                                     /*alloc_pgtable_cb_info=*/NULL,
                                     /*free_pgtable_cb_info=*/NULL);
 
-            if (walker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
                 goto panic;
             }
 
@@ -197,22 +193,19 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
             do {
                 const uint64_t page = early_alloc_page();
-                if (page == INVALID_PHYS) {
+                if (__builtin_expect(page == INVALID_PHYS, 0)) {
                     panic("mm: failed to allocate page while setting up "
                           "kernel-pagemap\n");
                 }
 
-                *pte =
-                    phys_create_pte(page) | PTE_LEAF_FLAGS | __PTE_INNER_SH |
-                    pte_flags;
-
-                pte++;
+                *pte = phys_create_pte(page) | PTE_LEAF_FLAGS | pte_flags;
                 map_size -= PAGE_SIZE;
 
                 if (map_size == 0) {
                     return;
                 }
 
+                pte++;
                 if (pte == end) {
                     const bool should_fill_in =
                         pt_walker.indices[1] != PGT_PTE_COUNT;
@@ -228,7 +221,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                             /*alloc_pgtable_cb_info=*/NULL,
                             /*free_pgtable_cb_info=*/NULL);
 
-                    if (walker_result != E_PT_WALKER_OK) {
+                    if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
                         goto panic;
                     }
 

@@ -306,17 +306,15 @@ __optimize(3) void *memset(void *dst, const int val, unsigned long n) {
 #else
     uint64_t value64 = 0;
     if (n >= sizeof(uint64_t)) {
-        if (val != 0) {
-            value64 =
-                (uint64_t)val << 56 |
-                (uint64_t)val << 48 |
-                (uint64_t)val << 40 |
-                (uint64_t)val << 32 |
-                (uint64_t)val << 24 |
-                (uint64_t)val << 16 |
-                (uint64_t)val << 8 |
-                (uint64_t)val;
-        }
+        value64 =
+            (uint64_t)val << 56 |
+            (uint64_t)val << 48 |
+            (uint64_t)val << 40 |
+            (uint64_t)val << 32 |
+            (uint64_t)val << 24 |
+            (uint64_t)val << 16 |
+            (uint64_t)val << 8 |
+            (uint64_t)val;
 
         do {
             *(uint64_t *)dst = value64;

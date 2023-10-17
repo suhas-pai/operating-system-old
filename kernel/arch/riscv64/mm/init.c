@@ -50,7 +50,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                                     /*alloc_pgtable_cb_info=*/NULL,
                                     /*free_pgtable_cb_info=*/NULL);
 
-            if (walker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
             panic:
                 panic("mm: failed to setup page-structs, ran out of memory\n");
             }
@@ -86,7 +86,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                             /*alloc_pgtable_cb_info=*/NULL,
                             /*free_pgtable_cb_info=*/NULL);
 
-                    if (walker_result != E_PT_WALKER_OK) {
+                    if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
                         goto panic;
                     }
 
@@ -115,7 +115,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                                     /*alloc_pgtable_cb_info=*/NULL,
                                     /*free_pgtable_cb_info=*/NULL);
 
-            if (walker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
                 goto panic;
             }
 
@@ -152,7 +152,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                             /*alloc_pgtable_cb_info=*/NULL,
                             /*free_pgtable_cb_info=*/NULL);
 
-                    if (walker_result != E_PT_WALKER_OK) {
+                    if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
                         goto panic;
                     }
 
@@ -184,7 +184,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                                     /*alloc_pgtable_cb_info=*/NULL,
                                     /*free_pgtable_cb_info=*/NULL);
 
-            if (walker_result != E_PT_WALKER_OK) {
+            if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
                 goto panic;
             }
 
@@ -194,7 +194,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
             do {
                 const uint64_t page = early_alloc_page();
-                if (page == INVALID_PHYS) {
+                if (__builtin_expect(page == INVALID_PHYS, 0)) {
                     panic("mm: failed to allocate page while setting up "
                           "kernel-pagemap\n");
                 }
@@ -224,7 +224,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
                             /*alloc_pgtable_cb_info=*/NULL,
                             /*free_pgtable_cb_info=*/NULL);
 
-                    if (walker_result != E_PT_WALKER_OK) {
+                    if (__builtin_expect(walker_result != E_PT_WALKER_OK, 0)) {
                         goto panic;
                     }
 

@@ -21,11 +21,11 @@ void refcount_increment(struct refcount *const ref, const int32_t amount) {
     const int32_t old =
         atomic_fetch_add_explicit(&ref->count, amount, memory_order_relaxed);
 
-    if (old < 0) {
+    if (__builtin_expect(old < 0, 0)) {
         panic("UAF in refcount_increment()");
     }
 
-    if (old == REFCOUNT_MAX) {
+    if (__builtin_expect(old == REFCOUNT_MAX, 0)) {
         panic("refcount_increment() called on maxed refcount");
     }
 }
@@ -35,11 +35,11 @@ bool refcount_decrement(struct refcount *const ref, const int32_t amount) {
     const int32_t old =
         atomic_fetch_sub_explicit(&ref->count, amount, memory_order_relaxed);
 
-    if (old < 0 || old < amount) {
+    if (__builtin_expect(old < 0 || old < amount, 0)) {
         panic("UAF in refcount_decrement()");
     }
 
-    if (old == REFCOUNT_MAX) {
+    if (__builtin_expect(old == REFCOUNT_MAX, 0)) {
         panic("refcount_decrement() called on maxed refcount");
     }
 
