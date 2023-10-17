@@ -11,8 +11,6 @@
 struct mm_section {
     struct range range;
     uint64_t pfn;
-
-    struct bitmap used_pages_bitmap;
 };
 
 struct mm_section *mm_get_usable_list();

@@ -566,40 +566,6 @@ void mark_last_part_of_structpage_table() {
     }
 }
 
-void mark_used_pages_for_bitmap(struct mm_section *const memmap) {
-    struct page *page = pfn_to_page(memmap->pfn);
-    struct page *end = page + PAGE_COUNT(memmap->range.size);
-
-    uint64_t start_index = 0;
-    uint64_t count = 0;
-
-    while (page < end) {
-        struct page *begin = page;
-        if (page->state == PAGE_STATE_NOT_USABLE) {
-            for (; page != end; page++) {
-                if (page->state != PAGE_STATE_NOT_USABLE) {
-                    break;
-                }
-            }
-
-            count = (uint64_t)(page - begin);
-            const struct range range = range_create(start_index, count);
-
-            bitmap_set_range(&memmap->used_pages_bitmap, range, /*value=*/true);
-        } else {
-            for (; page != end; page++) {
-                if (page->state == PAGE_STATE_NOT_USABLE) {
-                    break;
-                }
-            }
-
-            count = (uint64_t)(page - begin);
-        }
-
-        start_index += count;
-    }
-}
-
 void
 set_section_for_pages(const struct mm_section *const memmap,
                       const page_section_t section)
@@ -756,44 +722,6 @@ void mm_early_post_arch_init() {
     uint64_t number = 0;
     for (__auto_type section = begin; section != end; section++, number++) {
         set_section_for_pages(section, /*section=*/number);
-    }
-
-    for (__auto_type section = begin; section != end; section++) {
-        const uint64_t alloc_page_count =
-            div_round_up(PAGE_COUNT(section->range.size),
-                         bytes_to_bits(PAGE_SIZE));
-
-        const uint64_t bitmap_pages_phys =
-            early_alloc_multiple_pages(alloc_page_count);
-        section->used_pages_bitmap =
-            bitmap_open(phys_to_virt(bitmap_pages_phys),
-                        alloc_page_count * PAGE_SIZE);
-
-        mark_used_pages_for_bitmap(section);
-    }
-
-    for (__auto_type section = begin; section != end; section++) {
-        void *const bitmap_begin = section->used_pages_bitmap.gbuffer.begin;
-        const void *const bitmap_end = section->used_pages_bitmap.gbuffer.end;
-
-        const uint64_t page_count =
-            PAGE_COUNT(distance(bitmap_begin, bitmap_end));
-
-        struct page *const bitmap_page = virt_to_page(bitmap_begin);
-        const struct page *bitmap_page_end = bitmap_page + page_count;
-
-        for (struct page *page = bitmap_page; page != bitmap_page_end; page++) {
-            page->state = PAGE_STATE_NOT_USABLE;
-        }
-
-        struct mm_section *const page_section = page_to_mm_section(bitmap_page);
-        const uint64_t start_index =
-            (virt_to_phys(bitmap_begin) -
-             page_section->range.front) >> PAGE_SHIFT;
-
-        bitmap_set_range(&page_section->used_pages_bitmap,
-                         range_create(start_index, page_count),
-                         /*value=*/true);
     }
 
     printk(LOGLEVEL_INFO, "mm: finished setting up structpage table\n");

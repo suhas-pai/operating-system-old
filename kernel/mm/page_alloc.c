@@ -70,23 +70,13 @@ setup_pages_off_freelist(struct page *const page,
                          const uint8_t order,
                          const enum page_state state)
 {
-    struct mm_section *const section = page_to_mm_section(page);
-
-    const uint64_t page_index = page_to_pfn(page) - section->pfn;
-    const uint64_t page_count = 1ull << order;
-
-    if (order != 0) {
-        const struct range set_range = range_create(page_index, page_count);
-        bitmap_set_range(&section->used_pages_bitmap, set_range, /*value=*/true);
-    } else {
-        bitmap_set(&section->used_pages_bitmap, page_index, /*value=*/true);
-    }
-
     switch (state) {
         case PAGE_STATE_NOT_USABLE:
             verify_not_reached();
         case PAGE_STATE_USED: {
+            const uint64_t page_count = 1ull << order;
             const struct page *const end = page + page_count;
+
             for (struct page *iter = page; iter != end; iter++) {
                 page_set_state(page, state);
             }
@@ -98,9 +88,10 @@ setup_pages_off_freelist(struct page *const page,
         case PAGE_STATE_LRU_CACHE:
             verify_not_reached();
         case PAGE_STATE_SLAB_HEAD: {
+            const uint64_t page_count = 1ull << order;
             const struct page *const end = page + page_count;
-            page_set_state(page, PAGE_STATE_SLAB_HEAD);
 
+            page_set_state(page, PAGE_STATE_SLAB_HEAD);
             for (struct page *iter = page + 1; iter != end; iter++) {
                 page_set_state(iter, PAGE_STATE_SLAB_TAIL);
                 iter->slab.tail.head = page;
@@ -114,9 +105,10 @@ setup_pages_off_freelist(struct page *const page,
             page_set_state(page, state);
             return;
         case PAGE_STATE_LARGE_HEAD: {
+            const uint64_t page_count = 1ull << order;
             const struct page *const end = page + page_count;
-            page_set_state(page, PAGE_STATE_LARGE_HEAD);
 
+            page_set_state(page, PAGE_STATE_LARGE_HEAD);
             for (struct page *iter = page + 1; iter != end; iter++) {
                 page_set_state(iter, PAGE_STATE_LARGE_TAIL);
                 refcount_init(&iter->largetail.refcount);
@@ -629,7 +621,7 @@ free_pages_to_zone(struct page *page, struct page_zone *zone, uint8_t order) {
     uint64_t page_pfn = page_to_pfn(page) - section_pfn;
 
     for (; order < MAX_ORDER - 1; order++) {
-        const uint64_t buddy_pfn = buddy_of(page_pfn, order);
+        uint64_t buddy_pfn = buddy_of(page_pfn, order);
         struct page *buddy = pfn_to_page(section_pfn + buddy_pfn);
 
         if (__builtin_expect((uint64_t)buddy >= PAGE_END, 0)) {
@@ -637,8 +629,8 @@ free_pages_to_zone(struct page *page, struct page_zone *zone, uint8_t order) {
         }
 
         const enum page_state buddy_state = page_get_state(buddy);
-        if (buddy_state == PAGE_STATE_FREE_LIST_HEAD ||
-            buddy_state == PAGE_STATE_FREE_LIST_TAIL)
+        if (buddy_state != PAGE_STATE_FREE_LIST_HEAD &&
+            buddy_state != PAGE_STATE_FREE_LIST_TAIL)
         {
             break;
         }
@@ -658,9 +650,12 @@ free_pages_to_zone(struct page *page, struct page_zone *zone, uint8_t order) {
             break;
         }
 
-        struct page_freelist *const freelist = &zone->freelist_list[order];
-        take_off_freelist(zone, freelist, buddy);
+        if (buddy_state == PAGE_STATE_FREE_LIST_TAIL) {
+            buddy_pfn -= (uint64_t)(buddy - buddy->freelist_tail.head);
+            buddy = buddy->freelist_tail.head;
+        }
 
+        take_off_freelist(zone, &zone->freelist_list[order], buddy);
         if (buddy_pfn < page_pfn) {
             page = buddy;
             page_pfn = buddy_pfn;
@@ -669,16 +664,6 @@ free_pages_to_zone(struct page *page, struct page_zone *zone, uint8_t order) {
 
     add_to_freelist(zone, &zone->freelist_list[order], page);
     section = page_to_mm_section(page);
-
-    const uint64_t page_index = page_to_pfn(page) - section->pfn;
-    if (order != 0) {
-        const struct range set_range = range_create(page_index, 1ull << order);
-        bitmap_set_range(&section->used_pages_bitmap,
-                         set_range,
-                         /*value=*/false);
-    } else {
-        bitmap_set(&section->used_pages_bitmap, page_index, /*value=*/false);
-    }
 
     page->freelist_head.order = order;
     spin_release_with_irq(&zone->lock, flag);
@@ -754,15 +739,6 @@ void free_large_page_to_zone(struct page *head, struct page_zone *const zone) {
 
         page = iter + 1;
     }
-
-    struct mm_section *const section = page_to_mm_section(head);
-
-    const uint64_t page_index = page_to_pfn(head) - section->pfn;
-    const struct range set_range = range_create(page_index, page_count);
-
-    bitmap_set_range(&section->used_pages_bitmap,
-                     set_range,
-                     /*value=*/false);
 
     spin_release_with_irq(&zone->lock, flag);
 }
