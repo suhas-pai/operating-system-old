@@ -94,19 +94,19 @@
          name != ((arr) + countof(arr)); \
          name++)
 
-#define swap(a, b) ({      \
+#define swap(a, b) ({ \
     const __auto_type __tmp = b; \
     b = a;                 \
     a = __tmp;             \
 })
 
-#define max(a, b) ({       \
+#define max(a, b) ({ \
     const __auto_type __a = (a); \
     const __auto_type __b = (b); \
     __a > __b ? __a : __b; \
 })
 
-#define min(a, b) ({       \
+#define min(a, b) ({ \
     const __auto_type __a = (a); \
     const __auto_type __b = (b); \
     __a < __b ? __a : __b; \

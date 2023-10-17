@@ -20,10 +20,27 @@ struct strftime_modifiers {
     bool swap_letter_case : 1;
 };
 
+#define STRFTIME_MODIFIERS_INIT() \
+    ((struct strftime_modifiers) {\
+        .locale_alt_repr = false, \
+        .locale_alt_numeric = false, \
+        .pad_spaces_to_number = false, \
+        .dont_pad_number = false, \
+        .pad_zeros = false, \
+        .capitalize_letters = false, \
+        .swap_letter_case = false \
+    })
+
 struct strftime_spec_info {
     char spec;
     struct strftime_modifiers mods;
 };
+
+#define STRFTIME_SPEC_INFO_INIT() \
+    ((struct strftime_spec_info){ \
+        .spec = '\0', \
+        .mods = STRFTIME_MODIFIERS_INIT() \
+    })
 
 typedef uint64_t
 (*parse_strftime_sv_callback)(const struct strftime_spec_info *spec_info,

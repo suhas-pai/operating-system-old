@@ -162,7 +162,7 @@ struct virtio_pci_isr_cfg_cap {
      * interrupt.
      */
 
-    uint8_t data[];
+    volatile uint8_t data[];
 } __packed;
 
 enum virtio_device_status {

@@ -131,6 +131,11 @@ bool range_get_end(const struct range range, uint64_t *const end_out) {
     return check_add(range.front, range.size, end_out);
 }
 
+__optimize(3) bool range_overflows(const struct range range) {
+    uint64_t result = 0;
+    return !check_add(range.front, range.size, &result);
+}
+
 __optimize(3)
 bool range_above(const struct range range, const struct range above) {
     return range_is_loc_above(range, above.front);

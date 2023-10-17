@@ -33,16 +33,16 @@ enum exception {
     EXCEPTION_DIVIDE_BY_ZERO,
     EXCEPTION_DEBUG,
 
-    // NMI = Non-Maskable Interrupt */
+    // NMI = Non-Maskable Interrupt
     EXCEPTION_NMI,
 
-    // Breakpoint = Debug Trap */
+    // Breakpoint = Debug Trap
     EXCEPTION_BREAKPOINT,
 
-    // Overflow = Arithmetic Overflow */
+    // Overflow = Arithmetic Overflow
     EXCEPTION_OVERFLOW,
 
-    // Bound = Array Bounds Exceeded. For BOUND instruction */
+    // Bound = Array Bounds Exceeded. For BOUND instruction
     EXCEPTION_BOUND,
 
     EXCEPTION_INVALID_OPCODE,
@@ -57,7 +57,7 @@ enum exception {
     EXCEPTION_GENERAL_PROTECTION_FAULT,
     EXCEPTION_PAGE_FAULT,
 
-    // 15 = Reserved */
+    // 15 = Reserved
 
     EXCEPTION_FPU_FAULT = 16,
     EXCEPTION_ALIGNMENT_CHECK,
@@ -66,7 +66,7 @@ enum exception {
     EXCEPTION_VIRTUALIZATION_EXCEPTION,
     EXCEPTION_CONTROL_PROTECTION_EXCEPTION,
 
-    // 22-27 = Reserved */
+    // 22-27 = Reserved
     EXCEPTION_HYPERVISOR_EXCEPTION = 28,
     EXCEPTION_VMM_EXCEPTION,
     EXCEPTION_SECURITY_EXCEPTION,

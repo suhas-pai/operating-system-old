@@ -280,6 +280,32 @@ handle_spec(struct printf_spec_info *const curr_spec,
     switch (curr_spec->spec) {
         case '\0':
             return E_HANDLE_SPEC_REACHED_END;
+        case 'b':
+            if (curr_spec->length_sv.length == 0) {
+                number = (uint64_t)va_arg(list_struct->list, unsigned);
+                *is_zero_out = number == 0;
+            }
+
+            *parsed_out =
+                unsigned_to_string_view(number,
+                                        NUMERIC_BASE_2,
+                                        buffer,
+                                        NUM_TO_STR_OPTIONS_INIT());
+            break;
+        case 'B':
+            if (curr_spec->length_sv.length == 0) {
+                number = (uint64_t)va_arg(list_struct->list, unsigned);
+                *is_zero_out = number == 0;
+            }
+
+            *parsed_out =
+                unsigned_to_string_view(number,
+                                        NUMERIC_BASE_2,
+                                        buffer,
+                                        (struct num_to_str_options){
+                                          .capitalize = true
+                                        });
+            break;
         case 'd':
         case 'i':
             if (curr_spec->length_sv.length == 0) {
@@ -306,7 +332,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                 unsigned_to_string_view(number,
                                         NUMERIC_BASE_10,
                                         buffer,
-                                        (struct num_to_str_options){0});
+                                        NUM_TO_STR_OPTIONS_INIT());
             break;
         case 'o':
             if (curr_spec->length_sv.length == 0) {
@@ -318,7 +344,7 @@ handle_spec(struct printf_spec_info *const curr_spec,
                 unsigned_to_string_view(number,
                                         NUMERIC_BASE_8,
                                         buffer,
-                                        (struct num_to_str_options){0});
+                                        NUM_TO_STR_OPTIONS_INIT());
             break;
         case 'x':
             if (curr_spec->length_sv.length == 0) {
@@ -330,24 +356,22 @@ handle_spec(struct printf_spec_info *const curr_spec,
                 unsigned_to_string_view(number,
                                         NUMERIC_BASE_16,
                                         buffer,
-                                        (struct num_to_str_options){0});
+                                        NUM_TO_STR_OPTIONS_INIT());
             break;
-        case 'X': {
+        case 'X':
             if (curr_spec->length_sv.length == 0) {
                 number = va_arg(list_struct->list, unsigned);
                 *is_zero_out = number == 0;
             }
 
-            const struct num_to_str_options options =
-                (struct num_to_str_options){ .capitalize = true };
-
             *parsed_out =
                 unsigned_to_string_view(number,
                                         NUMERIC_BASE_16,
                                         buffer,
-                                        options);
+                                        (struct num_to_str_options){
+                                            .capitalize = true
+                                        });
             break;
-        }
         case 'c':
             buffer[0] = (char)va_arg(list_struct->list, int);
             *parsed_out = sv_create_nocheck(buffer, 1);
@@ -457,6 +481,8 @@ handle_spec(struct printf_spec_info *const curr_spec,
 
 __optimize(3) static inline bool is_int_specifier(const char spec) {
     switch (spec) {
+        case 'b':
+        case 'B':
         case 'd':
         case 'i':
         case 'o':
@@ -483,6 +509,12 @@ write_prefix_for_spec(struct printf_spec_info *const info,
     }
 
     switch (info->spec) {
+        case 'b':
+            out += write_sv_cb(info, sv_cb_info, SV_STATIC("0b"), cont_out);
+            break;
+        case 'B':
+            out += write_sv_cb(info, sv_cb_info, SV_STATIC("0B"), cont_out);
+            break;
         case 'o':
             out += write_ch_cb(info, ch_cb_info, '0', 1, cont_out);
             break;

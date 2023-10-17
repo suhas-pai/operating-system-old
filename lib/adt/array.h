@@ -21,8 +21,8 @@ struct array {
     const type *const VAR_CONCAT(__end__, __LINE__) =                          \
         VAR_CONCAT(__begin__, __LINE__) + array_item_count(*(array));          \
     for (type *item = VAR_CONCAT(__begin__, __LINE__);                         \
-         item < VAR_CONCAT(__end__, __LINE__);                                 \
-         item = (type *)((uint64_t)item + (array)->object_size))
+         item != VAR_CONCAT(__end__, __LINE__);                                \
+         item++)
 
 #define ARRAY_INIT(size) \
     ((struct array){ .gbuffer = GBUFFER_INIT(), .object_size = (size)})

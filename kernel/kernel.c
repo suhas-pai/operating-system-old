@@ -45,6 +45,7 @@ void test_alloc_largepage() {
                (void *)page_to_phys(largepage));
 
         free_large_page(largepage);
+        printk(LOGLEVEL_INFO, "kernel: freed largepage\n");
     } else {
         printk(LOGLEVEL_WARN, "kernel: failed to allocate a 1gib page\n");
     }

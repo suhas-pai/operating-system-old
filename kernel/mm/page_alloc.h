@@ -56,3 +56,5 @@ void
 free_pages_to_zone(struct page *page,
                    struct page_zone *zone,
                    uint8_t order);
+
+struct page *alloc_table();

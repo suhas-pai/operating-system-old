@@ -43,7 +43,8 @@ slab_allocator_init(struct slab_allocator *const slab_alloc,
     uint16_t order = 0;
     const uint8_t min_obj_per_slab = 4;
 
-    for (; (PAGE_SIZE << order) < (object_size * min_obj_per_slab); order++) {}
+    const uint64_t min_size_for_slab = object_size * min_obj_per_slab;
+    for (; (PAGE_SIZE << order) < min_size_for_slab; order++) {}
 
     slab_alloc->slab_order = order;
     slab_alloc->object_count_per_slab = (PAGE_SIZE << order) / object_size;
@@ -62,7 +63,6 @@ static struct page *alloc_slab_page(struct slab_allocator *const alloc) {
     const struct page *const end = head + ((1 << alloc->slab_order) - 1);
     for (struct page *page = head + 1; page < end; page++) {
         page->slab.allocator = alloc;
-        page->slab.tail.head = head;
     }
 
     list_add(&alloc->slab_head_list, &head->slab.head.slab_list);

@@ -95,6 +95,10 @@ finish_split_info(struct pt_walker *const walker,
                   const uint64_t virt,
                   const struct pgmap_options *const options)
 {
+    if (!curr_split->is_active) {
+        return;
+    }
+
     const uint64_t virt_end =
         check_add_assert(curr_split->virt_addr, curr_split->phys_range.size);
 
@@ -155,16 +159,13 @@ override_pte(struct pt_walker *const walker,
         pte_t *const pte =
             &walker->tables[level - 1][walker->indices[level - 1]];
 
-        //const pte_t entry = pte_read(pte);
-        pte_write(pte, new_pte_value);
-        (void)pageop;
+        const pte_t entry = pte_read(pte);
 
-        /*
-        free_table_at_pte(walker,
-                          pageop,
-                          entry,
-                          level,
-                          options->free_pages);*/
+        pte_write(pte, new_pte_value);
+        pageop_flush_pte_in_current_range(pageop,
+                                          entry,
+                                          level,
+                                          options->free_pages);
 
         return OVERRIDE_OK;
     }
@@ -1073,7 +1074,7 @@ pgunmap_at(struct pagemap *const pagemap,
         const uint64_t page_size = PAGE_SIZE_AT_LEVEL(level);
         offset += page_size;
 
-        if (offset >= virt_range.size) {
+        if (offset == virt_range.size) {
             break;
         }
 

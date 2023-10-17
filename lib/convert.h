@@ -102,6 +102,15 @@ struct num_to_str_options {
     bool use_0_octal_prefix : 1;
 };
 
+#define NUM_TO_STR_OPTIONS_INIT() \
+    ((struct num_to_str_options){ \
+        .include_prefix = false, \
+        .include_pos_sign = false, \
+        .capitalize = false, \
+        .capitalize_prefix = false, \
+        .use_0_octal_prefix = false \
+    })
+
 struct string_view
 unsigned_to_string_view(uint64_t number,
                         enum numeric_base base,

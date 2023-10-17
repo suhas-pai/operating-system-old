@@ -138,7 +138,3 @@ void pageop_finish(struct pageop *const pageop) {
 
     pageop->flush_range = RANGE_EMPTY();
 }
-
-struct page *alloc_table() {
-    return alloc_page(PAGE_STATE_TABLE, __ALLOC_ZERO);
-}

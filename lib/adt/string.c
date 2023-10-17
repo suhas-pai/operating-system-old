@@ -27,18 +27,15 @@ struct string string_create() {
     return (struct string){ .gbuffer = GBUFFER_INIT() };
 }
 
-struct string string_create_alloc(const struct string_view sv) {
-    struct string result = { .gbuffer = gbuffer_alloc(sv.length + 1) };
-    if (result.gbuffer.begin != NULL) {
-        memcpy(result.gbuffer.begin, sv.begin, sv.length);
-        set_null_terminator(&result);
-    }
-
-    return result;
-}
-
 static bool prepare_append(struct string *const string, const uint32_t length) {
     return gbuffer_ensure_can_add_capacity(&string->gbuffer, length + 1);
+}
+
+struct string string_alloc(const struct string_view sv) {
+    struct string result = string_create();
+    string_append_sv(&result, sv);
+
+    return result;
 }
 
 struct string *

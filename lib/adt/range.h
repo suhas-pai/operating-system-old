@@ -59,6 +59,8 @@ bool range_has_loc(struct range range, uint64_t loc);
 bool range_has_end(struct range range, uint64_t loc);
 bool range_get_end(struct range range, uint64_t *end_out);
 
+bool range_overflows(struct range range);
+
 bool range_above(struct range range, struct range above);
 bool range_below(struct range range, struct range below);
 bool range_empty(struct range range);

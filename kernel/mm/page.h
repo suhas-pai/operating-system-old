@@ -12,16 +12,22 @@
 #include "mm_types.h"
 
 enum page_state {
-    PAGE_STATE_USED,
+    PAGE_STATE_FREE_LIST_TAIL,
+    PAGE_STATE_FREE_LIST_HEAD,
+
     PAGE_STATE_NOT_USABLE,
 
-    PAGE_STATE_FREE_LIST,
     PAGE_STATE_LRU_CACHE,
     PAGE_STATE_SLAB_HEAD,
+    PAGE_STATE_SLAB_TAIL,
     PAGE_STATE_TABLE,
     PAGE_STATE_LARGE_HEAD,
     PAGE_STATE_LARGE_TAIL,
+
+    PAGE_STATE_USED,
 };
+
+typedef uint8_t page_section_t;
 
 struct page {
     _Atomic uint32_t flags;
@@ -34,7 +40,10 @@ struct page {
         struct {
             struct list freelist;
             uint8_t order;
-        } buddy;
+        } freelist_head;
+        struct {
+            struct page *head;
+        } freelist_tail;
         struct {
             union {
                 struct list lru;
@@ -98,4 +107,3 @@ enum page_state page_get_state(const struct page *page);
 void page_set_state(struct page *page, enum page_state state);
 
 struct mm_section *page_to_mm_section(const struct page *page);
-struct page *alloc_table();

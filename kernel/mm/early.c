@@ -377,6 +377,13 @@ static void init_table_page(struct page *const page) {
 
 void
 mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
+#if defined(__aarch64__)
+    init_table_page(virt_to_page(kernel_pagemap.lower_root));
+    init_table_page(virt_to_page(kernel_pagemap.higher_root));
+#else
+    init_table_page(virt_to_page(kernel_pagemap.root));
+#endif
+
     struct pt_walker walker;
     ptwalker_create(&walker,
                     virt_addr,
@@ -714,13 +721,6 @@ static uint64_t free_all_pages() {
 }
 
 void mm_early_post_arch_init() {
-#if defined(__aarch64__)
-    init_table_page(virt_to_page(kernel_pagemap.lower_root));
-    init_table_page(virt_to_page(kernel_pagemap.higher_root));
-#else
-    init_table_page(virt_to_page(kernel_pagemap.root));
-#endif
-
     // Claim bootloader-reclaimable memmaps now that we've switched to our own
     // pagemap.
     // FIXME: Avoid claiming thees pages until we setup our own stack.

@@ -12,12 +12,12 @@ struct string {
     struct growable_buffer gbuffer;
 };
 
-#define STRUCT_STRING(cstr) string_create_alloc(cstr, LEN_OF(cstr))
+#define STRUCT_STRING(cstr) string_alloc(cstr, LEN_OF(cstr))
 #define STRING_FMT SV_FMT
 #define STRING_FMT_ARGS(string) SV_FMT_ARGS(string_to_sv(string))
 
 struct string string_create();
-struct string string_create_alloc(struct string_view sv);
+struct string string_alloc(struct string_view sv);
 
 struct string *string_append_char(struct string *string, char ch, uint32_t amt);
 struct string *string_append_sv(struct string *string, struct string_view sv);

@@ -679,33 +679,33 @@ strtoul(const char *const str, char **const endptr, const int base) {
             options.dont_allow_base_8 = true;
             options.dont_allow_base_10 = true;
             options.dont_allow_base_16 = true;
-            options.dont_allow_0o_prefix = true;
-            options.dont_allow_0X_prefix = true;
-            options.dont_allow_0x_prefix = true;
+
+            options.dont_allow_0b_prefix = false;
+            options.dont_allow_0B_prefix = false;
 
             break;
         case 8:
             options.dont_allow_base_2 = true;
             options.dont_allow_base_10 = true;
             options.dont_allow_base_16 = true;
-            options.dont_allow_0X_prefix = true;
-            options.dont_allow_0x_prefix = true;
+
+            options.dont_allow_0o_prefix = false;
+            options.dont_allow_0_prefix = false;
 
             break;
         case 10:
             options.dont_allow_base_2 = true;
             options.dont_allow_base_8 = true;
             options.dont_allow_base_16 = true;
-            options.dont_allow_0o_prefix = true;
-            options.dont_allow_0X_prefix = true;
-            options.dont_allow_0x_prefix = true;
 
             break;
         case 16:
             options.dont_allow_base_2 = true;
             options.dont_allow_base_8 = true;
             options.dont_allow_base_10 = true;
-            options.dont_allow_0o_prefix = true;
+
+            options.dont_allow_0x_prefix = false;
+            options.dont_allow_0X_prefix = false;
 
             break;
         default:
@@ -713,9 +713,6 @@ strtoul(const char *const str, char **const endptr, const int base) {
             options.dont_allow_base_8 = true;
             options.dont_allow_base_10 = true;
             options.dont_allow_base_16 = true;
-            options.dont_allow_0X_prefix = true;
-            options.dont_allow_0x_prefix = true;
-            options.dont_allow_0o_prefix = true;
 
             break;
     }

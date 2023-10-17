@@ -27,7 +27,6 @@ uint64_t phys_to_pfn(uint64_t phys);
 uint64_t page_to_phys(const struct page *page);
 
 struct page;
-typedef uint8_t page_section_t;
 
 #define pfn_to_phys(pfn) page_to_phys(pfn_to_page(pfn))
 #define pfn_to_page(pfn) \

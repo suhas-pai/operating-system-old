@@ -10,7 +10,6 @@
 #include "lib/align.h"
 
 #include "cpu.h"
-#include "mm_types.h"
 #include "page_alloc.h"
 
 #include "walker.h"
@@ -317,10 +316,6 @@ ptwalker_next_with_options(struct pt_walker *const walker,
     if (__builtin_expect(walker->level > level || level > walker->top_level, 0))
     {
         return E_PT_WALKER_BAD_INCR;
-    }
-
-    if (walker->level < level) {
-        reset_levels_lower_than(walker, level);
     }
 
     pgt_index_t *indices_ptr = &walker->indices[level - 1];
