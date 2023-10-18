@@ -807,7 +807,7 @@ pci_add_pcie_domain(struct range bus_range,
 
     if (domain->mmio == NULL) {
         printk(LOGLEVEL_WARN,
-               "pcie: failed to mmio-map pci-domain config-space");
+               "pcie: failed to mmio-map pci-domain config-space\n");
 
         return NULL;
     }

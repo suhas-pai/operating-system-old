@@ -8,6 +8,8 @@
 #include "mm/memmap.h"
 #include "mm/section.h"
 
+#include "time/kstrftime.h"
+
 #include "boot.h"
 #include "limine.h"
 
@@ -208,7 +210,10 @@ void boot_init() {
     }
 
     boot_time = boot_time_request.response->boot_time;
-    printk(LOGLEVEL_INFO, "boot: boot timestamp is %" PRIu64 "\n", boot_time);
+    printk(LOGLEVEL_INFO, "boot: boot timestamp is %" PRIu64 ": ", boot_time);
+
+    struct tm tm = tm_from_stamp((uint64_t)boot_time);
+    printk_strftime("%c\n", &tm);
 }
 
 void boot_merge_usable_memmaps() {

@@ -3,7 +3,9 @@
  * © suhas pai
  */
 
+#include "dev/printk.h"
 #include "lib/parse_strftime.h"
+
 #include "kstrftime.h"
 
 static uint64_t
@@ -30,4 +32,25 @@ struct string kstrftime(const char *const format, const struct tm *const tm) {
                           tm);
 
     return string;
+}
+
+static uint64_t
+time_print_format_callback(const struct strftime_spec_info *const spec_info,
+                           void *const cb_info,
+                           const struct string_view sv,
+                           bool *const should_cont_out)
+{
+    (void)spec_info;
+    (void)cb_info;
+    (void)should_cont_out;
+
+    putk_sv(sv);
+    return sv.length;
+}
+
+void printk_strftime(const char *const format, const struct tm *const tm) {
+    parse_strftime_format(time_print_format_callback,
+                          /*sv_cb_info=*/NULL,
+                          format,
+                          tm);
 }

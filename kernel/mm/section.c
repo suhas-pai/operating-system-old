@@ -22,8 +22,7 @@ __optimize(3) uint64_t phys_to_pfn(const uint64_t phys) {
 }
 
 __optimize(3) uint64_t page_to_phys(const struct page *const page) {
-    const struct mm_section *const memmap =
-        &mm_get_usable_list()[page->section];
+    const struct mm_section *const memmap = page_to_mm_section(page);
 
     const uint64_t page_pfn = page_to_pfn(page);
     const uint64_t relative_pfn = check_sub_assert(page_pfn, memmap->pfn);

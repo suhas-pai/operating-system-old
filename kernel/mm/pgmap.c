@@ -12,7 +12,7 @@
 
 #include "pgmap.h"
 
-static uint64_t
+__optimize(3) static uint64_t
 ptwalker_early_alloc_pgtable_cb(struct pt_walker *const walker,
                                 void *const cb_info)
 {
@@ -863,8 +863,7 @@ pgmap_at(struct pagemap *const pagemap,
         return false;
     }
 
-    uint64_t phys_end = 0;
-    if (!range_get_end(phys_range, &phys_end)) {
+    if (range_overflows(phys_range)) {
         printk(LOGLEVEL_WARN,
                "pgmap_at(): phys-range goes beyond end of address-space\n");
         return false;

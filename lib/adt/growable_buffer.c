@@ -94,11 +94,13 @@ __optimize(3) void *gbuffer_current_ptr(const struct growable_buffer gbuffer) {
 __optimize(3) void *
 gbuffer_at(const struct growable_buffer gbuffer, const uint32_t byte_index) {
     void *const result = gbuffer.begin + byte_index;
-    assert_msg(index_in_bounds(byte_index, gbuffer_capacity(gbuffer)),
-               "gbuffer: Attempting to access past end of buffer, at "
-               "byte-index: %"
-               PRIu32,
-               byte_index);
+    const uint32_t capacity = gbuffer_capacity(gbuffer);
+
+    assert_msg(index_in_bounds(byte_index, capacity),
+               "gbuffer: attempting to access past end of buffer, at "
+               "byte-index: %" PRIu32 ", end: %" PRIu32 "\n",
+               byte_index,
+               capacity);
 
     return result;
 }

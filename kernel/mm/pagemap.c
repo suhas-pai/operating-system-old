@@ -136,7 +136,7 @@ void switch_to_pagemap(struct pagemap *const pagemap) {
 
     const int flag = spin_acquire_with_irq(&pagemap->cpu_lock);
 
-    list_delete(&get_cpu_info_mut()->pagemap_node);
+    list_remove(&get_cpu_info_mut()->pagemap_node);
     list_add(&pagemap->cpu_list, &get_cpu_info_mut()->pagemap_node);
 
     get_cpu_info_mut()->pagemap = pagemap;

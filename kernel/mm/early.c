@@ -129,7 +129,7 @@ static void claim_pages(const struct mm_memmap *const memmap) {
     add_to_asc_list(info);
 }
 
-uint64_t early_alloc_page() {
+__optimize(3) uint64_t early_alloc_page() {
     if (__builtin_expect(list_empty(&g_asc_freelist), 0)) {
         printk(LOGLEVEL_ERROR, "mm: ran out of free-pages\n");
         return INVALID_PHYS;
@@ -156,7 +156,7 @@ uint64_t early_alloc_page() {
     return free_page;
 }
 
-uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
+__optimize(3) uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
     if (__builtin_expect(list_empty(&g_asc_freelist), 0)) {
         printk(LOGLEVEL_ERROR, "mm: ran out of free-pages\n");
         return INVALID_PHYS;
@@ -199,7 +199,7 @@ uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
     return free_page;
 }
 
-uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
+__optimize(3) uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
     if (__builtin_expect(list_empty(&g_asc_freelist), 0)) {
         printk(LOGLEVEL_ERROR, "mm: ran out of free-pages\n");
         return INVALID_PHYS;
@@ -370,12 +370,12 @@ void mm_early_init() {
            total_free_pages);
 }
 
-static void init_table_page(struct page *const page) {
+__optimize(3) static inline void init_table_page(struct page *const page) {
     list_init(&page->table.delayed_free_list);
     refcount_init(&page->table.refcount);
 }
 
-void
+__optimize(3) void
 mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
 #if defined(__aarch64__)
     init_table_page(virt_to_page(kernel_pagemap.lower_root));
@@ -472,7 +472,7 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
     }
 }
 
-void mark_used_pages(const struct mm_section *const memmap) {
+__optimize(3) void mark_used_pages(const struct mm_section *const memmap) {
     struct freepages_info *iter = NULL;
     list_foreach(iter, &g_freepage_list, list) {
         uint64_t iter_phys = virt_to_phys(iter);
@@ -488,7 +488,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
         struct page *const unusable_end = virt_to_page(iter);
 
         for (; page != unusable_end; page++) {
-            page->state = PAGE_STATE_NOT_USABLE;
+            page->state = PAGE_STATE_SYSTEM_CRUCIAL;
         }
 
         while (true) {
@@ -500,7 +500,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
                  i != iter->total_page_count;
                  i++, page++)
             {
-                page->state = PAGE_STATE_NOT_USABLE;
+                page->state = PAGE_STATE_SYSTEM_CRUCIAL;
             }
 
             iter = list_next(iter, list);
@@ -512,7 +512,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
                     start + PAGE_COUNT(memmap->range.size);
 
                 for (; page != memmap_end; page++) {
-                    page->state = PAGE_STATE_NOT_USABLE;
+                    page->state = PAGE_STATE_SYSTEM_CRUCIAL;
                 }
 
                 return;
@@ -527,7 +527,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
                     start + PAGE_COUNT(memmap->range.size);
 
                 for (; page != memmap_end; page++) {
-                    page->state = PAGE_STATE_NOT_USABLE;
+                    page->state = PAGE_STATE_SYSTEM_CRUCIAL;
                 }
 
                 return;
@@ -538,7 +538,7 @@ void mark_used_pages(const struct mm_section *const memmap) {
 
             struct page *const end = phys_to_page(iter_phys);
             for (; page != end; page++) {
-                page->state = PAGE_STATE_NOT_USABLE;
+                page->state = PAGE_STATE_SYSTEM_CRUCIAL;
             }
         }
     }
@@ -550,23 +550,11 @@ void mark_used_pages(const struct mm_section *const memmap) {
     struct page *page = phys_to_page(memmap->range.front);
 
     for (uint64_t i = 0; i != memmap_page_count; i++, page++) {
-        page->state = PAGE_STATE_NOT_USABLE;
+        page->state = PAGE_STATE_SYSTEM_CRUCIAL;
     }
 }
 
-void mark_last_part_of_structpage_table() {
-    const struct mm_section *const last_section =
-        &mm_get_usable_list()[mm_get_usable_count() - 1];
-    struct page *page =
-        pfn_to_page(last_section->pfn + PAGE_COUNT(last_section->range.size));
-
-    const struct page *const end = (struct page *)PAGE_END;
-    for (; page + sizeof(*page) <= end; page++) {
-        page->state = PAGE_STATE_NOT_USABLE;
-    }
-}
-
-void
+__optimize(3) void
 set_section_for_pages(const struct mm_section *const memmap,
                       const page_section_t section)
 {
@@ -587,8 +575,7 @@ set_section_for_pages(const struct mm_section *const memmap,
     }
 }
 
-static uint64_t free_all_pages() {
-    // TODO: Claim acpi-reclaimable pages
+__optimize(3) static uint64_t free_all_pages() {
     struct freepages_info *iter = NULL;
     struct freepages_info *tmp = NULL;
 
@@ -703,7 +690,7 @@ void mm_early_post_arch_init() {
     //  1. Iterate to mark used-pages first. This must be done first because
     //     it needs to be done before memmaps are merged, as before the merge,
     //     its obvious which pages are used.
-    //  2. Set the section mask in page->flags.
+    //  2. Set the section field in page->flags.
 
     struct mm_section *const begin = mm_get_usable_list();
     const struct mm_section *const end = begin + mm_get_usable_count();
@@ -712,7 +699,6 @@ void mm_early_post_arch_init() {
         mark_used_pages(section);
     }
 
-    mark_last_part_of_structpage_table();
     boot_merge_usable_memmaps();
 
     uint64_t number = 0;

@@ -16,8 +16,7 @@
 
 void arch_init_dev() {
     const struct acpi_fadt *const fadt = get_acpi_info()->fadt;
-    if (fadt != NULL &&
-        (fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042) != 0)
+    if (fadt != NULL && fadt->iapc_boot_arch_flags & __ACPI_FADT_IAPC_BOOT_8042)
     {
         ps2_init();
     } else {

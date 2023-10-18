@@ -31,7 +31,9 @@ struct page;
 struct page_zone *page_to_zone(const struct page *page);
 struct page_zone *phys_to_zone(uint64_t phys);
 
+struct page_zone *page_zone_default();
 struct page_zone *page_zone_low4g();
+
 #define for_each_page_zone(zone) \
     for (__auto_type zone = page_zone_iterstart(); \
          zone != NULL;                             \

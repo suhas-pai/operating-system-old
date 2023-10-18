@@ -88,7 +88,7 @@ enum pte_flags {
     __PTE_PCD      = 1ull << 4,
     __PTE_WC       = __PTE_PWT | __PTE_PCD,
     __PTE_ACCESSED = 1ull << 5,
-    __PTE_DIRTY    = 1ull << 6, // Only valid of PML1 pages and large pages
+    __PTE_DIRTY    = 1ull << 6, // Only valid on PML1 pages and large pages
     __PTE_LARGE    = 1ull << 7, // Not valid on PML1 pages
     __PTE_GLOBAL   = 1ull << 8,
 

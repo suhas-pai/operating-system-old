@@ -57,6 +57,10 @@ struct page_zone *page_zone_iternext(struct page_zone *const zone) {
     return zone->fallback_zone;
 }
 
+__optimize(3) struct page_zone *page_zone_default() {
+    return &zone_default;
+}
+
 __optimize(3) struct page_zone *page_zone_low4g() {
     return &zone_low4g;
 }
