@@ -18,17 +18,23 @@ struct slab_allocator {
     // holding the lock.
     uint32_t object_size;
     uint32_t object_count_per_slab;
-    uint16_t slab_order;
     uint32_t alloc_flags;
+    uint16_t slab_order;
+    uint16_t flags;
 
     uint32_t free_obj_count;
     uint32_t slab_count;
 };
 
+enum slab_allocator_flags {
+    __SLAB_ALLOC_NO_LOCK = 1ull << 0
+};
+
 bool
 slab_allocator_init(struct slab_allocator *allocator,
                     uint32_t object_size,
-                    uint32_t alloc_flags);
+                    uint32_t alloc_flags,
+                    uint16_t flags);
 
 void slab_free(void *buffer);
 

@@ -8,7 +8,6 @@
 #include "dev/printk.h"
 #include "lib/align.h"
 
-#include "alloc.h"
 #include "page.h"
 #include "zone.h"
 

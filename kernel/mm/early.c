@@ -6,7 +6,6 @@
 #include "dev/printk.h"
 #include "lib/align.h"
 
-#include "alloc.h"
 #include "boot.h"
 #include "early.h"
 
@@ -722,5 +721,4 @@ void mm_early_post_arch_init() {
            free_page_count);
 
     kmalloc_init();
-    mm_alloc_init();
 }

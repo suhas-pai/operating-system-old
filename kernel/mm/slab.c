@@ -22,7 +22,8 @@ struct free_slab_object {
 bool
 slab_allocator_init(struct slab_allocator *const slab_alloc,
                     uint32_t object_size_arg,
-                    const uint32_t alloc_flags)
+                    const uint32_t alloc_flags,
+                    const uint16_t flags)
 {
     uint64_t object_size = object_size_arg;
 
@@ -39,6 +40,7 @@ slab_allocator_init(struct slab_allocator *const slab_alloc,
     slab_alloc->object_size = object_size;
     slab_alloc->free_obj_count = 0;
     slab_alloc->alloc_flags = alloc_flags;
+    slab_alloc->flags = flags;
 
     uint16_t order = 0;
     const uint8_t min_obj_per_slab = 4;
@@ -114,9 +116,14 @@ get_free_ptr(struct page *const page, struct slab_allocator *const alloc) {
 }
 
 void *slab_alloc(struct slab_allocator *const alloc) {
-    const int flag = spin_acquire_with_irq(&alloc->lock);
-    struct page *page = NULL;
+    int flag = 0;
 
+    const bool needs_lock = (alloc->flags & __SLAB_ALLOC_NO_LOCK) == 0;
+    if (needs_lock) {
+        flag = spin_acquire_with_irq(&alloc->lock);
+    }
+
+    struct page *page = NULL;
     if (list_empty(&alloc->slab_head_list)) {
         page = alloc_slab_page(alloc);
         if (page == NULL) {
@@ -138,7 +145,10 @@ void *slab_alloc(struct slab_allocator *const alloc) {
     struct free_slab_object *const result = get_free_ptr(page, alloc);
     page->slab.head.first_free_index = result ? result->next : UINT32_MAX;
 
-    spin_release_with_irq(&alloc->lock, flag);
+    if (needs_lock) {
+        spin_release_with_irq(&alloc->lock, flag);
+    }
+
     return result;
 }
 
@@ -156,7 +166,13 @@ void slab_free(void *const mem) {
     struct slab_allocator *const alloc = head->slab.allocator;
 
     bzero(mem, alloc->object_size);
-    const int flag = spin_acquire_with_irq(&alloc->lock);
+
+    int flag = 0;
+    const bool needs_lock = (alloc->flags & __SLAB_ALLOC_NO_LOCK) == 0;
+
+    if (needs_lock) {
+        flag = spin_acquire_with_irq(&alloc->lock);
+    }
 
     alloc->free_obj_count += 1;
     head->slab.head.free_obj_count += 1;
@@ -185,7 +201,9 @@ void slab_free(void *const mem) {
     free_obj->next = head->slab.head.first_free_index;
     head->slab.head.first_free_index = get_free_index(head, alloc, mem);
 
-    spin_release_with_irq(&alloc->lock, flag);
+    if (needs_lock) {
+        spin_release_with_irq(&alloc->lock, flag);
+    }
 }
 
 __optimize(3) uint32_t slab_object_size(void *const mem) {
