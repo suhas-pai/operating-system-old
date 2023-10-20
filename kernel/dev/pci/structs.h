@@ -200,6 +200,37 @@ struct pci_spec_pci_to_pci_bridge_device_info {
     char data[4036];
 } __packed;
 
+struct pci_spec_pci_to_cardbus_bridge_device_info {
+    struct pci_spec_device_info_base base;
+
+    union {
+        uint32_t cardbus_socket;
+        uint32_t exca_base_address;
+    };
+
+    uint8_t capabilities_list_offset;
+    uint8_t reserved[1];
+    uint16_t secondary_status;
+    uint16_t pci_bus_number;
+    uint32_t cardbus_bus_number;
+    uint8_t subordinate_bus_number;
+    uint8_t cardbus_latency_timer;
+    uint32_t memory_base0;
+    uint32_t memory_limit0;
+    uint32_t memory_base1;
+    uint32_t memory_limit1;
+    uint32_t io_base0;
+    uint32_t io_limit0;
+    uint32_t io_base1;
+    uint32_t io_limit1;
+    uint8_t interrupt_line;
+    uint8_t interrupt_pin;
+    uint16_t bridge_control;
+    uint16_t subsystem_device_id;
+    uint16_t subsystem_vendor_id;
+    uint32_t legacy_base_address;
+} __packed;
+
 enum pci_spec_cap_id {
     PCI_SPEC_CAP_ID_NULL,
     PCI_SPEC_CAP_ID_POWER_MANAGEMENT,
@@ -284,33 +315,164 @@ struct pci_spec_cap_msix {
     uint32_t table_offset; // Lower 3 Bits are the BIR
 } __packed;
 
-struct pci_spec_pci_to_cardbus_bridge_device_info {
-    struct pci_spec_device_info_base base;
+enum pci_spec_cap_pcie_dev_port_kind {
+    PCI_SPEC_CAP_PCIE_DEVPORT_PCIE_ENDPOINT,
+    PCI_SPEC_CAP_PCIE_DEVPORT_LEGACY_PCIE_ENDPOINT,
+    PCI_SPEC_CAP_PCIE_DEVPORT_ROOT_PORT_PCIE_ROOT_COMPLEX = 4,
+    PCI_SPEC_CAP_PCIE_DEVPORT_UPSTREAM_PORT_PCIE_SWITCH,
+    PCI_SPEC_CAP_PCIE_DEVPORT_DOWNSTREAM_PORT_PCIE_SWITCH,
+    PCI_SPEC_CAP_PCIE_DEVPORT_PCIE_TO_PCI_PCIX_BRIDGE,
+    PCI_SPEC_CAP_PCIE_DEVPORT_ROOT_COMPLEX_INTEGRATED_ENDPOINT,
+    PCI_SPEC_CAP_PCIE_DEVPORT_ROOT_COMPLEX_EVENT_COLLECTOR,
+};
 
-    union {
-        uint32_t cardbus_socket;
-        uint32_t exca_base_address;
-    };
+enum pci_spec_cap_pcie_capability_shifts {
+    __PCIE_SPEC_CAP_PCIE_CAP_VERSION_SHIFT,
+    __PCIE_SPEC_CAP_PCIE_CAP_DEV_PORT_SHIFT = 4,
+    __PCIE_SPEC_CAP_PCIE_CAP_INT_MSG_NUM_SHIFT = 9
+};
 
-    uint8_t capabilities_list_offset;
-    uint8_t reserved[1];
-    uint16_t secondary_status;
-    uint16_t pci_bus_number;
-    uint32_t cardbus_bus_number;
-    uint8_t subordinate_bus_number;
-    uint8_t cardbus_latency_timer;
-    uint32_t memory_base0;
-    uint32_t memory_limit0;
-    uint32_t memory_base1;
-    uint32_t memory_limit1;
-    uint32_t io_base0;
-    uint32_t io_limit0;
-    uint32_t io_base1;
-    uint32_t io_limit1;
-    uint8_t interrupt_line;
-    uint8_t interrupt_pin;
-    uint16_t bridge_control;
-    uint16_t subsystem_device_id;
-    uint16_t subsystem_vendor_id;
-    uint32_t legacy_base_address;
+enum pci_spec_cap_pcie_capability_masks {
+    __PCIE_SPEC_CAP_PCIE_CAP_VERSION_MASK = 0b1111,
+    __PCIE_SPEC_CAP_PCIE_CAP_DEV_PORT_TYPE_MASK =
+        0b1111 << __PCIE_SPEC_CAP_PCIE_CAP_DEV_PORT_SHIFT,
+    __PCIE_SPEC_CAP_PCIE_CAP_INT_MSG_NUM_MASK =
+        0b1111 << __PCIE_SPEC_CAP_PCIE_CAP_DEV_PORT_SHIFT
+};
+
+enum pcie_spec_cap_pcie_capability_flags {
+    /*
+     * When Set, this bit indicates that the PCI Express Link associated with
+     * this Port is connected to a slot (as compared to being connected to an
+     * integrated component or being disabled)
+     */
+
+    __PCIE_SPEC_CAP_PCIE_CAP_SLOT_IMPLED = 1 << 8,
+
+    /*
+     * When Set, this bit indicates that the PCI Express Switch or Root Port
+     * supports routing of Trusted Configuration Requests. Switches that support
+     * routing of Trusted Configuration Requests must Set this bit on both
+     * upstream and downstream ports. Root Ports that support routing of Trusted
+     * Configuration Requests must also Set this bit.
+     *
+     * It is permitted for a Root Port to set this bit even if the TCAM is not
+     * available on the platform, in which case the Root Complex as a whole does
+     * not support generation of Trusted Configuration Requests.
+     *
+     * Implementing the TCS Routing Supported Capability bit in standard PCI
+     * Express Configuration Space allows software to determine whether a given
+     * Trusted Device’s TCS may be accessed, based on whether or not the Root
+     * Port and all intervening Switches properly route Trusted Configuration
+     * Requests.
+     *
+     * This mechanism is useful, for example, to facilitate troubleshooting in
+     * systems where the user has plugged a Trusted Device into a slot that is
+     * downstream of a Switch that doesn’t support TCS routing. Software could
+     * detect this condition, and assist the user in finding a suitable slot in
+     * which to plug in their Trusted Device.
+     */
+
+    __PCIE_SPEC_CAP_PCIE_CAP_TCS_ROUTING_SUPPORTED = 1 << 14
+};
+
+enum pci_spec_cap_pcie_devcap_max_payload_size {
+    PCI_SPEC_CAP_PCIE_DEVCAP_MAX_PAYLOAD_128B,
+    PCI_SPEC_CAP_PCIE_DEVCAP_MAX_PAYLOAD_256B,
+    PCI_SPEC_CAP_PCIE_DEVCAP_MAX_PAYLOAD_512B,
+
+    PCI_SPEC_CAP_PCIE_DEVCAP_MAX_PAYLOAD_1KiB,
+    PCI_SPEC_CAP_PCIE_DEVCAP_MAX_PAYLOAD_2KiB,
+    PCI_SPEC_CAP_PCIE_DEVCAP_MAX_PAYLOAD_4KiB,
+};
+
+enum pci_spec_cap_pcie_devcap_phantom_func_kind {
+    PCI_SPEC_CAP_PCIE_DEVCAP_PHANTOM_FUNC_NONE,
+
+    /*
+     * The most significant bit of the Function number in Requester ID is used
+     * for Phantom Functions; a multi-Function device is permitted to implement
+     * Functions 0-3.
+     * Functions 0, 1, 2, and 3 are permitted to use
+     * Function Numbers 4, 5, 6, and 7 respectively as Phantom Functions.
+     */
+
+    PCI_SPEC_CAP_PCIE_DEVCAP_PHANTOM_FUNC_MSB,
+
+    /*
+     * The two most significant bits of Function Number in Requester ID are used
+     * for Phantom Functions; a multi-Function device is permitted to implement
+     * Functions 0-1. Function 0 is permitted to use
+     * Function Numbers 2, 4, and 6 for Phantom
+     * Functions. Function 1 is permitted to use Function
+     * Numbers 3, 5, and 7 as Phantom Functions.
+     */
+
+    PCI_SPEC_CAP_PCIE_DEVCAP_PHANTOM_FUNC_2_MSB,
+
+    /*
+     * All 3 bits of Function Number in Requester ID used for Phantom Functions.
+     * The device must have a single Function 0 that is permitted to use all
+     * other Function Numbers as Phantom Functions.
+     */
+
+    PCI_SPEC_CAP_PCIE_DEVCAP_PHANTOM_FUNC_3,
+};
+
+enum pci_spec_cap_pcie_devcap_l0_acceptable_latency {
+    PCI_SPEC_CAP_PCIE_DEVCAP_L0_ACCEPTABLE_LATENCY_64NS_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L0_ACCEPTABLE_LATENCY_128NS_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L0_ACCEPTABLE_LATENCY_256NS_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L0_ACCEPTABLE_LATENCY_512NS_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L0_ACCEPTABLE_LATENCY_1US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L0_ACCEPTABLE_LATENCY_2US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L0_ACCEPTABLE_LATENCY_4US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L0_ACCEPTABLE_LATENCY_NO_LIMIT,
+};
+
+enum pci_spec_cap_pcie_devcap_l1_acceptable_latency {
+    PCI_SPEC_CAP_PCIE_DEVCAP_L1_ACCEPTABLE_LATENCY_1US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L1_ACCEPTABLE_LATENCY_2US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L1_ACCEPTABLE_LATENCY_4US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L1_ACCEPTABLE_LATENCY_8US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L1_ACCEPTABLE_LATENCY_16US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L1_ACCEPTABLE_LATENCY_32US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L1_ACCEPTABLE_LATENCY_64US_MAX,
+    PCI_SPEC_CAP_PCIE_DEVCAP_L1_ACCEPTABLE_LATENCY_NO_LIMIT,
+};
+
+enum pci_spec_cap_pcie_devcap_shifts {
+    __PCI_SPEC_CAP_PCIE_DEVCAP_MAX_PAYLOAD_SIZE_SHIFT,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_PHANTOM_FUNC_SHIFT = 3,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_ENDPOINT_L0_ACCEPTABLE_LATENCY_SHIFT = 6,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_ENDPOINT_L1_ACCEPTABLE_LATENCY_SHIFT = 9,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_CAPTURED_SLOT_PWR_LIMIT_SHIFT = 18
+};
+
+enum pci_spec_cap_pcie_devcap_masks {
+    __PCI_SPEC_CAP_PCIE_DEVCAP_MAX_PAYLOAD_SIZE_MASK = 0b111,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_PHANTOM_FUNC_MASK =
+        0b11 << __PCI_SPEC_CAP_PCIE_DEVCAP_PHANTOM_FUNC_SHIFT,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_ENDPOINT_L0_ACCEPTABLE_LATENCY =
+        0b111ull <<
+            __PCI_SPEC_CAP_PCIE_DEVCAP_ENDPOINT_L0_ACCEPTABLE_LATENCY_SHIFT,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_ENDPOINT_L1_ACCEPTABLE_LATENCY =
+        0b111ull <<
+            __PCI_SPEC_CAP_PCIE_DEVCAP_ENDPOINT_L1_ACCEPTABLE_LATENCY_SHIFT,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_CAPTURED_SLOT_PWR_LIMIT =
+        0xff << __PCI_SPEC_CAP_PCIE_DEVCAP_CAPTURED_SLOT_PWR_LIMIT_SHIFT,
+};
+
+enum pci_spec_cap_pcie_devcap_flags {
+    // 8-bit Tag field supported if set, otherwise 5-bit Tag field supported.
+    __PCI_SPEC_CAP_PCIE_DEVCAP_EXT_TAG_SUPPORTED = 1 << 5,
+    __PCI_SPEC_CAP_PCIE_DEVCAP_FUNC_LVL_RESET_CAP = 1 << 28,
+};
+
+struct pci_spec_cap_pcie {
+    struct pci_spec_capability base;
+
+    uint16_t capabilities;
+    uint32_t device_capabilities;
+    uint32_t device_control;
 } __packed;

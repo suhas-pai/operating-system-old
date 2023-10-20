@@ -81,7 +81,7 @@ print_prefix_lines(struct avlnode *const current,
                    void *const cb_info,
                    const uint32_t depth_level)
 {
-    struct string_view spaces = SV_STATIC("    ");
+    const struct string_view spaces = SV_STATIC("    ");
     for (uint32_t i = 1; i < depth_level - 1; i++) {
         if (parent_has_next(current, depth_level, i)) {
             print_sv_cb(SV_STATIC("│"), cb_info);
@@ -133,6 +133,7 @@ avlnode_print(struct avlnode *const node,
 
         if (parent->left == NULL) {
             print_prefix_lines(current, print_sv_cb, cb_info, depth_level);
+
             print_sv_cb(SV_STATIC("├── "), cb_info);
             print_node_cb(NULL, cb_info);
             print_sv_cb(SV_STATIC("\n"), cb_info);

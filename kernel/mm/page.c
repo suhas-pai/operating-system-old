@@ -8,12 +8,50 @@
 
 #include "page.h"
 
+#if defined(__riscv)
+    // FIXME: 64 is the cache-block size in qemu. This should instead be read
+    // from the dtb
+    #define CBO_SIZE 64
+#endif /* defined(__riscv) */
+
 __optimize(3) void zero_page(void *page) {
 #if defined(__x86_64__)
     uint64_t count = PAGE_SIZE / sizeof(uint64_t);
     asm volatile ("cld;\n"
                   "rep stosq"
                   : "+D"(page), "+c" (count) : "a"(0) : "memory");
+#elif defined(__aarch64__)
+    const uint64_t *const end = page + PAGE_SIZE;
+    for (uint64_t *iter = page; iter != end; iter += 32) {
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 0));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 2));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 4));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 6));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 8));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 10));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 12));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 14));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 16));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 18));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 20));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 22));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 24));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 26));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 28));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 30));
+    }
+#elif defined(__riscv64)
+    const void *const end = page + PAGE_SIZE;
+    for (void *iter = page; iter != end; iter += (CBO_SIZE * 8)) {
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 0)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 1)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 2)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 3)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 4)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 5)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 6)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 7)));
+    }
 #else
     const uint64_t *const end = page + PAGE_SIZE;
     for (uint64_t *iter = page; iter != end; iter++) {
@@ -29,6 +67,38 @@ __optimize(3) void zero_multiple_pages(void *page, const uint64_t count) {
     asm volatile ("cld;\n"
                   "rep stosq"
                   : "+D"(page), "+c" (qword_count) : "a"(0) : "memory");
+#elif defined(__aarch64__)
+    const uint64_t *const end = page + full_size;
+    for (uint64_t *iter = page; iter != end; iter += 32) {
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 0));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 2));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 4));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 6));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 8));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 10));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 12));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 14));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 16));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 18));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 20));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 22));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 24));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 26));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 28));
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(iter + 30));
+    }
+#elif defined(__riscv64)
+    const void *const end = page + full_size;
+    for (void *iter = page; iter != end; iter += (CBO_SIZE * 8)) {
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 0)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 1)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 2)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 3)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 4)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 5)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 6)));
+        asm volatile ("cbo.zero (%0)" :: "r"(iter + (CBO_SIZE * 7)));
+    }
 #else
     const uint64_t *const end = page + full_size;
     for (uint64_t *iter = page; iter != end; iter++) {
@@ -42,17 +112,17 @@ __optimize(3) uint32_t page_get_flags(const struct page *const page) {
 }
 
 __optimize(3)
-void page_set_bit(struct page *const page, const enum struct_page_flags flag) {
+void page_set_flag(struct page *const page, const enum struct_page_flags flag) {
     atomic_fetch_or_explicit(&page->flags, flag, memory_order_relaxed);
 }
 
 __optimize(3) bool
-page_has_bit(const struct page *const page, const enum struct_page_flags flag) {
+page_has_flag(const struct page *const page, const enum struct_page_flags flag) {
     return page_get_flags(page) & flag;
 }
 
 __optimize(3) void
-page_clear_bit(struct page *const page, const enum struct_page_flags flag) {
+page_clear_flag(struct page *const page, const enum struct_page_flags flag) {
     atomic_fetch_and_explicit(&page->flags, ~flag, memory_order_relaxed);
 }
 

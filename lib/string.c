@@ -68,17 +68,28 @@ __optimize(3) char *strchr(const char *const str, const int ch) {
 
 #endif /* !defined(BUILD_TEST) */
 
+#if defined(__x86_64__)
+    #define REP_MIN 16
+#endif /* defined(__x86_64__) */
+
 __optimize(3) void *memset_all_ones(void *dst, unsigned long n) {
     void *ret = dst;
 
 #if defined(__x86_64__)
-    if (n >= 16) {
+    if (n >= REP_MIN) {
         asm volatile ("rep stosb"
                       :: "D"(dst), "al"(UINT8_MAX), "c"(n)
                       : "memory");
         return ret;
     }
-#endif
+#elif defined(__aarch64__)
+    while (n >= (sizeof(uint64_t) * 2)) {
+        asm volatile ("stp %0, %0, [%1]" :: "r"(UINT64_MAX), "r"(dst));
+
+        dst += sizeof(uint64_t) * 2;
+        n -= sizeof(uint64_t) * 2;
+    }
+#endif /* defined(__x86_64__) */
 
     while (n >= sizeof(uint64_t)) {
         *(uint64_t *)dst = UINT64_MAX;

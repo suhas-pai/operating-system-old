@@ -65,9 +65,9 @@ early_add_to_freelist(struct page_zone *const zone,
 }
 
 // Setup pages that just came off the freelist. This setup needs to be as quick
-// as possible because this is done under the lock's zone.
+// as possible because this is done under the zone's lock.
 
-static inline void
+__optimize(3) static inline void
 setup_pages_off_freelist(struct page *const page,
                          const uint8_t order,
                          const enum page_state state)
@@ -176,7 +176,7 @@ void
 free_range_of_pages(struct page *page,
                     uint64_t page_pfn,
                     struct page_zone *const zone,
-                    uint64_t amount)
+                    const uint64_t amount)
 {
     int8_t order = MAX_ORDER - 1;
     uint64_t avail = amount;
@@ -342,7 +342,7 @@ alloc_pages_from_zone(struct page_zone *const zone,
     return page;
 }
 
-struct page *
+__optimize(3) struct page *
 setup_alloced_page(struct page *const page,
                    const enum page_state state,
                    const uint64_t alloc_flags,
@@ -769,6 +769,30 @@ struct page *deref_page(struct page *page, struct pageop *const pageop) {
     }
 
     return page;
+}
+
+struct page *
+deref_large_page(struct page *const page,
+                 struct pageop *const pageop,
+                 const pgt_level_t level)
+{
+    if (page_get_state(page) == PAGE_STATE_LARGE_HEAD) {
+        if (ref_down(&page->largehead.refcount)) {
+            list_add(&pageop->delayed_free, &page->used.delayed_free_list);
+            return NULL;
+        }
+
+        return page;
+    }
+
+    const struct page *const end =
+        page + (1ull << largepage_level_info_list[level].order);
+
+    for (struct page *iter = page; iter != end; iter++) {
+        deref_page(iter, pageop);
+    }
+
+    return NULL;
 }
 
 struct page *alloc_table() {

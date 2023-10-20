@@ -162,7 +162,7 @@ else ifeq ($(ARCH),riscv64)
 	ifeq ($(CC_IS_CLANG),yes)
 		override CFLAGS += \
 			-target riscv64-elf \
-			-march=rv64imac
+			-march=rv64imaczicboz
 	else
 		override CFLAGS += \
 			-march=rv64imac_zicsr_zifencei

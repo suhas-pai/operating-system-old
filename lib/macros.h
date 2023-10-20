@@ -133,7 +133,11 @@
 #define bytes_to_bits(bits) ((bits) * 8)
 
 #define sizeof_bits(n) bytes_to_bits(sizeof(n))
-#define mask_for_n_bits(n) ((1ull << (n)) - 1)
+#define mask_for_n_bits(n) \
+    ((n == sizeof_bits(uint64_t)) ? \
+        ~0ull : \
+        ~0ull >> (sizeof_bits(uint64_t) - (n)))
+
 #define set_bits_for_mask(ptr, mask, value) ({ \
     if (value) {                         \
         *(ptr) |= (mask);                \

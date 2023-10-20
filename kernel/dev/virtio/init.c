@@ -96,12 +96,34 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
     mmio_write(&cfg->device_status,
                mmio_read(&cfg->device_status) | VIRTIO_DEVSTATUS_DRIVER);
 
-    const uint64_t features =
+    // 4. Read device feature bits, and write the subset of feature bits
+    // understood by the OS and driver to the device. During this step the
+    // driver MAY read (but MUST NOT write) the device-specific configuration
+    // fields to check that it can support the device before accepting it.
+
+    uint64_t features =
         le_to_cpu(
             select_64_bits(&cfg->device_feature_select, &cfg->device_feature));
 
-    if ((features & VIRTIO_DEVFEATURE_VERSION_1) == 0) {
+    // The transitional driver MUST execute the initialization sequence as
+    // described in 3.1 but omitting the steps 5 and 6.
+
+    const bool is_legacy = (features & VIRTIO_DEVFEATURE_VERSION_1) == 0;
+    if (!is_legacy) {
+        // 5. Set the FEATURES_OK status bit. The driver MUST NOT accept new
+        // feature bits after this step.
+
         mmio_write(&cfg->device_status, VIRTIO_DEVSTATUS_FEATURES_OK);
+
+        // 6. Re-read device status to ensure the FEATURES_OK bit is still set:
+        // otherwise, the device does not support our subset of features and the
+        // device is unusable.
+
+        features =
+            le_to_cpu(
+                select_64_bits(&cfg->device_feature_select,
+                               &cfg->device_feature));
+
         if ((features & VIRTIO_DEVSTATUS_FEATURES_OK) == 0) {
             printk(LOGLEVEL_WARN, "virtio-pci: failed to accept features\n");
             return NULL;
@@ -312,7 +334,9 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
                 break;
             case VIRTIO_PCI_CAP_DEVICE_CFG:
+                virt_device.device_cfg = bar->mmio->base + offset;
                 cfg_kind = "device-cfg";
+
                 break;
             case VIRTIO_PCI_CAP_PCI_CFG:
                 if (cap_len < sizeof(struct virtio_pci_cap)) {
@@ -331,22 +355,10 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                 offset |= (uint64_t)pci_read_virtio_cap_field(offset_hi) << 32;
                 length |= (uint64_t)pci_read_virtio_cap_field(length_hi) << 32;
 
-                struct mmio_region *const mmio =
-                    vmap_mmio(range_create(offset, length),
-                              PROT_READ | PROT_WRITE,
-                              /*flags=*/0);
-
-                if (mmio == NULL) {
-                    printk(LOGLEVEL_WARN,
-                           "virtio-pci: failed to map shared-memory region\n");
-
-                    cap_index++;
-                    continue;
-                }
-
                 const struct virtio_device_shmem_region region = {
-                    .mmio = mmio,
-                    .id = pci_read_virtio_cap_field(cap.id)
+                    .phys_range = range_create(offset, length),
+                    .id = pci_read_virtio_cap_field(cap.id),
+                    .mapped = false
                 };
 
                 if (!array_append(&virt_device.shmem_regions, &region)) {

@@ -88,7 +88,7 @@ pgmap_with_ptwalker(struct pt_walker *const walker,
                     const uint64_t virt_addr,
                     const struct pgmap_options *options);
 
-static void
+__optimize(3) static void
 finish_split_info(struct pt_walker *const walker,
                   struct current_split_info *const curr_split,
                   struct pageop *const pageop,
@@ -858,26 +858,33 @@ pgmap_at(struct pagemap *const pagemap,
          uint64_t virt_addr,
          const struct pgmap_options *const options)
 {
-    if (range_empty(phys_range)) {
+    if (__builtin_expect(range_empty(phys_range), 0)) {
         printk(LOGLEVEL_WARN, "pgmap_at(): phys-range is empty\n");
         return false;
     }
 
-    if (range_overflows(phys_range)) {
+    if (__builtin_expect(range_overflows(phys_range), 0)) {
         printk(LOGLEVEL_WARN,
                "pgmap_at(): phys-range goes beyond end of address-space\n");
         return false;
     }
 
-    if (!range_has_align(phys_range, PAGE_SIZE)) {
+    if (__builtin_expect(!range_has_align(phys_range, PAGE_SIZE), 0)) {
         printk(LOGLEVEL_WARN,
                "pgmap_at(): phys-range isn't aligned to PAGE_SIZE\n");
         return false;
     }
 
-    if (!has_align(virt_addr, PAGE_SIZE)) {
+    struct range virt_range = range_create(virt_addr, phys_range.size);
+    if (__builtin_expect(range_overflows(virt_range), 0)) {
         printk(LOGLEVEL_WARN,
-               "pgmap_at(): virt-addr is not aligned to PAGE_SIZE\n");
+               "pgmap_at(): virt-range goes beyond end of address-space\n");
+        return false;
+    }
+
+    if (__builtin_expect(!range_has_align(virt_range, PAGE_SIZE), 0)) {
+        printk(LOGLEVEL_WARN,
+               "pgmap_at(): virt-range isn't aligned to PAGE_SIZE\n");
         return false;
     }
 
@@ -902,7 +909,10 @@ pgmap_at(struct pagemap *const pagemap,
     struct current_split_info curr_split = CURRENT_SPLIT_INFO_INIT();
     struct pageop pageop;
 
-    pageop_init(&pageop, pagemap);
+    if (options->is_overwrite) {
+        pageop_init(&pageop, pagemap, virt_range);
+    }
+
     if (options->is_overwrite && ptwalker_points_to_largepage(&walker)) {
         const uint64_t walker_virt_addr = ptwalker_get_virt_addr(&walker);
         if (walker_virt_addr < virt_addr) {
@@ -964,7 +974,10 @@ pgmap_at(struct pagemap *const pagemap,
                             virt_addr,
                             options);
 
-    pageop_finish(&pageop);
+    if (options->is_overwrite) {
+        pageop_finish(&pageop);
+    }
+
     return result;
 }
 
@@ -974,7 +987,7 @@ pgunmap_at(struct pagemap *const pagemap,
            const struct pgmap_options *const map_options,
            const struct pgunmap_options *const unmap_options)
 {
-    if (!range_has_align(virt_range, PAGE_SIZE)) {
+    if (__builtin_expect(!range_has_align(virt_range, PAGE_SIZE), 0)) {
         printk(LOGLEVEL_WARN,
                "pgunmap_at(): virt-range is not aligned to PAGE_SIZE\n");
         return false;
@@ -984,9 +997,7 @@ pgunmap_at(struct pagemap *const pagemap,
     struct pageop pageop;
 
     ptwalker_default_for_pagemap(&walker, pagemap, virt_range.front);
-
-    pageop_init(&pageop, pagemap);
-    pageop_setup_for_range(&pageop, virt_range);
+    pageop_init(&pageop, pagemap, virt_range);
 
     const bool should_free_pages = unmap_options->free_pages;
     const bool dont_split_large_pages = unmap_options->dont_split_large_pages;
@@ -1039,7 +1050,7 @@ pgunmap_at(struct pagemap *const pagemap,
 
             pte_write(pte, /*value=*/0);
             if (pte_is_dirty(entry)) {
-                page_set_bit(pte_to_page(entry), PAGE_IS_DIRTY);
+                page_set_flag(pte_to_page(entry), PAGE_IS_DIRTY);
             }
 
             const uint64_t map_size = virt_range.size - offset;

@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "dev/pci/device.h"
 #include "dev/printk.h"
 
 #include "block.h"
@@ -30,8 +31,6 @@ enum legacy_feature_flags {
 };
 
 struct virtio_block_config {
-    struct virtio_pci_common_cfg cfg;
-
     le64_t capacity;
     le32_t size_max;
     le32_t seg_max;
@@ -76,12 +75,18 @@ struct virtio_block_config {
 struct virtio_device *
 virtio_block_driver_init(struct virtio_device *const device) {
     volatile struct virtio_block_config *const config =
-        (volatile struct virtio_block_config *)(uint64_t)device->common_cfg;
+        (volatile struct virtio_block_config *)device->device_cfg;
+
+    if (config == NULL) {
+        printk(LOGLEVEL_WARN, "virtio-block: device-cfg not found\n");
+        return NULL;
+    }
 
     printk(LOGLEVEL_INFO,
            "virtio-block: device has the following info:\n"
-           "\tcapacity: %" PRIu64 "\n",
+           "\tcapacity: 0x%" PRIx64 "\n",
            le_to_cpu(mmio_read(&config->capacity)));
 
+    pci_device_enable_bus_mastering(device->pci_device);
     return NULL;
 }

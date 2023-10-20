@@ -15,7 +15,11 @@
 
 #include "ioapic.h"
 
-void lapic_timer_irq_callback() {
+void
+lapic_timer_irq_callback(const uint64_t int_no, irq_context_t *const frame) {
+    (void)int_no;
+    (void)frame;
+
     get_cpu_info_mut()->timer_ticks++;
     if (get_cpu_info()->timer_ticks % 1000 == 0) {
         printk(LOGLEVEL_INFO,

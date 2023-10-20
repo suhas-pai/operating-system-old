@@ -174,17 +174,17 @@ __optimize(3) void lapic_send_self_ipi(const uint32_t vector) {
 void lapic_timer_start() {
     mmio_write(&lapic_regs->timer_initial_count, 0xFFFFF);
     mmio_write(&lapic_regs->lvt_timer,
-        setup_timer_register(LAPIC_TIMER_MODE_PERIODIC,
-                             /*masked=*/false,
-                             /*vector=*/isr_get_timer_vector()));
+               setup_timer_register(LAPIC_TIMER_MODE_PERIODIC,
+                                    /*masked=*/false,
+                                    /*vector=*/isr_get_timer_vector()));
 }
 
 void lapic_timer_stop() {
     mmio_write(&lapic_regs->timer_initial_count, 0);
     mmio_write(&lapic_regs->lvt_timer,
-        setup_timer_register(LAPIC_TIMER_MODE_ONE_SHOT,
-                             /*masked=*/true,
-                             /*vector=*/isr_get_timer_vector()));
+               setup_timer_register(LAPIC_TIMER_MODE_ONE_SHOT,
+                                    /*masked=*/true,
+                                    /*vector=*/isr_get_timer_vector()));
 }
 
 void lapic_timer_one_shot(const uint64_t microseconds) {
@@ -197,11 +197,11 @@ void lapic_timer_one_shot(const uint64_t microseconds) {
         get_cpu_info()->lapic_timer_frequency / 1000000;
 
     mmio_write(&lapic_regs->timer_initial_count,
-        lapic_timer_freq_in_microseconds * microseconds);
+               lapic_timer_freq_in_microseconds * microseconds);
     mmio_write(&lapic_regs->lvt_timer,
-        setup_timer_register(LAPIC_TIMER_MODE_ONE_SHOT,
-                             /*masked=*/false,
-                             /*vector=*/isr_get_timer_vector()));
+                setup_timer_register(LAPIC_TIMER_MODE_ONE_SHOT,
+                                     /*masked=*/false,
+                                     /*vector=*/isr_get_timer_vector()));
 }
 
 void lapic_init() {

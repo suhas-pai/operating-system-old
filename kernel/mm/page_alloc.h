@@ -28,6 +28,14 @@ void free_large_page(struct page *page);
 
 struct page *deref_page(struct page *page, struct pageop *pageop);
 
+// We may not be necessarily derefing a large page, just a continuous set of
+// pages mapped as a large page.
+
+struct page *
+deref_large_page(struct page *page,
+                 struct pageop *pageop,
+                 pgt_level_t level);
+
 __malloclike __malloc_dealloc(free_pages, 1)
 struct page *
 alloc_pages(enum page_state state, uint64_t alloc_flags, uint8_t order);

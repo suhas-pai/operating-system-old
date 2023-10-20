@@ -99,9 +99,9 @@ enum struct_page_flags {
 
 uint32_t page_get_flags(const struct page *page);
 
-void page_set_bit(struct page *page, enum struct_page_flags flag);
-bool page_has_bit(const struct page *page, enum struct_page_flags flag);
-void page_clear_bit(struct page *page, enum struct_page_flags flag);
+void page_set_flag(struct page *page, enum struct_page_flags flag);
+bool page_has_flag(const struct page *page, enum struct_page_flags flag);
+void page_clear_flag(struct page *page, enum struct_page_flags flag);
 
 enum page_state page_get_state(const struct page *page);
 void page_set_state(struct page *page, enum page_state state);

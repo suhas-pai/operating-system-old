@@ -11,9 +11,16 @@
 #include "structs.h"
 
 struct virtio_device_shmem_region {
-    struct mmio_region *mmio;
+    union {
+        struct mmio_region *mmio;
+        struct range phys_range;
+    };
+
     uint8_t id;
+    bool mapped : 1;
 };
+
+bool virtio_device_shmem_region_map(struct virtio_device_shmem_region *region);
 
 struct virtio_device;
 struct virtio_config_space_operations {
@@ -32,9 +39,10 @@ struct virtio_config_space_operations {
 
 struct virtio_device {
     struct list list;
-
     struct pci_device_info *pci_device;
+
     volatile struct virtio_pci_common_cfg *common_cfg;
+    volatile void *device_cfg;
 
     // Array of struct virtio_device_shmem_region
     struct array shmem_regions;
@@ -57,6 +65,7 @@ struct virtio_device {
         .list = LIST_INIT(name.list), \
         .pci_device = NULL, \
         .common_cfg = NULL, \
+        .device_cfg = NULL, \
         .shmem_regions = ARRAY_INIT(sizeof(struct virtio_device_shmem_region)),\
         .vendor_cfg_list = ARRAY_INIT(sizeof(uint8_t)), \
         .pci_cfg_offset = 0, \

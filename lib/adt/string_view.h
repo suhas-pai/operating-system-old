@@ -55,10 +55,10 @@ sv_create_length(const char *const c_str, const uint64_t length) {
     return sv_create_nocheck(c_str, length);
 }
 
-struct string_view sv_drop_front(const struct string_view sv);
+struct string_view sv_drop_front(struct string_view sv);
 
-char *sv_get_begin_mut(const struct string_view sv);
-const char *sv_get_end(const struct string_view sv);
+char *sv_get_begin_mut(struct string_view sv);
+const char *sv_get_end(struct string_view sv);
 
 bool sv_compare_c_str(struct string_view sv, const char *c_str);
 int sv_compare(struct string_view sv, struct string_view sv2);

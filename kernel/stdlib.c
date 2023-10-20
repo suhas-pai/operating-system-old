@@ -299,10 +299,20 @@ __optimize(3) void *memmove(void *dst, const void *src, unsigned long n) {
     return ret;
 }
 
+#if defined(__x86_64__)
+    #define REP_MIN 16
+#elif defined(__riscv64)
+    // FIXME: 64 is the cbo size in QEMU, read value for dtb instead.
+    #define CBO_SIZE 64
+#endif /* defined(__x86_64__) */
+
 __optimize(3) void *memset(void *dst, const int val, unsigned long n) {
     void *ret = dst;
 #if defined(__x86_64__)
-    asm volatile ("rep stosb" :: "D"(dst), "al"(val), "c"(n) : "memory");
+    if (n >= REP_MIN) {
+        asm volatile ("rep stosb" :: "D"(dst), "al"(val), "c"(n) : "memory");
+        return ret;
+    }
 #else
     uint64_t value64 = 0;
     if (n >= sizeof(uint64_t)) {
@@ -337,11 +347,11 @@ __optimize(3) void *memset(void *dst, const int val, unsigned long n) {
             n -= sizeof(uint16_t);
         }
     }
+#endif /* defined(__x86_64__) */
 
     for (unsigned long i = 0; i != n; i++) {
         ((uint8_t *)dst)[i] = (uint8_t)val;
     }
-#endif /* defined(__x86_64__) */
 
     return ret;
 }
@@ -360,11 +370,25 @@ void *memchr(const void *const ptr, const int ch, const size_t count) {
 
 __optimize(3) void bzero(void *dst, unsigned long n) {
 #if defined(__x86_64__)
-    if (n >= 16) {
+    if (n >= REP_MIN) {
         asm volatile ("cld;\n"
                       "rep stosb"
                       : "+D"(dst), "+c" (n) : "a"(0) : "memory");
         return;
+    }
+#elif defined(__aarch64__)
+    while (n >= (sizeof(uint64_t) * 2)) {
+        asm volatile ("stp xzr, xzr, [%0]" :: "r"(dst));
+
+        dst += sizeof(uint64_t) * 2;
+        n -= sizeof(uint64_t) * 2;
+    }
+#elif defined(__riscv64)
+    while (n >= CBO_SIZE) {
+        asm volatile ("cbo.zero (%0)" :: "r"(dst));
+
+        dst += CBO_SIZE;
+        n -= CBO_SIZE;
     }
 #endif
     while (n >= sizeof(uint64_t)) {

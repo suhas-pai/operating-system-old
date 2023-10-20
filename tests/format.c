@@ -19,7 +19,7 @@
                              &count);                                          \
                                                                                \
                                                                                \
-        struct string string = string_create();                                \
+        struct string string = STRING_EMPTY();                                 \
         const uint64_t string_length =                                         \
             format_to_string(&string,                                          \
                              str "%n",                                         \

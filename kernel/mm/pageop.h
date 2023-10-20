@@ -23,7 +23,11 @@ struct pageop {
         .delayed_free = LIST_INIT(name.delayed_free) \
     })
 
-void pageop_init(struct pageop *pageop, struct pagemap *pagemap);
+void
+pageop_init(struct pageop *pageop,
+            struct pagemap *pagemap,
+            struct range range);
+
 void
 pageop_flush_pte_in_current_range(struct pageop *pageop,
                                   const pte_t pte,

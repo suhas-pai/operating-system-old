@@ -16,9 +16,13 @@
 
 #include "walker.h"
 
-void pageop_init(struct pageop *const pageop, struct pagemap *const pagemap) {
+__optimize(3) void
+pageop_init(struct pageop *const pageop,
+            struct pagemap *const pagemap,
+            const struct range range)
+{
     pageop->pagemap = pagemap;
-    pageop->flush_range = RANGE_EMPTY();
+    pageop->flush_range = range;
 
     list_init(&pageop->delayed_free);
 }
@@ -46,11 +50,12 @@ pageop_flush_pte_in_current_range(struct pageop *const pageop,
                                   /*free_pgtable=*/NULL);
 
     while (true) {
-        const pte_t entry =
-            pte_read(walker.tables[walker.level - 1] +
-                     walker.indices[walker.level - 1]);
+        pte_t *const walker_pte =
+            walker.tables[walker.level - 1] + walker.indices[walker.level - 1];
 
+        const pte_t entry = pte_read(walker_pte);
         struct page *const page = pte_to_page(entry);
+
         if (pte_is_large(entry)) {
             if (ref_down(&page->largehead.refcount) && should_free_pages) {
                 list_add(&pageop->delayed_free,
@@ -126,16 +131,18 @@ pageop_setup_for_range(struct pageop *const pageop, const struct range virt) {
     pageop->flush_range = virt;
 }
 
-void pageop_finish(struct pageop *const pageop) {
+__optimize(3) void pageop_finish(struct pageop *const pageop) {
     if (range_empty(pageop->flush_range)) {
         return;
     }
 
-#if defined(__x86_64__)
-    tlb_flush_pageop(pageop);
-#elif defined(__riscv64)
-    asm volatile ("fence.i" ::: "memory");
-#endif /* defined(__x86_64__) */
+    if (get_cpu_info()->pagemap == pageop->pagemap) {
+    #if defined(__x86_64__)
+        tlb_flush_pageop(pageop);
+    #elif defined(__riscv64)
+        asm volatile ("fence.i" ::: "memory");
+    #endif /* defined(__x86_64__) */
+    }
 
     pageop->flush_range = RANGE_EMPTY();
 }

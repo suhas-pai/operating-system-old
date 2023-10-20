@@ -35,16 +35,13 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
                                  struct pci_spec_cap_msi,
                                  msg_control);
 
-        const bool is_64_bit =
-            (msg_control & __PCI_CAPMSI_CTRL_64BIT_CAPABLE) != 0;
+        const bool supports_masking =
+            msg_control & __PCI_CAPMSI_CTRL_PER_VECTOR_MASK;
 
         /*
          * If we're supposed to mask the vector, but masking isn't supported,
          * then simply bail.
          */
-
-        const bool supports_masking =
-            (msg_control & __PCI_CAPMSI_CTRL_PER_VECTOR_MASK) != 0;
 
         if (masked && !supports_masking) {
             return;
@@ -56,6 +53,7 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
                               msg_address,
                               (uint32_t)address);
 
+        const bool is_64_bit = msg_control & __PCI_CAPMSI_CTRL_64BIT_CAPABLE;
         if (is_64_bit) {
             pci_write_with_offset(device,
                                   device->pcie_msi_offset,

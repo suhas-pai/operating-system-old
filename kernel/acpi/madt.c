@@ -447,7 +447,7 @@ void madt_init(const struct acpi_madt *const madt) {
         #if defined(__riscv64)
             case ACPI_MADT_ENTRY_KIND_RISCV_HART_IRQ_CNTRLR: {
                 if (iter->length !=
-                        sizeof(struct acpi_madt_riscv_hart_irq_cntrlr))
+                        sizeof(struct acpi_madt_riscv_hart_irq_controller))
                 {
                     printk(LOGLEVEL_INFO,
                            "madt: invalid riscv-hart irq-controllers at "
@@ -456,8 +456,8 @@ void madt_init(const struct acpi_madt *const madt) {
                     continue;
                 }
 
-                const struct acpi_madt_riscv_hart_irq_cntrlr *const cntrl =
-                    (const struct acpi_madt_riscv_hart_irq_cntrlr *)iter;
+                const struct acpi_madt_riscv_hart_irq_controller *const cntrl =
+                    (const struct acpi_madt_riscv_hart_irq_controller *)iter;
 
                 printk(LOGLEVEL_INFO,
                        "madt: found riscv hart irq controller\n"

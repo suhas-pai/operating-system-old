@@ -4,8 +4,8 @@
  */
 
 #include "dev/printk.h"
+#include "lib/size.h"
 
-#include "mm/page_alloc.h"
 #include "mm/pgmap.h"
 #include "mm/zone.h"
 
@@ -43,7 +43,7 @@ __optimize(3) static inline enum prot_fail verify_prot(const prot_t prot) {
 }
 
 // 16kib of guard pages
-#define GUARD_PAGE_SIZE (PAGE_SIZE * 4)
+#define GUARD_PAGE_SIZE min(kib(16), PAGE_SIZE)
 
 struct mmio_region *
 map_mmio_region(const struct range phys_range,
@@ -75,8 +75,8 @@ map_mmio_region(const struct range phys_range,
     if (virt_addr == ADDRSPACE_INVALID_ADDR) {
         spin_release_with_irq(&mmio_space_lock, flag);
         printk(LOGLEVEL_WARN,
-               "vmap_mmio(): failed to find suitable virtual-address range to "
-               "map phys-range " RANGE_FMT "\n",
+               "vmap_mmio(): failed to find a suitable virtual-address range "
+               "to map phys-range " RANGE_FMT "\n",
                RANGE_FMT_ARGS(phys_range));
 
         return NULL;
@@ -86,7 +86,7 @@ map_mmio_region(const struct range phys_range,
     const bool map_success =
         arch_make_mapping(&kernel_pagemap,
                           phys_range,
-                          virt_range.front,
+                          virt_addr,
                           prot,
                           (flags & __VMAP_MMIO_WT) ?
                             VMA_CACHEKIND_WRITETHROUGH : VMA_CACHEKIND_MMIO,
@@ -104,7 +104,7 @@ map_mmio_region(const struct range phys_range,
         return NULL;
     }
 
-    mmio->base = (volatile void *)virt_range.front;
+    mmio->base = (volatile void *)virt_addr;
     mmio->size = phys_range.size;
 
     return mmio;

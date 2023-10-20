@@ -75,6 +75,8 @@ __ubsan_handle_pointer_overflow(struct pointer_overflow_info *const info,
     }
 
     switch (error_kind) {
+        case ERROR_KIND_NONE:
+            verify_not_reached();
         case ERROR_KIND_NullptrWithOffset:
             printk(LOGLEVEL_ERROR,
                    "ubsan: [" SOURCE_LOCATION_FMT "] applying an offset of "
@@ -103,8 +105,60 @@ __ubsan_handle_pointer_overflow(struct pointer_overflow_info *const info,
                    offset,
                    base,
                    base + offset);
-            break;;
-        default:
+            break;
+        case ERROR_KIND_GenericUB:
+            printk(LOGLEVEL_ERROR,
+                   "ubsan: [" SOURCE_LOCATION_FMT "] generic "
+                   "undefined-behavior with offset of %" PRIu64 " to %" PRIu64
+                   " overflowed to %" PRIu64 "\n",
+                   SOURCE_LOCATION_FMT_ARGS(&info->location),
+                   offset,
+                   base,
+                   base + offset);
+            break;
+        case ERROR_KIND_NullPointerUse:
+            if (offset != 0) {
+                printk(LOGLEVEL_ERROR,
+                       "ubsan: [" SOURCE_LOCATION_FMT "] null pointer use with "
+                       "offset of %" PRIu64 " to %" PRIu64 " overflowed to "
+                       "%" PRIu64 "\n",
+                       SOURCE_LOCATION_FMT_ARGS(&info->location),
+                       offset,
+                       base,
+                       base + offset);
+            }
+
+            break;
+        case ERROR_KIND_NullPointerUseWithNullability:
+        case ERROR_KIND_MisalignedPointerUse:
+        case ERROR_KIND_AlignmentAssumption:
+        case ERROR_KIND_InsufficientObjectSize:
+        case ERROR_KIND_SignedIntegerOverflow:
+        case ERROR_KIND_UnsignedIntegerOverflow:
+        case ERROR_KIND_IntegerDivideByZero:
+        case ERROR_KIND_FloatDivideByZero:
+        case ERROR_KIND_InvalidBuiltin:
+        case ERROR_KIND_InvalidObjCCast:
+        case ERROR_KIND_ImplicitUnsignedIntegerTruncation:
+        case ERROR_KIND_ImplicitSignedIntegerTruncation:
+        case ERROR_KIND_ImplicitIntegerSignChange:
+        case ERROR_KIND_ImplicitSignedIntegerTruncationOrSignChange:
+        case ERROR_KIND_InvalidShiftBase:
+        case ERROR_KIND_InvalidShiftExponent:
+        case ERROR_KIND_OutOfBoundsIndex:
+        case ERROR_KIND_UnreachableCall:
+        case ERROR_KIND_MissingReturn:
+        case ERROR_KIND_NonPositiveVLAIndex:
+        case ERROR_KIND_FloatCastOverflow:
+        case ERROR_KIND_InvalidBoolLoad:
+        case ERROR_KIND_InvalidEnumLoad:
+        case ERROR_KIND_FunctionTypeMismatch:
+        case ERROR_KIND_InvalidNullReturn:
+        case ERROR_KIND_InvalidNullReturnWithNullability:
+        case ERROR_KIND_InvalidNullArgument:
+        case ERROR_KIND_InvalidNullArgumentWithNullability:
+        case ERROR_KIND_DynamicTypeMismatch:
+        case ERROR_KIND_CFIBadType:
             verify_not_reached();
     }
 }

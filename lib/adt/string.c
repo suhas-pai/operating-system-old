@@ -23,19 +23,15 @@ static inline void set_null_terminator(const struct string *const string) {
     ((uint8_t *)gbuffer.begin)[gbuffer.index] = '\0';
 }
 
-struct string string_create() {
-    return (struct string){ .gbuffer = GBUFFER_INIT() };
+struct string string_alloc(const struct string_view sv) {
+    struct string result = STRING_EMPTY();
+    string_append_sv(&result, sv);
+
+    return result;
 }
 
 static bool prepare_append(struct string *const string, const uint32_t length) {
     return gbuffer_ensure_can_add_capacity(&string->gbuffer, length + 1);
-}
-
-struct string string_alloc(const struct string_view sv) {
-    struct string result = string_create();
-    string_append_sv(&result, sv);
-
-    return result;
 }
 
 struct string *

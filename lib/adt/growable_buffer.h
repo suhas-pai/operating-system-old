@@ -24,12 +24,12 @@ struct growable_buffer {
         .is_alloc = false      \
     })
 
-#define GBUFFER_FROM_PTR(ptr, capacity, is_alloc) \
+#define GBUFFER_FROM_PTR(ptr, capacity) \
     ((struct growable_buffer){ \
         .begin = (ptr),        \
         .index = 0,            \
         .end = (ptr) + (capacity), \
-        .is_alloc = (is_alloc) \
+        .is_alloc = false \
     })
 
 struct growable_buffer gbuffer_alloc(uint32_t capacity);

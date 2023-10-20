@@ -622,7 +622,7 @@ ptwalker_virt_get_phys(struct pagemap *const pagemap, const uint64_t virt) {
     }
 
     const uint64_t offset =
-        virt & ((1ull << PAGE_SHIFTS[walker.level - 1]) - 1);
+        virt & mask_for_n_bits(PAGE_SHIFTS[walker.level - 1]);
 
     return pte_to_phys(pte) + offset;
 }

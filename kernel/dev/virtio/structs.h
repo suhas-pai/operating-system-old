@@ -80,23 +80,6 @@ enum virtio_pci_cap_cfg {
     VIRTIO_PCI_CAP_CFG_MAX = VIRTIO_PCI_CAP_VENDOR_CFG
 };
 
-struct virtio_pci_cap {
-    struct pci_spec_capability cap;
-    uint8_t cap_len;
-    uint8_t cfg_type; // Identifies the structure.
-    uint8_t bar; // Where to find it.
-    uint8_t id; // Multiple capabilities of the same type
-    uint8_t padding[2]; // Pad to full dword.
-    uint32_t offset; // Offset within bar.
-    uint32_t length; // Length of the structure, in bytes.
-} __packed;
-
-struct virtio_pci_cap64 {
-    struct virtio_pci_cap cap;
-    uint32_t offset_hi;
-    uint32_t length_hi;
-} __packed;
-
 struct virtio_pci_common_cfg {
     // About the whole device.
     le32_t device_feature_select;
@@ -124,6 +107,23 @@ struct virtio_pci_common_cfg {
 
     const le16_t queue_notify_data;
     le16_t queue_reset;
+} __packed;
+
+struct virtio_pci_cap {
+    struct pci_spec_capability cap;
+    uint8_t cap_len;
+    uint8_t cfg_type; // Identifies the structure.
+    uint8_t bar; // Where to find it.
+    uint8_t id; // Multiple capabilities of the same type
+    uint8_t padding[2]; // Pad to full dword.
+    uint32_t offset; // Offset within bar.
+    uint32_t length; // Length of the structure, in bytes.
+} __packed;
+
+struct virtio_pci_cap64 {
+    struct virtio_pci_cap cap;
+    uint32_t offset_hi;
+    uint32_t length_hi;
 } __packed;
 
 struct virtio_pci_notify_cfg_cap {
@@ -163,6 +163,14 @@ struct virtio_pci_isr_cfg_cap {
      */
 
     volatile uint8_t data[];
+} __packed;
+
+struct virtio_pci_vendor_data_cap {
+    uint8_t cap_vndr;    /* Generic PCI field: PCI_CAP_ID_VNDR */
+    uint8_t cap_next;    /* Generic PCI field: next ptr. */
+    uint8_t cap_len;     /* Generic PCI field: capability length */
+    uint8_t cfg_type;    /* Identifies the structure. */
+    uint16_t vendor_id;  /* Identifies the vendor-specific format. */
 } __packed;
 
 enum virtio_device_status {

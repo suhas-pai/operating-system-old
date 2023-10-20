@@ -13,7 +13,11 @@ struct spinlock {
     _Atomic uint32_t back;
 };
 
-#define SPINLOCK_INIT() ((struct spinlock){ .front = 0, .back = 0 })
+#define SPINLOCK_INIT() \
+    ((struct spinlock){ \
+        .front = 0, \
+        .back = 0 \
+    })
 
 void spinlock_init(struct spinlock *lock);
 

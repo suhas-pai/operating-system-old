@@ -42,7 +42,7 @@ uint8_t month_get_day_count(const enum month month, const bool in_leap_year) {
         case MONTH_INVALID:
             verify_not_reached();
         case MONTH_FEBRUARY:
-            return (in_leap_year) ? 29 : 28;
+            return in_leap_year ? 29 : 28;
         case MONTH_JANUARY:
         case MONTH_MARCH:
         case MONTH_MAY:

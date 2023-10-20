@@ -171,7 +171,7 @@ ps2_keyboard_interrupt(const uint64_t int_no, irq_context_t *const context) {
         return;
     }
 
-    struct string string = string_create();
+    struct string string = STRING_EMPTY();
     if (g_kbd_state.shift != 0) {
         string_append_sv(&string, SV_STATIC("shift"));
     }

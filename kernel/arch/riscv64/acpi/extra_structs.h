@@ -39,12 +39,12 @@ struct acpi_rhct_hart_info {
     uint32_t offsets[];
 } __packed;
 
-enum acpi_madt_riscv_hart_irq_cntrlr_flags {
+enum acpi_madt_riscv_hart_irq_controller_flags {
     ACPI_MADT_RISCV_HART_IRQ_CNTRLR_ENABLED = 1 << 0,
     ACPI_MADT_RISCV_HART_IRQ_ONLINE_CAPABLE = 1 << 1,
 };
 
-struct acpi_madt_riscv_hart_irq_cntrlr {
+struct acpi_madt_riscv_hart_irq_controller {
     struct acpi_madt_entry_header header;
 
     uint8_t version;
