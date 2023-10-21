@@ -59,7 +59,9 @@ split_large_page(struct pt_walker *const walker,
     pte_t *const pte = &table[walker->indices[walker->level - 1]];
 
     const pte_t entry = pte_read(pte);
+
     pte_write(pte, /*value=*/0);
+    ptwalker_deref_from_level(walker, walker->level, pageop);
 
     curr_split->virt_addr = ptwalker_get_virt_addr(walker);
     curr_split->phys_range =
@@ -1049,6 +1051,8 @@ pgunmap_at(struct pagemap *const pagemap,
             }
 
             pte_write(pte, /*value=*/0);
+            ptwalker_deref_from_level(&walker, walker.level, &pageop);
+
             if (pte_is_dirty(entry)) {
                 page_set_flag(pte_to_page(entry), PAGE_IS_DIRTY);
             }
@@ -1081,6 +1085,8 @@ pgunmap_at(struct pagemap *const pagemap,
             } else {
                 pte_write(pte, /*value=*/0);
             }
+
+            ptwalker_deref_from_level(&walker, walker.level, &pageop);
         }
 
         const uint64_t page_size = PAGE_SIZE_AT_LEVEL(level);

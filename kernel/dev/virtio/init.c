@@ -415,10 +415,13 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
     device_count++;
 }
 
+static struct pci_driver pci_driver = {
+    .vendor = 0x1af4,
+    .match = PCI_DRIVER_MATCH_VENDOR,
+    .init = init_from_pci
+};
+
 __driver static const struct driver driver = {
-    .pci = &(struct pci_driver){
-        .vendor = 0x1af4,
-        .match = PCI_DRIVER_MATCH_VENDOR,
-        .init = init_from_pci
-    }
+    .dtb = NULL,
+    .pci = &pci_driver
 };

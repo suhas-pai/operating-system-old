@@ -68,8 +68,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
             do {
                 const uint64_t page =
-                    early_alloc_large_page(
-                        /*amount=*/PGT_PTE_COUNT * PGT_PTE_COUNT);
+                    early_alloc_large_page(PAGE_SIZE_1GIB / PAGE_SIZE);
 
                 if (page == INVALID_PHYS) {
                     // We failed to alloc a 1gib page, so try 2mib pages next.
@@ -132,7 +131,7 @@ alloc_region(uint64_t virt_addr, uint64_t map_size, const uint64_t pte_flags) {
 
             do {
                 const uint64_t page =
-                    early_alloc_large_page(/*amount=*/PGT_PTE_COUNT);
+                    early_alloc_large_page(PAGE_SIZE_2MIB / PAGE_SIZE);
 
                 if (page == INVALID_PHYS) {
                     // We failed to alloc a 2mib page, so try 4kib pages next.

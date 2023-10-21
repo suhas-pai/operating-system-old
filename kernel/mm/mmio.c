@@ -112,12 +112,6 @@ map_mmio_region(const struct range phys_range,
 
 struct mmio_region *
 vmap_mmio_low4g(const prot_t prot, const uint8_t order, const uint64_t flags) {
-    if (order == 0) {
-        printk(LOGLEVEL_WARN,
-               "vmap_mmio_low4g(): attempting to map an empty low-4g range\n");
-        return NULL;
-    }
-
     switch (verify_prot(prot)) {
         case PROT_FAIL_NONE:
             break;

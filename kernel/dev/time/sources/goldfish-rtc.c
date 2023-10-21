@@ -61,14 +61,10 @@ bool goldfish_rtc_init_from_dtb(const void *const dtb, const int nodeoff) {
                           &base_addr_reg);
 
     if (!get_base_addr_reg_result) {
-    #if defined(__x86_64__)
-        verify_not_reached();
-    #else
         printk(LOGLEVEL_WARN,
                "goldfish-rtc: base-addr reg of 'reg' property of "
                "google,goldfish-rtc dtb-node is malformed\n");
         return false;
-    #endif /* defiend(__x86_64__) */
     }
 
     if (!has_align(base_addr_reg.address, PAGE_SIZE)) {
@@ -127,10 +123,13 @@ bool goldfish_rtc_init_from_dtb(const void *const dtb, const int nodeoff) {
 }
 
 static const char *const compat[] = { "google,goldfish-rtc" };
+static struct dtb_driver dtb_driver = {
+    .compat_list = compat,
+    .compat_count = countof(compat),
+    .init = goldfish_rtc_init_from_dtb
+};
+
 __driver static const struct driver driver = {
-    .dtb = &(struct dtb_driver){
-        .compat_list = compat,
-        .compat_count = countof(compat),
-        .init = goldfish_rtc_init_from_dtb
-    }
+    .dtb = &dtb_driver,
+    .pci = NULL
 };

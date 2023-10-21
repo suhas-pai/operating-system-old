@@ -15,26 +15,30 @@ __optimize(3) bool kmalloc_initialized() {
     return kmalloc_is_initialized;
 }
 
-#define SLAB_ALLOC_INIT(index, size, alloc_flags, flags) \
-    assert(slab_allocator_init(&kmalloc_slabs[index], size, alloc_flags, flags))
+#define SLAB_ALLOC_INIT(size, alloc_flags, flags) \
+    assert( \
+        slab_allocator_init(&kmalloc_slabs[index], size, alloc_flags, flags)); \
+    index++;
 
 void kmalloc_init() {
-    SLAB_ALLOC_INIT(0, 16, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(1, 32, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(2, 64, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(3, 96, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(4, 128, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(5, 192, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(6, 256, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(7, 384, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(8, 512, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(9, 768, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(10, 1024, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(11, 1536, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(12, 2048, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(13, 4096, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(14, 6102, /*alloc_flags=*/0, /*flags=*/0);
-    SLAB_ALLOC_INIT(15, 8192, /*alloc_flags=*/0, /*flags=*/0);
+    uint8_t index = 0;
+
+    SLAB_ALLOC_INIT(16, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(32, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(64, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(96, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(128, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(192, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(256, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(384, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(512, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(768, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(1024, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(1536, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(2048, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(4096, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(6102, /*alloc_flags=*/0, /*flags=*/0);
+    SLAB_ALLOC_INIT(8192, /*alloc_flags=*/0, /*flags=*/0);
 
     kmalloc_is_initialized = true;
 }

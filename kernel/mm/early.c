@@ -474,7 +474,7 @@ mm_early_refcount_alloced_map(const uint64_t virt_addr, const uint64_t length) {
 }
 
 __optimize(3)
-static void mark_used_pages(const struct mm_section *const memmap) {
+static void mark_crucial_pages(const struct mm_section *const memmap) {
     struct freepages_info *iter = NULL;
     list_foreach(iter, &g_freepage_list, list) {
         uint64_t iter_phys = virt_to_phys(iter);
@@ -653,7 +653,9 @@ __optimize(3) static uint64_t free_all_pages() {
             } while (true);
 
         done:
-            const struct range freed_range = range_create(phys, total_in_zone);
+            const struct range freed_range =
+                range_create(phys, total_in_zone << PAGE_SHIFT);
+
             printk(LOGLEVEL_INFO,
                    "mm: freed %" PRIu64 " pages at " RANGE_FMT " to zone %s\n",
                    total_in_zone,
@@ -698,7 +700,7 @@ void mm_early_post_arch_init() {
     const struct mm_section *const end = begin + mm_get_usable_count();
 
     for (__auto_type section = begin; section != end; section++) {
-        mark_used_pages(section);
+        mark_crucial_pages(section);
     }
 
     boot_merge_usable_memmaps();

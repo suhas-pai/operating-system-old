@@ -7,7 +7,6 @@
 #include "mm/mm_types.h"
 
 #include "limine.h"
-#include "types.h"
 
 __hidden const uint64_t PAGE_OFFSET = 0xffffffd000000000;
 __hidden const uint64_t VMAP_BASE = 0xffffffe000000000;

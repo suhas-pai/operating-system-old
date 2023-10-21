@@ -76,9 +76,7 @@ setup_pages_off_freelist(struct page *const page,
         case PAGE_STATE_SYSTEM_CRUCIAL:
             verify_not_reached();
         case PAGE_STATE_USED: {
-            const uint64_t page_count = 1ull << order;
-            const struct page *const end = page + page_count;
-
+            const struct page *const end = page + (1ull << order);
             for (struct page *iter = page; iter != end; iter++) {
                 page_set_state(page, state);
             }
@@ -90,10 +88,9 @@ setup_pages_off_freelist(struct page *const page,
         case PAGE_STATE_LRU_CACHE:
             verify_not_reached();
         case PAGE_STATE_SLAB_HEAD: {
-            const uint64_t page_count = 1ull << order;
-            const struct page *const end = page + page_count;
-
+            const struct page *const end = page + (1ull << order);
             page_set_state(page, PAGE_STATE_SLAB_HEAD);
+
             for (struct page *iter = page + 1; iter != end; iter++) {
                 page_set_state(iter, PAGE_STATE_SLAB_TAIL);
                 iter->slab.tail.head = page;
@@ -107,10 +104,9 @@ setup_pages_off_freelist(struct page *const page,
             page_set_state(page, state);
             return;
         case PAGE_STATE_LARGE_HEAD: {
-            const uint64_t page_count = 1ull << order;
-            const struct page *const end = page + page_count;
-
+            const struct page *const end = page + (1ull << order);
             page_set_state(page, PAGE_STATE_LARGE_HEAD);
+
             for (struct page *iter = page + 1; iter != end; iter++) {
                 page_set_state(iter, PAGE_STATE_LARGE_TAIL);
                 refcount_init(&iter->largetail.refcount);
@@ -392,8 +388,7 @@ setup_alloced_page(struct page *const page,
             page->largehead.level = largeinfo->level;
 
             if (alloc_flags & __ALLOC_ZERO) {
-                const uint64_t page_count = 1ull << order;
-                zero_multiple_pages(page_to_virt(page), page_count);
+                zero_multiple_pages(page_to_virt(page), 1ull << order);
             }
 
             return page;
@@ -659,9 +654,9 @@ free_pages_to_zone(struct page *page, struct page_zone *zone, uint8_t order) {
 }
 
 void
-free_range_of_pages_and_look_around(struct page *const page,
-                                    struct page_zone *const zone,
-                                    uint64_t amount)
+free_to_zone_and_look_around(struct page *const page,
+                             struct page_zone *const zone,
+                             uint64_t amount)
 {
     const struct mm_section *const section = page_to_mm_section(page);
     uint64_t page_pfn = page_to_pfn(page) - section->pfn;
@@ -724,7 +719,7 @@ void free_large_page_to_zone(struct page *head, struct page_zone *const zone) {
         }
 
         const uint64_t free_amount = (uint64_t)(iter - page);
-        free_range_of_pages_and_look_around(page, zone, free_amount);
+        free_to_zone_and_look_around(page, zone, free_amount);
 
         page = iter + 1;
     }
@@ -750,7 +745,7 @@ void free_pages(struct page *const page, const uint8_t order) {
         return;
     }
 
-    free_pages_to_zone(page, page_to_zone(page), order);
+    free_to_zone_and_look_around(page, page_to_zone(page), order);
 }
 
 void free_large_page(struct page *const page) {

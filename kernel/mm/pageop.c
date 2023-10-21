@@ -70,7 +70,7 @@ pageop_flush_pte_in_current_range(struct pageop *const pageop,
         ptwalker_deref_from_level(&walker, walker.level, pageop);
 
         const enum pt_walker_result result = ptwalker_next(&walker);
-        if (result == E_PT_WALKER_OK) {
+        if (__builtin_expect(result == E_PT_WALKER_OK, 1)) {
             continue;
         }
 
@@ -131,8 +131,16 @@ pageop_setup_for_range(struct pageop *const pageop, const struct range virt) {
     pageop->flush_range = virt;
 }
 
+__optimize(3) static void free_all_pages(struct pageop *const pageop) {
+    struct page *iter = NULL;
+    list_foreach(iter, &pageop->delayed_free, table.delayed_free_list) {
+        free_page(iter);
+    }
+}
+
 __optimize(3) void pageop_finish(struct pageop *const pageop) {
     if (range_empty(pageop->flush_range)) {
+        free_all_pages(pageop);
         return;
     }
 
@@ -144,5 +152,6 @@ __optimize(3) void pageop_finish(struct pageop *const pageop) {
     #endif /* defined(__x86_64__) */
     }
 
+    free_all_pages(pageop);
     pageop->flush_range = RANGE_EMPTY();
 }

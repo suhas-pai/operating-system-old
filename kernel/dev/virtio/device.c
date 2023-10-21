@@ -25,6 +25,8 @@ virtio_device_shmem_region_map(
         return false;
     }
 
+    region->mmio = mmio;
     region->mapped = true;
+
     return true;
 }

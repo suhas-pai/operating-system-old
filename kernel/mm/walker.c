@@ -569,16 +569,22 @@ ptwalker_deref_from_level(struct pt_walker *const walker,
                           pgt_level_t level,
                           struct pageop *const pageop)
 {
-    if (__builtin_expect(level < walker->level, 0)) {
+    if (__builtin_expect(
+            level < walker->level || level > walker->top_level, 0))
+    {
         return;
     }
 
+    pte_t *table = walker->tables[level - 1];
     for (; level <= walker->top_level; level++) {
-        pte_t *const table = walker->tables[level - 1];
         struct page *const pt = virt_to_page(table);
-
         if (!ref_down(&pt->table.refcount)) {
             break;
+        }
+
+        if (__builtin_expect(level != walker->top_level, 1)) {
+            table = walker->tables[level];
+            pte_write(table + walker->indices[level], /*value=*/0);
         }
 
         list_add(&pageop->delayed_free, &pt->table.delayed_free_list);

@@ -580,10 +580,11 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
 
     uint64_t written_out = 0;
 
-    struct strftime_spec_info spec_info = STRFTIME_SPEC_INFO_INIT();
+    struct strftime_spec_info spec_info;
     const char *iter = strchr(format, '%');
 
     for (; iter != NULL; iter = strchr(iter, '%')) {
+        spec_info = STRFTIME_SPEC_INFO_INIT();
         const struct string_view unformat_buffer_sv =
             sv_create_end(unformat_buffer_ptr, iter);
 
@@ -630,8 +631,6 @@ parse_strftime_format(const parse_strftime_sv_callback sv_cb,
         } else {
             unformat_buffer_ptr = orig_iter;
         }
-
-        spec_info = STRFTIME_SPEC_INFO_INIT();
     }
 
     if (*unformat_buffer_ptr != '\0') {

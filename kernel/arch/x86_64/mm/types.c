@@ -63,13 +63,10 @@ __optimize(3) void pte_write(pte_t *const pte, const pte_t value) {
 
 __optimize(3)
 bool pte_flags_equal(pte_t pte, const pgt_level_t level, const uint64_t flags) {
-    uint64_t mask =
+    (void)level;
+    const uint64_t mask =
         __PTE_PRESENT | __PTE_WRITE | __PTE_USER | __PTE_PWT | __PTE_PCD |
         __PTE_GLOBAL | __PTE_NOEXEC;
-
-    if (level > 1) {
-        pte &= ~(uint64_t)__PTE_LARGE;
-    }
 
     return (pte & mask) == flags;
 }

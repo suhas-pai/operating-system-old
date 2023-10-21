@@ -36,13 +36,11 @@ deref_large_page(struct page *page,
                  struct pageop *pageop,
                  pgt_level_t level);
 
-__malloclike __malloc_dealloc(free_pages, 1)
 struct page *
 alloc_pages(enum page_state state, uint64_t alloc_flags, uint8_t order);
 
 struct page_zone;
 
-__malloclike __malloc_dealloc(free_pages, 1)
 struct page *
 alloc_pages_in_zone(struct page_zone *zone,
                     enum page_state state,
@@ -50,10 +48,7 @@ alloc_pages_in_zone(struct page_zone *zone,
                     uint8_t order,
                     bool fallback);
 
-__malloclike __malloc_dealloc(free_pages, 1)
 struct page *alloc_large_page(uint64_t alloc_flags, pgt_level_t level);
-
-__malloclike __malloc_dealloc(free_pages, 1)
 struct page *
 alloc_large_page_in_zone(struct page_zone *zone,
                          uint64_t alloc_flags,

@@ -159,7 +159,7 @@ mmio_map:
     }
 
     bar->is_mmio = true;
-    bar->is_prefetchable = (bar_0 & __PCI_DEVBAR_PREFETCHABLE);
+    bar->is_prefetchable = bar_0 & __PCI_DEVBAR_PREFETCHABLE;
 
     return E_PARSE_BAR_OK;
 }

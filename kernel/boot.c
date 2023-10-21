@@ -260,7 +260,7 @@ struct mm_section *boot_add_section_at(struct mm_section *section) {
     return section;
 }
 
-void boot_recalculate_pfns() {
+__optimize(3) void boot_recalculate_pfns() {
     uint64_t pfn = 0;
 
     struct mm_section *section = mm_usable_list;
