@@ -124,10 +124,15 @@ enum pci_spec_devbar_memspace_kind {
     PCI_DEVBAR_MEMSPACE_64B = 2,
 };
 
+enum pci_spec_device_bar_shifts {
+    __PCI_DEVBAR_MEMKIND_SHIFT = 1,
+    __PCI_DEVBAR_PREFETCHABLE_SHIFT = 3
+};
+
 enum pci_spec_device_bar_flags {
     __PCI_DEVBAR_IO = 1ull << 0,
-    __PCI_DEVBAR_MEMKIND_MASK = 0b11 << 1,
-    __PCI_DEVBAR_PREFETCHABLE = 1ull << 3,
+    __PCI_DEVBAR_MEMKIND_MASK = 0b11 << __PCI_DEVBAR_MEMKIND_SHIFT,
+    __PCI_DEVBAR_PREFETCHABLE = 1ull << __PCI_DEVBAR_PREFETCHABLE_SHIFT,
 };
 
 struct pci_spec_device_info_base {
@@ -152,7 +157,7 @@ struct pci_spec_device_info_base {
 struct pci_spec_device_info {
     struct pci_spec_device_info_base base;
 
-    uint32_t bar_list[6];
+    volatile uint32_t bar_list[6];
     uint32_t cardbus_cis_pointer;
 
     uint16_t subsystem_vendor_id;
@@ -174,7 +179,7 @@ struct pci_spec_device_info {
 struct pci_spec_pci_to_pci_bridge_device_info {
     struct pci_spec_device_info_base base;
 
-    uint32_t bar_list[2];
+    volatile uint32_t bar_list[2];
     uint8_t primary_bus_number;
     uint8_t secondary_bus_number;
     uint8_t subordinate_bus_number;

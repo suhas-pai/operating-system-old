@@ -121,7 +121,7 @@ pci_parse_bar(struct pci_device_info *const dev,
 
     base_addr = bar_0 & PCI_BAR_32B_ADDR_SIZE_MASK;
     const enum pci_spec_devbar_memspace_kind memory_kind =
-        (bar_0 & __PCI_DEVBAR_MEMKIND_MASK) >> 1;
+        (bar_0 & __PCI_DEVBAR_MEMKIND_MASK) >> __PCI_DEVBAR_MEMKIND_SHIFT;
 
     enum parse_bar_result result = E_PARSE_BAR_OK;
     if (memory_kind == PCI_DEVBAR_MEMSPACE_32B) {
@@ -608,6 +608,10 @@ parse_function(struct pci_domain *const domain,
         (uint16_t)~(__PCI_DEVCMDREG_IOSPACE | __PCI_DEVCMDREG_MEMSPACE);
 
     pci_write(&info, struct pci_spec_device_info_base, command, new_command);
+
+    bool has_mmio_bar = false;
+    bool has_io_bar = false;
+
     switch (hdrkind) {
         case PCI_SPEC_DEVHDR_KIND_GENERAL: {
             info.max_bar_count = PCI_BAR_COUNT_FOR_GENERAL;
@@ -645,6 +649,12 @@ parse_function(struct pci_domain *const domain,
 
                     bar->is_present = false;
                     break;
+                }
+
+                if (bar->is_mmio) {
+                    has_mmio_bar = true;
+                } else {
+                    has_io_bar = true;
                 }
 
                 printk(LOGLEVEL_INFO,
@@ -700,6 +710,12 @@ parse_function(struct pci_domain *const domain,
                     break;
                 }
 
+                if (bar->is_mmio) {
+                    has_mmio_bar = true;
+                } else {
+                    has_io_bar = true;
+                }
+
                 printk(LOGLEVEL_INFO,
                        "\t\tbridge bar %" PRIu8 " %s: " RANGE_FMT ", %s, %s"
                        "size: %" PRIu64 "\n",
@@ -711,6 +727,7 @@ parse_function(struct pci_domain *const domain,
                        bar->is_mmio ?
                         bar->is_64_bit ? "64-bit, " : "32-bit, " : "",
                        bar->port_range.size);
+
                 bar++;
             }
 
@@ -728,7 +745,15 @@ parse_function(struct pci_domain *const domain,
             break;
     }
 
-    // Restore original value of command.
+    // Enable writing to mmio and io space (when necessary).
+    if (has_mmio_bar) {
+        info.command |= __PCI_DEVCMDREG_MEMSPACE;
+    }
+
+    if (has_io_bar) {
+        info.command |= __PCI_DEVCMDREG_IOSPACE;
+    }
+
     pci_write(&info, struct pci_spec_device_info_base, command, info.command);
 
     struct pci_device_info *const info_out = kmalloc(sizeof(*info_out));
@@ -859,19 +884,19 @@ void pci_init_drivers() {
                 continue;
             }
 
-            if (pci_driver->match & PCI_DRIVER_MATCH_CLASS) {
+            if (pci_driver->match & __PCI_DRIVER_MATCH_CLASS) {
                 if (device->class != pci_driver->class) {
                     continue;
                 }
             }
 
-            if (pci_driver->match & PCI_DRIVER_MATCH_SUBCLASS) {
+            if (pci_driver->match & __PCI_DRIVER_MATCH_SUBCLASS) {
                 if (device->subclass != pci_driver->subclass) {
                     continue;
                 }
             }
 
-            if (pci_driver->match & PCI_DRIVER_MATCH_PROGIF) {
+            if (pci_driver->match & __PCI_DRIVER_MATCH_PROGIF) {
                 if (device->prog_if != pci_driver->prog_if) {
                     continue;
                 }

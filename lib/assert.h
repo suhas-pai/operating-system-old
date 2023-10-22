@@ -16,6 +16,7 @@
     #define verify_not_reached() panic("verify_not_reached()\n")
 #elif defined(BUILD_TEST)
     #include <assert.h>
+
     #define assert_msg(cond, msg, ...) assert(cond && (msg))
     #define verify_not_reached() assert(0 && "verify_not_reached()")
 #else

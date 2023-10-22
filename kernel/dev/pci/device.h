@@ -10,10 +10,7 @@
 #endif /* defined(__x86_64__) */
 
 #include "lib/adt/array.h"
-#include "lib/adt/bitmap.h"
-
 #include "cpu/isr.h"
-#include "mm/mmio.h"
 
 struct pci_config_space {
     uint16_t domain_segment; // PCIe only. 0 for PCI Local bus
@@ -50,20 +47,16 @@ struct pci_device_bar_info {
 bool pci_map_bar(struct pci_device_bar_info *bar);
 
 uint8_t
-pci_device_bar_read8(struct pci_device_bar_info *const bar,
-                     const uint32_t offset);
+pci_device_bar_read8(struct pci_device_bar_info *const bar, uint32_t offset);
 
 uint16_t
-pci_device_bar_read16(struct pci_device_bar_info *const bar,
-                     const uint32_t offset);
+pci_device_bar_read16(struct pci_device_bar_info *const bar, uint32_t offset);
 
 uint32_t
-pci_device_bar_read32(struct pci_device_bar_info *const bar,
-                     const uint32_t offset);
+pci_device_bar_read32(struct pci_device_bar_info *const bar, uint32_t offset);
 
 uint64_t
-pci_device_bar_read64(struct pci_device_bar_info *const bar,
-                     const uint32_t offset);
+pci_device_bar_read64(struct pci_device_bar_info *const bar, uint32_t offset);
 
 struct pci_device_info;
 struct pci_domain {

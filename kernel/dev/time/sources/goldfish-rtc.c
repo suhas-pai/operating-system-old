@@ -61,10 +61,14 @@ bool goldfish_rtc_init_from_dtb(const void *const dtb, const int nodeoff) {
                           &base_addr_reg);
 
     if (!get_base_addr_reg_result) {
+    #if defined(__x86_64__)
+        verify_not_reached();
+    #else
         printk(LOGLEVEL_WARN,
                "goldfish-rtc: base-addr reg of 'reg' property of "
                "google,goldfish-rtc dtb-node is malformed\n");
         return false;
+    #endif
     }
 
     if (!has_align(base_addr_reg.address, PAGE_SIZE)) {

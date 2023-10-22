@@ -5,6 +5,7 @@
 
 #if defined(__x86_64__)
     #include "asm/msr.h"
+    #include "mm/mmio.h"
 #endif /* defined(__x86_64__) */
 
 #include "dev/printk.h"

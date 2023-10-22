@@ -147,7 +147,19 @@ struct virtio_pci_cfg_cap {
      * the given cap.bar at offset cap.offset.
      */
 
-    struct virtio_pci_cap cap;
+    struct pci_spec_capability cap;
+
+    uint8_t cap_len;
+    uint8_t cfg_type; // Identifies the structure.
+
+    volatile uint8_t bar; // Where to find it.
+
+    uint8_t id; // Multiple capabilities of the same type
+    uint8_t padding[2]; // Pad to full dword.
+
+    volatile uint32_t offset; // Offset within bar.
+    volatile uint32_t length; // Length of the structure, in bytes.
+
     volatile uint8_t pci_cfg_data[4]; // Data for BAR access.
 } __packed;
 

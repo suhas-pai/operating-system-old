@@ -6,6 +6,8 @@
 #include "dev/pci/device.h"
 #include "dev/printk.h"
 
+#include "lib/size.h"
+
 #include "block.h"
 #include "mmio.h"
 
@@ -74,19 +76,16 @@ struct virtio_block_config {
 
 struct virtio_device *
 virtio_block_driver_init(struct virtio_device *const device) {
-    volatile struct virtio_block_config *const config =
-        (volatile struct virtio_block_config *)device->device_cfg;
-
-    if (config == NULL) {
-        printk(LOGLEVEL_WARN, "virtio-block: device-cfg not found\n");
-        return NULL;
-    }
+    const le64_t capacity =
+        le_to_cpu(
+            virtio_device_read_info_field(device,
+                                          struct virtio_block_config,
+                                          capacity));
 
     printk(LOGLEVEL_INFO,
            "virtio-block: device has the following info:\n"
-           "\tcapacity: 0x%" PRIx64 "\n",
-           le_to_cpu(mmio_read(&config->capacity)));
+           "\tcapacity: " SIZE_TO_UNIT_FMT "\n",
+           SIZE_TO_UNIT_FMT_ARGS_ABBREV(capacity));
 
-    pci_device_enable_bus_mastering(device->pci_device);
     return NULL;
 }

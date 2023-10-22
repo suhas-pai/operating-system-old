@@ -72,7 +72,9 @@
     #endif /* __has_attribute(visibility) */
 #endif /* !defined(__hidden) */
 
+#define typeof_field(type, field) typeof(((type *)0)->field)
 #define sizeof_field(type, field) sizeof(((type *)0)->field)
+
 #define LEN_OF(str) (sizeof(str) - 1)
 
 #define __VAR_CONCAT_IMPL(a, b) a##b

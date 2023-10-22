@@ -7,17 +7,14 @@
 #include "device.h"
 
 bool
-virtio_device_shmem_region_map(
-    struct virtio_device_shmem_region *const region)
+virtio_device_shmem_region_map(struct virtio_device_shmem_region *const region)
 {
     if (region->mapped) {
         return true;
     }
 
     struct mmio_region *const mmio =
-        vmap_mmio(region->phys_range,
-                  PROT_READ | PROT_WRITE,
-                  /*flags=*/0);
+        vmap_mmio(region->phys_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 
     if (mmio == NULL) {
         printk(LOGLEVEL_WARN,

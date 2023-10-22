@@ -10,9 +10,9 @@ enum pci_driver_match {
     PCI_DRIVER_MATCH_VENDOR_DEVICE,
     PCI_DRIVER_MATCH_VENDOR,
 
-    PCI_DRIVER_MATCH_CLASS = 1 << 1,
-    PCI_DRIVER_MATCH_SUBCLASS = 1 << 2,
-    PCI_DRIVER_MATCH_PROGIF = 1 << 3,
+    __PCI_DRIVER_MATCH_CLASS = 1 << 1,
+    __PCI_DRIVER_MATCH_SUBCLASS = 1 << 2,
+    __PCI_DRIVER_MATCH_PROGIF = 1 << 3,
 };
 
 struct pci_driver {

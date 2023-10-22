@@ -6,9 +6,10 @@
 #pragma once
 
 #include "lib/adt/array.h"
-
 #include "mm/mmio.h"
+
 #include "structs.h"
+#include "transport.h"
 
 struct virtio_device_shmem_region {
     union {
@@ -22,27 +23,20 @@ struct virtio_device_shmem_region {
 
 bool virtio_device_shmem_region_map(struct virtio_device_shmem_region *region);
 
-struct virtio_device;
-struct virtio_config_space_operations {
-    void
-    (*read)(struct virtio_device *device,
-            uint64_t offset,
-            uint64_t size,
-            void *buf);
-
-    void
-    (*write)(struct virtio_device *device,
-             const void *buf,
-             uint64_t offset,
-             uint64_t size);
-};
-
 struct virtio_device {
     struct list list;
-    struct pci_device_info *pci_device;
+    union {
+        struct {
+            struct pci_device_info *pci_device;
 
-    volatile struct virtio_pci_common_cfg *common_cfg;
-    volatile void *device_cfg;
+            volatile struct virtio_pci_common_cfg *common_cfg;
+            volatile void *device_cfg;
+
+            struct virtio_pci_cfg_cap *pci_cfg;
+        } pci;
+    };
+
+    struct virtio_transport_ops ops;
 
     // Array of struct virtio_device_shmem_region
     struct array shmem_regions;
@@ -50,27 +44,28 @@ struct virtio_device {
     // Array of uint8_t
     struct array vendor_cfg_list;
 
-    uint8_t pci_cfg_offset;
-    uint8_t notify_cfg_offset;
-    uint8_t isr_cfg_offset;
+    struct {
+        uint8_t pci_cfg;
+        uint8_t notify_cfg;
+        uint8_t isr_cfg;
+    } pci_offsets;
 
     bool is_transitional : 1;
     enum virtio_device_kind kind;
-
-    struct virtio_config_space_operations ops;
 };
 
 #define VIRTIO_DEVICE_INIT(name) \
     ((struct virtio_device){ \
         .list = LIST_INIT(name.list), \
-        .pci_device = NULL, \
-        .common_cfg = NULL, \
-        .device_cfg = NULL, \
+        .pci.pci_device = NULL, \
+        .pci.common_cfg = NULL, \
+        .pci.device_cfg = NULL, \
+        .pci.pci_cfg = NULL, \
         .shmem_regions = ARRAY_INIT(sizeof(struct virtio_device_shmem_region)),\
         .vendor_cfg_list = ARRAY_INIT(sizeof(uint8_t)), \
-        .pci_cfg_offset = 0, \
-        .notify_cfg_offset = 0, \
-        .isr_cfg_offset = 0, \
+        .pci_offsets.pci_cfg = 0, \
+        .pci_offsets.notify_cfg = 0, \
+        .pci_offsets.isr_cfg = 0, \
         .is_transitional = false, \
         .kind = VIRTIO_DEVICE_KIND_INVALID \
     })

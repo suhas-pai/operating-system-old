@@ -55,7 +55,7 @@ arch_pcie_write(const struct pci_device_info *const device,
                ", which falls outside pci-device's descriptor\n",
                access_size,
                offset);
-        return (uint32_t)-1;
+        return false;
     }
 
     switch (access_size) {

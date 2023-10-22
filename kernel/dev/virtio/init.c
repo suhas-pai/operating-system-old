@@ -11,11 +11,8 @@
 
 #include "lib/util.h"
 
-#include "device.h"
-#include "mmio.h"
-
-static struct list device_list = LIST_INIT(device_list);
-static uint64_t device_count = 0;
+static struct list g_device_list = LIST_INIT(g_device_list);
+static uint64_t g_device_count = 0;
 
 static virtio_driver_init_t drivers[] = {
     [VIRTIO_DEVICE_KIND_BLOCK_DEVICE] = virtio_block_driver_init,
@@ -67,18 +64,6 @@ static struct string_view device_kind_string[] = {
     [VIRTIO_DEVICE_KIND_RDMA_DEVICE] = SV_STATIC("rdma-device")
 };
 
-static uint64_t
-select_64_bits(volatile uint32_t *const select,
-               volatile const uint32_t *const ptr)
-{
-    mmio_write(select, 0);
-    const uint32_t lower = mmio_read(ptr);
-    mmio_write(select, 1);
-    const uint32_t upper = mmio_read(ptr);
-
-    return ((uint64_t)upper << 32 | lower);
-}
-
 static
 struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
     if (drivers[device->kind] == NULL) {
@@ -86,24 +71,24 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
         return NULL;
     }
 
-    volatile struct virtio_pci_common_cfg *const cfg = device->common_cfg;
-
     // 1. Reset the device.
-    mmio_write(&cfg->device_status, 0);
+    virtio_device_write_status(device, /*status=*/0);
+
     // 2. Set the ACKNOWLEDGE status bit: the guest OS has noticed the device.
-    mmio_write(&cfg->device_status, VIRTIO_DEVSTATUS_ACKNOWLEDGE);
+    uint8_t status = virtio_device_read_status(device);
+    virtio_device_write_status(device, status | VIRTIO_DEVSTATUS_ACKNOWLEDGE);
+
     // 3. Set the DRIVER status bit: the guest OS knows how to drive the device.
-    mmio_write(&cfg->device_status,
-               mmio_read(&cfg->device_status) | VIRTIO_DEVSTATUS_DRIVER);
+    status = virtio_device_read_status(device);
+    virtio_device_write_status(device, status | VIRTIO_DEVSTATUS_DRIVER);
 
     // 4. Read device feature bits, and write the subset of feature bits
     // understood by the OS and driver to the device. During this step the
     // driver MAY read (but MUST NOT write) the device-specific configuration
     // fields to check that it can support the device before accepting it.
 
-    uint64_t features =
-        le_to_cpu(
-            select_64_bits(&cfg->device_feature_select, &cfg->device_feature));
+    uint64_t features = virtio_device_read_features(device);
+    virtio_device_write_features(device, features);
 
     // The transitional driver MUST execute the initialization sequence as
     // described in 3.1 but omitting the steps 5 and 6.
@@ -113,18 +98,16 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
         // 5. Set the FEATURES_OK status bit. The driver MUST NOT accept new
         // feature bits after this step.
 
-        mmio_write(&cfg->device_status, VIRTIO_DEVSTATUS_FEATURES_OK);
+        status = virtio_device_read_status(device);
+        virtio_device_write_status(device,
+                                   status | VIRTIO_DEVSTATUS_FEATURES_OK);
 
         // 6. Re-read device status to ensure the FEATURES_OK bit is still set:
         // otherwise, the device does not support our subset of features and the
         // device is unusable.
 
-        features =
-            le_to_cpu(
-                select_64_bits(&cfg->device_feature_select,
-                               &cfg->device_feature));
-
-        if ((features & VIRTIO_DEVSTATUS_FEATURES_OK) == 0) {
+        status = virtio_device_read_status(device);
+        if ((status & VIRTIO_DEVSTATUS_FEATURES_OK) == 0) {
             printk(LOGLEVEL_WARN, "virtio-pci: failed to accept features\n");
             return NULL;
         }
@@ -132,15 +115,16 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
         printk(LOGLEVEL_INFO, "virtio-pci: device is legacy\n");
     }
 
+    status = virtio_device_read_status(device);
+    virtio_device_write_status(device, status | VIRTIO_DEVSTATUS_DRIVER_OK);
+
     struct virtio_device *const ret_device = drivers[device->kind](device);
     if (ret_device == NULL) {
-        mmio_write(&cfg->device_status,
-                   mmio_read(&cfg->device_status) | VIRTIO_DEVSTATUS_FAILED);
         return NULL;
     }
 
-    mmio_write(&cfg->device_status,
-               mmio_read(&cfg->device_status) | VIRTIO_DEVSTATUS_DRIVER_OK);
+    list_add(&g_device_list, &ret_device->list);
+    g_device_count++;
 
     return ret_device;
 }
@@ -215,7 +199,10 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
     virt_device.kind = device_kind;
     virt_device.is_transitional = is_trans;
-    virt_device.pci_device = pci_device;
+    virt_device.pci.pci_device = pci_device;
+    virt_device.ops = virtio_transport_ops_for_pci();
+
+    pci_device_enable_bus_mastering(pci_device);
 
 #define pci_read_virtio_cap_field(field) \
     pci_read_with_offset(pci_device, \
@@ -302,7 +289,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device.common_cfg = bar->mmio->base + offset;
+                virt_device.pci.common_cfg = bar->mmio->base + offset;
                 cfg_kind = "common-cfg";
 
                 break;
@@ -316,7 +303,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device.notify_cfg_offset = *iter;
+                virt_device.pci_offsets.notify_cfg = *iter;
                 cfg_kind = "notify-cfg";
 
                 break;
@@ -329,12 +316,12 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device.isr_cfg_offset = *iter;
+                virt_device.pci_offsets.isr_cfg = *iter;
                 cfg_kind = "isr-cfg";
 
                 break;
             case VIRTIO_PCI_CAP_DEVICE_CFG:
-                virt_device.device_cfg = bar->mmio->base + offset;
+                virt_device.pci.device_cfg = bar->mmio->base + offset;
                 cfg_kind = "device-cfg";
 
                 break;
@@ -347,7 +334,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device.pci_cfg_offset = *iter;
+                virt_device.pci_offsets.pci_cfg = *iter;
                 cfg_kind = "pci-cfg";
 
                 break;
@@ -403,7 +390,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         cap_index++;
     }
 
-    if (virt_device.common_cfg == NULL) {
+    if (virt_device.pci.common_cfg == NULL) {
         printk(LOGLEVEL_WARN, "virtio-pci: device is missing a common-cfg\n");
         return;
     }
@@ -411,8 +398,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
     virtio_pci_init(&virt_device);
 #undef pci_read_virtio_cap_field
 
-    list_add(&device_list, &virt_device.list);
-    device_count++;
+    list_add(&g_device_list, &virt_device.list);
+    g_device_count++;
 }
 
 static struct pci_driver pci_driver = {
