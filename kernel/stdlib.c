@@ -5,6 +5,10 @@
 
 #include <stdint.h>
 
+#if defined(__riscv64)
+    #include "lib/align.h"
+#endif /* defined(__riscv64) */
+
 #include "lib/macros.h"
 #include "lib/string.h"
 
@@ -384,11 +388,13 @@ __optimize(3) void bzero(void *dst, unsigned long n) {
         n -= sizeof(uint64_t) * 2;
     }
 #elif defined(__riscv64)
-    while (n >= CBO_SIZE) {
-        asm volatile ("cbo.zero (%0)" :: "r"(dst));
+    if (has_align((uint64_t)dst, CBO_SIZE)) {
+        while (n >= CBO_SIZE) {
+            asm volatile ("cbo.zero (%0)" :: "r"(dst));
 
-        dst += CBO_SIZE;
-        n -= CBO_SIZE;
+            dst += CBO_SIZE;
+            n -= CBO_SIZE;
+        }
     }
 #endif
     while (n >= sizeof(uint64_t)) {
