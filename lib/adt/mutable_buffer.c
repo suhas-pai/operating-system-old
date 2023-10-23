@@ -64,11 +64,11 @@ __optimize(3) uint32_t mbuffer_capacity(const struct mutable_buffer mbuffer) {
 
 __optimize(3) bool
 mbuffer_can_add_size(const struct mutable_buffer mbuffer, const uint32_t size) {
-    return (size <= mbuffer_free_space(mbuffer));
+    return size <= mbuffer_free_space(mbuffer);
 }
 
 __optimize(3) bool mbuffer_empty(const struct mutable_buffer mbuffer) {
-    return (mbuffer_used_size(mbuffer) == 0);
+    return mbuffer_used_size(mbuffer) == 0;
 }
 
 __optimize(3) bool mbuffer_full(const struct mutable_buffer mbuffer) {

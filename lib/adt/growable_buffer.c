@@ -123,9 +123,10 @@ __optimize(3) bool gbuffer_empty(const struct growable_buffer gbuffer) {
 }
 
 __optimize(3) uint32_t
-gbuffer_increment_ptr(struct growable_buffer *const gbuffer, const uint32_t amt)
+gbuffer_increment_ptr(struct growable_buffer *const gbuffer,
+                      const uint32_t amount)
 {
-    const uint32_t delta = min(gbuffer_free_space(*gbuffer), amt);
+    const uint32_t delta = min(gbuffer_free_space(*gbuffer), amount);
     gbuffer->index = delta;
 
     return delta;

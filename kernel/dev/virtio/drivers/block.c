@@ -11,27 +11,6 @@
 #include "block.h"
 #include "mmio.h"
 
-enum feature_flags {
-    __VIRTIO_BLOCK_HAS_MAX_SIZE = 1ull << 1,
-    __VIRTIO_BLOCK_HAS_SEG_MAX = 1ull << 2,
-    __VIRTIO_BLOCK_HAS_GEOMETRY = 1ull << 4,
-    __VIRTIO_BLOCK_IS_READONLY = 1ull << 5,
-    __VIRTIO_BLOCK_HAS_BLOCK_SIZE = 1ull << 6,
-    __VIRTIO_BLOCK_CAN_FLUSH_CMD = 1ull << 9,
-    __VIRTIO_BLOCK_TOPOLOGY = 1ull << 10,
-    __VIRTIO_BLOCK_TOGGLE_CACHE = 1ull << 11,
-    __VIRTIO_BLOCK_SUPPORTS_MULTI_QUEUE = 1ull << 12,
-    __VIRTIO_BLOCK_SUPPORTS_DISCARD = 1ull << 13,
-    __VIRTIO_BLOCK_SUPPORTS_WRITE_ZERO_CMD = 1ull << 14,
-    __VIRTIO_BLOCK_GIVES_LIFETIME_INFO = 1ull << 15,
-    __VIRTIO_BLOCK_SUPPORTS_SECURE_ERASE_CMD = 1ull << 16,
-};
-
-enum legacy_feature_flags {
-    __VIRTIO_BLOCK_LEGACY_SUPPORTS_REQ_BARRIERS = 1ull << 0,
-    __VIRTIO_BLOCK_LEGACY_SUPPORTS_SCSI = 1ull << 7,
-};
-
 struct virtio_block_config {
     le64_t capacity;
     le32_t size_max;
@@ -75,7 +54,13 @@ struct virtio_block_config {
 };
 
 struct virtio_device *
-virtio_block_driver_init(struct virtio_device *const device) {
+virtio_block_driver_init(struct virtio_device *const device,
+                         const uint64_t features)
+{
+    if (features & __VIRTIO_BLOCK_IS_READONLY) {
+        printk(LOGLEVEL_INFO, "virtio-block: device is readonly\n");
+    }
+
     const le64_t capacity =
         le_to_cpu(
             virtio_device_read_info_field(device,

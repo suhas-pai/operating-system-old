@@ -9,17 +9,39 @@
 #include "drivers/block.h"
 #include "drivers/scsi.h"
 
+#include "queue/split.h"
 #include "lib/util.h"
+
+#include "mm/kmalloc.h"
+#include "mmio.h"
 
 static struct list g_device_list = LIST_INIT(g_device_list);
 static uint64_t g_device_count = 0;
 
-static virtio_driver_init_t drivers[] = {
-    [VIRTIO_DEVICE_KIND_BLOCK_DEVICE] = virtio_block_driver_init,
-    [VIRTIO_DEVICE_KIND_SCSI_HOST] = virtio_scsi_driver_init,
+struct virtio_driver_info {
+    virtio_driver_init_t init;
+
+    uint16_t virtqueue_count;
+    uint64_t required_features;
 };
 
-static struct string_view device_kind_string[] = {
+static const struct virtio_driver_info drivers[] = {
+    [VIRTIO_DEVICE_KIND_BLOCK_DEVICE] = {
+        .init = virtio_block_driver_init,
+        .virtqueue_count = 2,
+        .required_features =
+            __VIRTIO_BLOCK_HAS_SEG_MAX |
+            __VIRTIO_BLOCK_HAS_BLOCK_SIZE |
+            __VIRTIO_BLOCK_SUPPORTS_MULTI_QUEUE,
+    },
+    [VIRTIO_DEVICE_KIND_SCSI_HOST] = {
+        .init = virtio_scsi_driver_init,
+        .virtqueue_count = 0,
+        .required_features = __VIRTIO_SCSI_HOTPLUG | __VIRTIO_SCSI_CHANGE,
+    }
+};
+
+static const struct string_view device_kind_string[] = {
     [VIRTIO_DEVICE_KIND_INVALID] = SV_STATIC("reserved"),
     [VIRTIO_DEVICE_KIND_NETWORK_CARD] = SV_STATIC("network-card"),
     [VIRTIO_DEVICE_KIND_BLOCK_DEVICE] = SV_STATIC("block-device"),
@@ -64,9 +86,38 @@ static struct string_view device_kind_string[] = {
     [VIRTIO_DEVICE_KIND_RDMA_DEVICE] = SV_STATIC("rdma-device")
 };
 
+bool
+virtio_device_init_queues(struct virtio_device *const device,
+                          const uint16_t queue_count)
+{
+    struct virtio_split_queue *const queue_list =
+        kmalloc(sizeof(struct virtio_split_queue) * queue_count);
+
+    if (queue_list == NULL) {
+        printk(LOGLEVEL_WARN,
+               "virtio-pci: failed to allocate space for %" PRIu16 " "
+               "virtio_queue objects\n",
+               queue_count);
+        return false;
+    }
+
+    for (uint16_t index = 0; index != queue_count; index++) {
+        if (!virtio_split_queue_init(device, &queue_list[index], index)) {
+            kfree(queue_list);
+            return false;
+        }
+    }
+
+    device->queue_list = queue_list;
+    device->queue_count = queue_count;
+
+    return true;
+}
+
 static
 struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
-    if (drivers[device->kind] == NULL) {
+    const struct virtio_driver_info *const driver = &drivers[device->kind];
+    if (driver->init == NULL) {
         printk(LOGLEVEL_WARN, "virtio-pci: ignoring device, no driver found\n");
         return NULL;
     }
@@ -76,11 +127,11 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
 
     // 2. Set the ACKNOWLEDGE status bit: the guest OS has noticed the device.
     uint8_t status = virtio_device_read_status(device);
-    virtio_device_write_status(device, status | VIRTIO_DEVSTATUS_ACKNOWLEDGE);
+    virtio_device_write_status(device, status | __VIRTIO_DEVSTATUS_ACKNOWLEDGE);
 
     // 3. Set the DRIVER status bit: the guest OS knows how to drive the device.
     status = virtio_device_read_status(device);
-    virtio_device_write_status(device, status | VIRTIO_DEVSTATUS_DRIVER);
+    virtio_device_write_status(device, status | __VIRTIO_DEVSTATUS_DRIVER);
 
     // 4. Read device feature bits, and write the subset of feature bits
     // understood by the OS and driver to the device. During this step the
@@ -88,26 +139,35 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
     // fields to check that it can support the device before accepting it.
 
     uint64_t features = virtio_device_read_features(device);
+    if ((features & driver->required_features) != driver->required_features) {
+        printk(LOGLEVEL_WARN,
+               "virtio-pci: device is missing required features, features: "
+               "%" PRIu64 "\n",
+               features);
+        return NULL;
+    }
+
     virtio_device_write_features(device, features);
 
     // The transitional driver MUST execute the initialization sequence as
     // described in 3.1 but omitting the steps 5 and 6.
 
-    const bool is_legacy = (features & VIRTIO_DEVFEATURE_VERSION_1) == 0;
+    const bool is_legacy = (features & __VIRTIO_DEVFEATURE_VERSION_1) == 0;
     if (!is_legacy) {
         // 5. Set the FEATURES_OK status bit. The driver MUST NOT accept new
         // feature bits after this step.
 
         status = virtio_device_read_status(device);
-        virtio_device_write_status(device,
-                                   status | VIRTIO_DEVSTATUS_FEATURES_OK);
+        status |= __VIRTIO_DEVSTATUS_FEATURES_OK;
+
+        virtio_device_write_status(device, status);
 
         // 6. Re-read device status to ensure the FEATURES_OK bit is still set:
         // otherwise, the device does not support our subset of features and the
         // device is unusable.
 
         status = virtio_device_read_status(device);
-        if ((status & VIRTIO_DEVSTATUS_FEATURES_OK) == 0) {
+        if ((status & __VIRTIO_DEVSTATUS_FEATURES_OK) == 0) {
             printk(LOGLEVEL_WARN, "virtio-pci: failed to accept features\n");
             return NULL;
         }
@@ -116,10 +176,20 @@ struct virtio_device *virtio_pci_init(struct virtio_device *const device) {
     }
 
     status = virtio_device_read_status(device);
-    virtio_device_write_status(device, status | VIRTIO_DEVSTATUS_DRIVER_OK);
+    virtio_device_write_status(device, status | __VIRTIO_DEVSTATUS_DRIVER_OK);
 
-    struct virtio_device *const ret_device = drivers[device->kind](device);
+    if (driver->virtqueue_count != 0) {
+        if (!virtio_device_init_queues(device, driver->virtqueue_count)) {
+            status |= __VIRTIO_DEVSTATUS_FAILED;
+            virtio_device_write_status(device, status);
+
+            return NULL;
+        }
+    }
+
+    struct virtio_device *const ret_device = driver->init(device, features);
     if (ret_device == NULL) {
+        virtio_device_write_status(device, status | __VIRTIO_DEVSTATUS_FAILED);
         return NULL;
     }
 
@@ -210,7 +280,11 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                          struct virtio_pci_cap64, \
                          field)
 
+    struct range notify_cfg_range = RANGE_EMPTY();
+
     uint8_t cap_index = 0;
+    uint32_t notify_off_multiplier = 0;
+
     array_foreach(&pci_device->vendor_cap_list, uint8_t, iter) {
         const uint8_t cap_len = pci_read_virtio_cap_field(cap.cap_len);
         if (cap_len < sizeof(struct virtio_pci_cap)) {
@@ -293,7 +367,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                 cfg_kind = "common-cfg";
 
                 break;
-            case VIRTIO_PCI_CAP_NOTIFY_CFG:
+            case VIRTIO_PCI_CAP_NOTIFY_CFG: {
                 if (cap_len < sizeof(struct virtio_pci_notify_cfg_cap)) {
                     printk(LOGLEVEL_WARN,
                            "\tvirtio-pci: notify-cfg capability is too "
@@ -303,10 +377,21 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                     continue;
                 }
 
-                virt_device.pci_offsets.notify_cfg = *iter;
+                notify_off_multiplier =
+                    pci_read_with_offset(pci_device,
+                                         *iter,
+                                         struct virtio_pci_notify_cfg_cap,
+                                         notify_off_multiplier);
+
+                virt_device.pci.notify_queue_select = bar->mmio->base + offset;
                 cfg_kind = "notify-cfg";
 
+                notify_cfg_range =
+                    range_create((uint64_t)virt_device.pci.notify_queue_select,
+                                 length);
+
                 break;
+            }
             case VIRTIO_PCI_CAP_ISR_CFG:
                 if (cap_len < sizeof(struct virtio_pci_isr_cfg_cap)) {
                     printk(LOGLEVEL_WARN,
@@ -321,9 +406,10 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
                 break;
             case VIRTIO_PCI_CAP_DEVICE_CFG:
-                virt_device.pci.device_cfg = bar->mmio->base + offset;
-                cfg_kind = "device-cfg";
+                virt_device.pci.device_cfg =
+                    range_create((uint64_t)bar->mmio->base + offset, length);
 
+                cfg_kind = "device-cfg";
                 break;
             case VIRTIO_PCI_CAP_PCI_CFG:
                 if (cap_len < sizeof(struct virtio_pci_cap)) {
@@ -395,8 +481,39 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         return;
     }
 
-    virtio_pci_init(&virt_device);
+    if (virt_device.pci.notify_queue_select != NULL) {
+        const uint16_t notify_offset =
+            le_to_cpu(mmio_read(&virt_device.pci.common_cfg->queue_notify_off));
+
+        uint16_t full_off = 0;
+        if (__builtin_expect(
+                !check_mul(notify_off_multiplier, notify_offset, &full_off), 0))
+        {
+            printk(LOGLEVEL_WARN,
+                   "virtio-pci: notify-cfg has a multipler * offset "
+                   "(%" PRIu32 " * %" PRIu16 ") is beyond end of uint16_t "
+                   "space\n",
+                   notify_off_multiplier,
+                   notify_offset);
+            return;
+        }
+
+        if (!range_has_index(notify_cfg_range, full_off)) {
+            printk(LOGLEVEL_WARN,
+                   "virtio-pci: notify-cfg has a multipler * offset "
+                   "(%" PRIu32 " * %" PRIu16 " = %" PRIu16 ") is beyond end of "
+                   "notify-cfg's config space\n",
+                   notify_off_multiplier,
+                   full_off,
+                   notify_offset);
+            return;
+        }
+
+        virt_device.pci.notify_queue_select += full_off;
+    }
+
 #undef pci_read_virtio_cap_field
+    virtio_pci_init(&virt_device);
 
     list_add(&g_device_list, &virt_device.list);
     g_device_count++;
