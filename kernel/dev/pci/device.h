@@ -179,4 +179,12 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device);
                                   bool masked);
 #endif
 
-void pci_device_enable_bus_mastering(struct pci_device_info *device);
+enum pci_device_privilege {
+    __PCI_DEVICE_PRIVL_PIO_ACCESS = 1ull << 0,
+    __PCI_DEVICE_PRIVL_MEM_ACCESS = 1ull << 1,
+    __PCI_DEVICE_PRIVL_BUS_MASTER = 1ull << 2,
+};
+
+void
+pci_device_enable_privl(struct pci_device_info *device,
+                        enum pci_device_privilege privl);

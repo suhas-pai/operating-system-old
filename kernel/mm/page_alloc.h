@@ -53,9 +53,4 @@ alloc_large_page_in_zone(struct page_zone *zone,
                          pgt_level_t level,
                          bool fallback);
 
-void
-free_pages_to_zone(struct page *page,
-                   struct page_zone *zone,
-                   uint8_t order);
-
 struct page *alloc_table();

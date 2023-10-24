@@ -272,7 +272,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
     virt_device.pci.pci_device = pci_device;
     virt_device.ops = virtio_transport_ops_for_pci();
 
-    pci_device_enable_bus_mastering(pci_device);
+    pci_device_enable_privl(pci_device, __PCI_DEVICE_PRIVL_BUS_MASTER);
 
 #define pci_read_virtio_cap_field(field) \
     pci_read_with_offset(pci_device, \

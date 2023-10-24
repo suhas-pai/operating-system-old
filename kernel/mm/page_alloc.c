@@ -36,9 +36,9 @@ add_to_freelist_order(struct page_zone *const zone,
 }
 
 __optimize(3) static void
-early_add_to_freelist(struct page_zone *const zone,
-                      const uint8_t freelist_order,
-                      struct page *const page)
+early_add_to_freelist_order(struct page_zone *const zone,
+                            const uint8_t freelist_order,
+                            struct page *const page)
 {
     struct page_freelist *const freelist = &zone->freelist_list[freelist_order];
     page->freelist_head.order = freelist_order;
@@ -130,7 +130,7 @@ take_off_freelist_order(struct page_zone *const zone,
     freelist->count--;
     zone->total_free -= 1ull << freelist_order;
 
-    if (freelist->count == 0) {
+    if (freelist->count == 0 && zone->min_order == freelist_order) {
         const struct page_freelist *const end = carr_end(zone->freelist_list);
         for (; freelist != end; freelist++) {
             if (freelist->count != 0) {
@@ -178,7 +178,10 @@ free_range_of_pages(struct page *page,
         avail -= page_count;
 
         if (avail == 0) {
-            zone->min_order = (uint8_t)order;
+            if (zone->min_order > (uint8_t)order) {
+                zone->min_order = (uint8_t)order;
+            }
+
             break;
         }
 
@@ -209,9 +212,10 @@ get_large_from_freelist_order(struct page_zone *const zone,
     struct page *page = head;
     uint64_t page_phys = page_to_phys(page);
 
+    const uint64_t align = PAGE_SIZE << largepage_order;
     if (largepage_order != freelist_order) {
         take_off_freelist_order(zone, freelist_order, head);
-        if (!has_align(page_phys, PAGE_SIZE << largepage_order)) {
+        if (!has_align(page_phys, align)) {
             uint64_t new_phys = 0;
             if (!align_up(page_phys, PAGE_SIZE << largepage_order, &new_phys)) {
                 printk(LOGLEVEL_INFO,
@@ -238,7 +242,6 @@ get_large_from_freelist_order(struct page_zone *const zone,
             free_range_of_pages(begin, zone, count);
         }
     } else {
-        const uint64_t align = PAGE_SIZE << largepage_order;
         do {
             if (has_align(page_phys, align)) {
                 take_off_freelist_order(zone, freelist_order, head);
@@ -299,7 +302,9 @@ alloc_pages_from_zone(struct page_zone *const zone,
         add_to_freelist_order(zone, alloced_order, buddy_page);
     }
 
-    zone->min_order = order;
+    if (zone->min_order > order) {
+        zone->min_order = order;
+    }
 
     setup_pages_off_freelist(page, order, state);
     spin_release_with_irq(&zone->lock, flag);
@@ -455,7 +460,9 @@ alloc_large_page_from_zone(struct page_zone *const zone,
     uint8_t alloced_order = max(order, zone->min_order);
     while (true) {
         struct page *const page =
-            get_large_from_freelist_order(zone, alloced_order, order);
+            get_large_from_freelist_order(zone,
+                                          alloced_order,
+                                          /*largepage_order=*/order);
 
         if (page != NULL) {
             spin_release_with_irq(&zone->lock, flag);
@@ -569,13 +576,13 @@ early_free_pages_to_zone(struct page *const page,
                          struct page_zone *const zone,
                          const uint8_t order)
 {
-    early_add_to_freelist(zone, order, page);
+    early_add_to_freelist_order(zone, order, page);
 }
 
 void
-free_to_zone_and_look_around(struct page *const page,
-                             struct page_zone *const zone,
-                             uint64_t amount)
+free_pages_to_zone(struct page *const page,
+                   struct page_zone *const zone,
+                   uint64_t amount)
 {
     const struct mm_section *const section = page_to_mm_section(page);
     uint64_t page_pfn = page_to_pfn(page) - section->pfn;
@@ -585,7 +592,6 @@ free_to_zone_and_look_around(struct page *const page,
         const enum page_state prev_state = page_get_state(free_page - 1);
         if (prev_state == PAGE_STATE_FREE_LIST_TAIL) {
             free_page = (free_page - 1)->freelist_tail.head;
-
             amount += (uint64_t)(page - free_page);
 
             const uint8_t order = free_page->freelist_head.order;
@@ -633,7 +639,7 @@ void free_large_page_to_zone(struct page *head, struct page_zone *const zone) {
         }
 
         const uint64_t free_amount = (uint64_t)(iter - page);
-        free_to_zone_and_look_around(page, zone, free_amount);
+        free_pages_to_zone(page, zone, free_amount);
 
         page = iter + 1;
     }
@@ -659,7 +665,7 @@ void free_pages(struct page *const page, const uint8_t order) {
         return;
     }
 
-    free_to_zone_and_look_around(page, page_to_zone(page), order);
+    free_pages_to_zone(page, page_to_zone(page), order);
 }
 
 void free_large_page(struct page *const page) {

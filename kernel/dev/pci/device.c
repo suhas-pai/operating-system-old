@@ -229,10 +229,14 @@ uint32_t pci_device_get_index(const struct pci_device_info *const device) {
     }
 #endif /* defined(__x86_64__) */
 
-void pci_device_enable_bus_mastering(struct pci_device_info *const device) {
+void
+pci_device_enable_privl(struct pci_device_info *const device,
+                        const enum pci_device_privilege privl)
+{
     const uint16_t old_command =
         pci_read(device, struct pci_spec_device_info_base, command);
+    const uint16_t new_command =
+        old_command | (enum pci_spec_device_command_register_flags)privl;
 
-    const uint16_t new_command = old_command | __PCI_DEVCMDREG_BUS_MASTER;
     pci_write(device, struct pci_spec_device_info_base, command, new_command);
 }
