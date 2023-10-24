@@ -29,13 +29,10 @@ enum pci_device_msi_support {
 };
 
 struct pci_device_bar_info {
-    union {
-        struct range port_range;
-        struct {
-            struct mmio_region *mmio;
-            uint32_t index_in_mmio;
-        };
-    };
+    struct range port_or_phys_range;
+
+    struct mmio_region *mmio;
+    uint32_t index_in_mmio;
 
     bool is_present : 1;
     bool is_mmio : 1;

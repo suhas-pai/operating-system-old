@@ -45,7 +45,9 @@ void *array_back(struct array array);
 uint64_t array_item_count(struct array array);
 uint64_t array_free_count(struct array array);
 
-void *array_take(struct array *array);
+void *array_take_data(struct array *array);
+void array_take_item(struct array *array, uint32_t index, void *item);
+void array_take_range(struct array *array, struct range range, void *item);
 
 bool array_empty(struct array array);
 void array_destroy(struct array *array);

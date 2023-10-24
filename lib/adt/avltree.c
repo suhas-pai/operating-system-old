@@ -8,7 +8,7 @@
 #include "lib/assert.h"
 #include "avltree.h"
 
-static inline
+__optimize(3) static inline
 void avlnode_verify(struct avlnode *const node, struct avlnode *const parent) {
 #if defined (BUILD_TEST)
     if (node == NULL) {

@@ -73,7 +73,7 @@ void apic_init(const uint64_t local_apic_base) {
 
     isr_set_vector(isr_get_timer_vector(),
                    lapic_timer_irq_callback,
-                   &(struct arch_isr_info){ .ist = IST_NONE });
+                   &ARCH_ISR_INFO_NONE());
 
     isr_assign_irq_to_cpu(get_cpu_info_mut(),
                           IRQ_TIMER,

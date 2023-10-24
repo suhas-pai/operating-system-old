@@ -86,8 +86,8 @@ __optimize(3) int month_to_tm_mon(const enum month month) {
 }
 
 __optimize(3) enum month tm_mon_to_month(const int tm_mon) {
-    // Add one as tm_mon is actually "months since january", being
-    // zero-indexed and having the range [0, 11]. Instead, we need [1, 12].
+    // Add one as tm_mon is actually "months since january", being zero-indexed
+    // and having the range [0, 11]. Instead, we need [1, 12].
 
     return (enum month)(tm_mon + 1);
 }

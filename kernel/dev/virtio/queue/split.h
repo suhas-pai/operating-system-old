@@ -11,6 +11,7 @@ struct virtio_split_queue {
     struct page *avail_page;
     struct page *used_pages;
 
+    uint8_t desc_pages_order;
     uint8_t used_pages_order;
 };
 

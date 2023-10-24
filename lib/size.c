@@ -5,7 +5,7 @@
 
 #include "size.h"
 
-struct string_view units_to_sv(const enum unit_kind kind) {
+__optimize(3) struct string_view units_to_sv(const enum unit_kind kind) {
     switch (kind) {
     #define UNIT_KIND_CASE(name)                                               \
         case VAR_CONCAT(UNIT_KIND_, name):                                     \
@@ -24,7 +24,7 @@ struct string_view units_to_sv(const enum unit_kind kind) {
     }
 }
 
-struct string_view units_to_sv_abbrev(const enum unit_kind kind) {
+__optimize(3) struct string_view units_to_sv_abbrev(const enum unit_kind kind) {
     switch (kind) {
     #define UNIT_KIND_CASE(name)                                               \
         case VAR_CONCAT(UNIT_KIND_, name):                                     \
@@ -43,7 +43,7 @@ struct string_view units_to_sv_abbrev(const enum unit_kind kind) {
     }
 }
 
-enum unit_kind size_to_units(uint64_t size) {
+__optimize(3) enum unit_kind size_to_units(uint64_t size) {
     enum unit_kind kind = UNIT_KIND_BYTE;
     while (size >= kib(1)) {
         size /= kib(1);

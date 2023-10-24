@@ -46,8 +46,25 @@ struct virtio_transport_ops {
     void
     (*set_selected_queue_device_phys)(struct virtio_device *device,
                                       uint64_t phys);
-
 };
+
+#define VIRTIO_TRANSPORT_OPS_INIT() \
+    ((struct virtio_transport_ops){ \
+        .read_device_status = NULL, \
+        .read_device_features = NULL, \
+        .write_device_status = NULL, \
+        .write_driver_features = NULL, \
+        .read_device_info = NULL, \
+        .write_device_info = NULL, \
+        .select_queue = NULL, \
+        .selected_queue_max_size = NULL, \
+        .set_selected_queue_size = NULL, \
+        .notify_queue = NULL, \
+        .enable_selected_queue = NULL, \
+        .set_selected_queue_desc_phys = NULL, \
+        .set_selected_queue_driver_phys = NULL, \
+        .set_selected_queue_device_phys = NULL \
+    })
 
 struct virtio_transport_ops virtio_transport_ops_for_mmio();
 struct virtio_transport_ops virtio_transport_ops_for_pci();

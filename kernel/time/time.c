@@ -8,12 +8,12 @@
 
 #include "time.h"
 
-static struct list clock_list = LIST_INIT(clock_list);
-static struct spinlock lock = SPINLOCK_INIT();
+static struct list g_clock_list = LIST_INIT(g_clock_list);
+static struct spinlock g_lock = SPINLOCK_INIT();
 
 void add_clock_source(struct clock_source *const clock) {
-    const int flag = spin_acquire_with_irq(&lock);
+    const int flag = spin_acquire_with_irq(&g_lock);
 
-    list_add(&clock_list, &clock->list);
-    spin_release_with_irq(&lock, flag);
+    list_add(&g_clock_list, &clock->list);
+    spin_release_with_irq(&g_lock, flag);
 }

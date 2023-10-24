@@ -234,13 +234,16 @@ void ps2_keyboard_init(const enum ps2_port_id device_id) {
     g_ps2_vector = isr_alloc_vector();
     isr_set_vector(g_ps2_vector,
                    ps2_keyboard_interrupt,
-                   &(struct arch_isr_info){ .ist = IST_NONE });
+                   &ARCH_ISR_INFO_NONE());
 
     isr_assign_irq_to_cpu(get_cpu_info_mut(),
                           IRQ_KEYBOARD,
                           g_ps2_vector,
                           /*masked=*/false);
 
-    ps2_read_input_byte();
-    printk(LOGLEVEL_INFO, "ps2: keyboard initialized\n");
+    if (ps2_read_input_byte() != -1) {
+        printk(LOGLEVEL_INFO, "ps2: keyboard initialized\n");
+    } else {
+        printk(LOGLEVEL_INFO, "ps2: keyboard failed to initialize\n");
+    }
 }

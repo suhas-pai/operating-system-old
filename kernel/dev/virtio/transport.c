@@ -125,32 +125,32 @@ virtio_pci_notify_queue(struct virtio_device *const device,
                         const uint16_t index)
 {
 
-    mmio_write(&device->pci.notify_queue_select, index);
+    mmio_write(&device->pci.notify_queue_select, cpu_to_le(index));
 }
 
 void virtio_pci_enable_selected_queue(struct virtio_device *const device) {
-    mmio_write(&device->pci.common_cfg->queue_enable, /*value=*/1);
+    mmio_write(&device->pci.common_cfg->queue_enable, /*value=*/cpu16_to_le(1));
 }
 
 void
 virtio_pci_set_selected_queue_desc_phys(struct virtio_device *const device,
                                         const uint64_t phys)
 {
-    mmio_write(&device->pci.common_cfg->queue_desc, phys);
+    mmio_write(&device->pci.common_cfg->queue_desc, cpu_to_le(phys));
 }
 
 void
 virtio_pci_set_selected_queue_driver_phys(struct virtio_device *const device,
                                           const uint64_t phys)
 {
-    mmio_write(&device->pci.common_cfg->queue_driver, phys);
+    mmio_write(&device->pci.common_cfg->queue_driver, cpu_to_le(phys));
 }
 
 void
 virtio_pci_set_selected_queue_device_phys(struct virtio_device *const device,
                                           const uint64_t phys)
 {
-    mmio_write(&device->pci.common_cfg->queue_device, phys);
+    mmio_write(&device->pci.common_cfg->queue_device, cpu_to_le(phys));
 }
 
 struct virtio_transport_ops virtio_transport_ops_for_mmio() {

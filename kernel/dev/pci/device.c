@@ -15,6 +15,7 @@
 #include "mmio.h"
 #include "structs.h"
 
+__optimize(3)
 uint32_t pci_device_get_index(const struct pci_device_info *const device) {
     const struct pci_domain *const domain = device->domain;
     return

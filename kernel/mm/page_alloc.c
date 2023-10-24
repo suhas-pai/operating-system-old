@@ -11,21 +11,21 @@
 #include "page.h"
 #include "zone.h"
 
+// Caller is required to set zone->min_order
 __optimize(3) static void
-add_to_freelist(struct page_zone *const zone,
-                struct page_freelist *const freelist,
-                struct page *const page)
+add_to_freelist_order(struct page_zone *const zone,
+                      const uint8_t freelist_order,
+                      struct page *const page)
 {
     page_set_state(page, PAGE_STATE_FREE_LIST_HEAD);
 
-    const uint8_t freelist_order = freelist - zone->freelist_list;
+    struct page_freelist *const freelist = &zone->freelist_list[freelist_order];
     page->freelist_head.order = freelist_order;
 
     list_init(&page->freelist_head.freelist);
     list_add(&freelist->page_list, &page->freelist_head.freelist);
 
     const struct page *const end = page + (1ull << freelist_order);
-
     for (struct page *iter = page + 1; iter != end; iter++) {
         page_set_state(iter, PAGE_STATE_FREE_LIST_TAIL);
         iter->freelist_tail.head = page;
@@ -33,18 +33,14 @@ add_to_freelist(struct page_zone *const zone,
 
     freelist->count++;
     zone->total_free += 1ull << freelist_order;
-
-    if (zone->min_order > freelist_order) {
-        zone->min_order = freelist_order;
-    }
 }
 
 __optimize(3) static void
 early_add_to_freelist(struct page_zone *const zone,
-                      struct page_freelist *const freelist,
+                      const uint8_t freelist_order,
                       struct page *const page)
 {
-    const uint8_t freelist_order = freelist - zone->freelist_list;
+    struct page_freelist *const freelist = &zone->freelist_list[freelist_order];
     page->freelist_head.order = freelist_order;
 
     list_init(&page->freelist_head.freelist);
@@ -88,9 +84,9 @@ setup_pages_off_freelist(struct page *const page,
         case PAGE_STATE_LRU_CACHE:
             verify_not_reached();
         case PAGE_STATE_SLAB_HEAD: {
-            const struct page *const end = page + (1ull << order);
             page_set_state(page, PAGE_STATE_SLAB_HEAD);
 
+            const struct page *const end = page + (1ull << order);
             for (struct page *iter = page + 1; iter != end; iter++) {
                 page_set_state(iter, PAGE_STATE_SLAB_TAIL);
                 iter->slab.tail.head = page;
@@ -104,9 +100,9 @@ setup_pages_off_freelist(struct page *const page,
             page_set_state(page, state);
             return;
         case PAGE_STATE_LARGE_HEAD: {
-            const struct page *const end = page + (1ull << order);
             page_set_state(page, PAGE_STATE_LARGE_HEAD);
 
+            const struct page *const end = page + (1ull << order);
             for (struct page *iter = page + 1; iter != end; iter++) {
                 page_set_state(iter, PAGE_STATE_LARGE_TAIL);
                 refcount_init(&iter->largetail.refcount);
@@ -124,12 +120,12 @@ setup_pages_off_freelist(struct page *const page,
 }
 
 __optimize(3) static struct page *
-take_off_freelist(struct page_zone *const zone,
-                  struct page_freelist *freelist,
-                  struct page *const page)
+take_off_freelist_order(struct page_zone *const zone,
+                        const uint8_t freelist_order,
+                        struct page *const page)
 {
     list_delete(&page->freelist_head.freelist);
-    const uint8_t freelist_order = freelist - zone->freelist_list;
+    struct page_freelist *freelist = &zone->freelist_list[freelist_order];
 
     freelist->count--;
     zone->total_free -= 1ull << freelist_order;
@@ -149,28 +145,20 @@ take_off_freelist(struct page_zone *const zone,
 }
 
 __optimize(3) static struct page *
-get_from_freelist(struct page_zone *const zone,
-                  struct page_freelist *const freelist)
-{
-    struct page *const page =
-        list_head(&freelist->page_list, struct page, freelist_head.freelist);
-
-    if (__builtin_expect(
-            &page->freelist_head.freelist == &freelist->page_list, 0))
-    {
+get_from_freelist_order(struct page_zone *const zone, const uint8_t order) {
+    struct page_freelist *const freelist = &zone->freelist_list[order];
+    if (freelist->count == 0) {
         return NULL;
     }
 
-    return take_off_freelist(zone, freelist, page);
-}
+    struct page *const page =
+        list_head(&freelist->page_list, struct page, freelist_head.freelist);
 
-__optimize(3) uint64_t buddy_of(const uint64_t pfn, const uint8_t order) {
-    return pfn ^ (1ull << order);
+    return take_off_freelist_order(zone, order, page);
 }
 
 void
 free_range_of_pages(struct page *page,
-                    uint64_t page_pfn,
                     struct page_zone *const zone,
                     const uint64_t amount)
 {
@@ -184,57 +172,45 @@ free_range_of_pages(struct page *page,
     }
 
     do {
-        uint8_t max_free_order = (uint8_t)order;
-        for (int8_t iorder = order; iorder >= 0; iorder--) {
-            const uint64_t buddy_pfn = buddy_of(page_pfn, (uint8_t)iorder);
-            if (buddy_pfn < page_pfn) {
-                max_free_order = (uint8_t)iorder;
-            }
-        }
+        add_to_freelist_order(zone, (uint8_t)order, page);
 
-        add_to_freelist(zone, &zone->freelist_list[max_free_order], page);
-
-        const uint64_t page_count = 1ull << max_free_order;
+        const uint64_t page_count = 1ull << order;
         avail -= page_count;
 
         if (avail == 0) {
+            zone->min_order = (uint8_t)order;
             break;
         }
 
         page += page_count;
-        page_pfn += page_count;
-
         do {
             if (avail >= (1ull << order)) {
                 break;
             }
 
             order--;
-            if (order < 0) {
-                return;
-            }
         } while (true);
     } while (true);
 }
 
 __optimize(3) static struct page *
-get_large_from_freelist(struct page_zone *const zone,
-                        struct page_freelist *const freelist,
-                        const uint8_t largepage_order)
+get_large_from_freelist_order(struct page_zone *const zone,
+                              const uint8_t freelist_order,
+                              const uint8_t largepage_order)
 {
-    const uint8_t freelist_order = freelist - zone->freelist_list;
-    struct page *head =
-        list_head(&freelist->page_list, struct page, freelist_head.freelist);
-
-    if (&head->freelist_head.freelist == &freelist->page_list) {
+    struct page_freelist *const freelist = &zone->freelist_list[freelist_order];
+    if (freelist->count == 0) {
         return NULL;
     }
+
+    struct page *head =
+        list_head(&freelist->page_list, struct page, freelist_head.freelist);
 
     struct page *page = head;
     uint64_t page_phys = page_to_phys(page);
 
     if (largepage_order != freelist_order) {
-        take_off_freelist(zone, freelist, head);
+        take_off_freelist_order(zone, freelist_order, head);
         if (!has_align(page_phys, PAGE_SIZE << largepage_order)) {
             uint64_t new_phys = 0;
             if (!align_up(page_phys, PAGE_SIZE << largepage_order, &new_phys)) {
@@ -249,7 +225,7 @@ get_large_from_freelist(struct page_zone *const zone,
             page_phys = new_phys;
 
             const uint64_t free_amount = (uint64_t)(page - head);
-            free_range_of_pages(head, page_to_pfn(head), zone, free_amount);
+            free_range_of_pages(head, zone, free_amount);
         }
 
         setup_pages_off_freelist(page, largepage_order, PAGE_STATE_LARGE_HEAD);
@@ -259,13 +235,13 @@ get_large_from_freelist(struct page_zone *const zone,
         const uint64_t count = (uint64_t)(end - begin);
 
         if (count != 0) {
-            free_range_of_pages(begin, page_to_pfn(begin), zone, count);
+            free_range_of_pages(begin, zone, count);
         }
     } else {
         const uint64_t align = PAGE_SIZE << largepage_order;
         do {
             if (has_align(page_phys, align)) {
-                take_off_freelist(zone, freelist, head);
+                take_off_freelist_order(zone, freelist_order, head);
                 break;
             }
 
@@ -304,33 +280,26 @@ alloc_pages_from_zone(struct page_zone *const zone,
     // zone->min_order should never equal MAX_ORDER if zone->total_free is not 0
     uint8_t alloced_order = max(order, zone->min_order);
     while (true) {
-        struct page_freelist *const freelist =
-            &zone->freelist_list[alloced_order];
-
-        page = get_from_freelist(zone, freelist);
+        page = get_from_freelist_order(zone, alloced_order);
         if (page != NULL) {
             break;
         }
 
         alloced_order++;
-        if (alloced_order >= MAX_ORDER) {
+        if (__builtin_expect(alloced_order >= MAX_ORDER, 0)) {
             spin_release_with_irq(&zone->lock, flag);
             return NULL;
         }
     }
 
-    struct mm_section *const section = page_to_mm_section(page);
-
-    const uint64_t section_pfn = section->pfn;
-    const uint64_t page_pfn = page_to_pfn(page) - section_pfn;
-
     while (alloced_order > order) {
         alloced_order--;
-        struct page *const buddy_page =
-            pfn_to_page(section_pfn + buddy_of(page_pfn, alloced_order));
 
-        add_to_freelist(zone, &zone->freelist_list[alloced_order], buddy_page);
+        struct page *const buddy_page = page + (1ull << alloced_order);
+        add_to_freelist_order(zone, alloced_order, buddy_page);
     }
+
+    zone->min_order = order;
 
     setup_pages_off_freelist(page, order, state);
     spin_release_with_irq(&zone->lock, flag);
@@ -485,10 +454,8 @@ alloc_large_page_from_zone(struct page_zone *const zone,
     // zone->min_order should never equal MAX_ORDER if zone->total_free is not 0
     uint8_t alloced_order = max(order, zone->min_order);
     while (true) {
-        struct page_freelist *const freelist =
-            &zone->freelist_list[alloced_order];
         struct page *const page =
-            get_large_from_freelist(zone, freelist, order);
+            get_large_from_freelist_order(zone, alloced_order, order);
 
         if (page != NULL) {
             spin_release_with_irq(&zone->lock, flag);
@@ -602,55 +569,7 @@ early_free_pages_to_zone(struct page *const page,
                          struct page_zone *const zone,
                          const uint8_t order)
 {
-    early_add_to_freelist(zone, &zone->freelist_list[order], page);
-}
-
-__optimize(3) void
-free_pages_to_zone(struct page *page, struct page_zone *zone, uint8_t order) {
-    const uint64_t page_section = page->section;
-    struct mm_section *const section = &mm_get_usable_list()[page_section];
-
-    const uint64_t section_pfn = section->pfn;
-    const uint64_t max_pfn = PAGE_COUNT(section->range.size);
-
-    uint64_t page_pfn = page_to_pfn(page) - section_pfn;
-    const int flag = spin_acquire_with_irq(&zone->lock);
-
-    for (; order < MAX_ORDER - 1; order++) {
-        const uint64_t buddy_pfn = buddy_of(page_pfn, order);
-        if (buddy_pfn > max_pfn) {
-            break;
-        }
-
-        struct page *const buddy = pfn_to_page(section_pfn + buddy_pfn);
-        const enum page_state buddy_state = page_get_state(buddy);
-
-        if (buddy_state != PAGE_STATE_FREE_LIST_HEAD &&
-            buddy_state != PAGE_STATE_FREE_LIST_TAIL)
-        {
-            break;
-        }
-
-        if (buddy->freelist_head.order != order) {
-            break;
-        }
-
-        const uint64_t buddy_phys =
-            section->range.front + (buddy_pfn << PAGE_SHIFT);
-
-        if (zone != phys_to_zone(buddy_phys)) {
-            break;
-        }
-
-        take_off_freelist(zone, &zone->freelist_list[order], buddy);
-        if (buddy_pfn < page_pfn) {
-            page = buddy;
-            page_pfn = buddy_pfn;
-        }
-    }
-
-    add_to_freelist(zone, &zone->freelist_list[order], page);
-    spin_release_with_irq(&zone->lock, flag);
+    early_add_to_freelist(zone, order, page);
 }
 
 void
@@ -662,26 +581,21 @@ free_to_zone_and_look_around(struct page *const page,
     uint64_t page_pfn = page_to_pfn(page) - section->pfn;
 
     struct page *free_page = page;
-    uint64_t free_page_pfn = page_pfn;
-
     if (__builtin_expect(page_pfn != 0, 1)) {
         const enum page_state prev_state = page_get_state(free_page - 1);
         if (prev_state == PAGE_STATE_FREE_LIST_TAIL) {
             free_page = (free_page - 1)->freelist_tail.head;
 
             amount += (uint64_t)(page - free_page);
-            free_page_pfn -= (uint64_t)(page - free_page);
 
             const uint8_t order = free_page->freelist_head.order;
-            take_off_freelist(zone, &zone->freelist_list[order], free_page);
+            take_off_freelist_order(zone, order, free_page);
         } else if (prev_state == PAGE_STATE_FREE_LIST_HEAD) {
             free_page--;
-            free_page_pfn--;
-
             amount += 1;
 
             const uint8_t order = free_page->freelist_head.order;
-            take_off_freelist(zone, &zone->freelist_list[order], free_page);
+            take_off_freelist_order(zone, order, free_page);
         }
     }
 
@@ -689,13 +603,13 @@ free_to_zone_and_look_around(struct page *const page,
     if (__builtin_expect((uint64_t)end_page < PAGE_END, 1)) {
         if (page_get_state(end_page) == PAGE_STATE_FREE_LIST_HEAD) {
             const uint8_t order = end_page->freelist_head.order;
-            take_off_freelist(zone, &zone->freelist_list[order], end_page);
+            take_off_freelist_order(zone, order, end_page);
 
             amount += 1ull << order;
         }
     }
 
-    return free_range_of_pages(free_page, free_page_pfn, zone, amount);
+    return free_range_of_pages(free_page, zone, amount);
 }
 
 void free_large_page_to_zone(struct page *head, struct page_zone *const zone) {

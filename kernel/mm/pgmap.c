@@ -14,9 +14,11 @@
 
 __optimize(3) static uint64_t
 ptwalker_early_alloc_pgtable_cb(struct pt_walker *const walker,
+                                const pgt_level_t level,
                                 void *const cb_info)
 {
     (void)walker;
+    (void)level;
     (void)cb_info;
 
     const uint64_t phys = early_alloc_page();

@@ -339,7 +339,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
 
         const struct range index_range = range_create(offset, length);
         const struct range io_range =
-            bar->is_mmio ? mmio_region_get_range(bar->mmio) : bar->port_range;
+            bar->is_mmio ?
+                mmio_region_get_range(bar->mmio) : bar->port_or_phys_range;
 
         if (!range_has_index_range(io_range, index_range)) {
             printk(LOGLEVEL_WARN,

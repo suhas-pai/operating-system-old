@@ -18,8 +18,6 @@ enum page_alloc_flags {
     __ALLOC_ZERO = 1 << 0,
 };
 
-uint64_t buddy_of(uint64_t page_pfn, uint8_t order);
-
 // free_pages will call zero-out the page. Call page_to_zone() and
 // free_pages_to_zone() directly to avoid this.
 

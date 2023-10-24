@@ -18,8 +18,12 @@
 #include "cpu.h"
 
 static uint64_t
-ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
+ptwalker_alloc_pgtable_cb(struct pt_walker *const walker,
+                          const pgt_level_t level,
+                          void *const cb_info)
+{
     (void)walker;
+    (void)level;
     (void)cb_info;
 
     const uint64_t phys = early_alloc_page();

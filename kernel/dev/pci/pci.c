@@ -16,10 +16,10 @@
 #include "mmio.h"
 #include "port.h"
 
-static struct list domain_list = LIST_INIT(domain_list);
-static struct list device_list = LIST_INIT(device_list);
+static struct list g_domain_list = LIST_INIT(g_domain_list);
+static struct list g_device_list = LIST_INIT(g_device_list);
 
-static uint64_t domain_count = 0;
+static uint64_t g_domain_count = 0;
 
 enum parse_bar_result {
     E_PARSE_BAR_OK,
@@ -96,7 +96,7 @@ pci_bar_parse_size(struct pci_device_info *const dev,
     }
 
     // We use port range to temporarily store the phys range.
-    info->port_range = range_create(base_addr, size);
+    info->port_or_phys_range = range_create(base_addr, size);
     info->is_present = true;
 
     return E_PARSE_BAR_OK;
@@ -183,7 +183,7 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
     }
 
     // We use port_range to internally store the phys range.
-    const struct range phys_range = bar->port_range;
+    const struct range phys_range = bar->port_or_phys_range;
     struct range aligned_range = RANGE_EMPTY();
 
     if (!range_align_out(phys_range, PAGE_SIZE, &aligned_range)) {
@@ -198,7 +198,7 @@ bool pci_map_bar(struct pci_device_bar_info *const bar) {
     if (mmio == NULL) {
         printk(LOGLEVEL_WARN,
                "pcie: failed to mmio map bar at phys range: " RANGE_FMT "\n",
-               RANGE_FMT_ARGS(bar->port_range));
+               RANGE_FMT_ARGS(bar->port_or_phys_range));
         return E_PARSE_BAR_MMIO_MAP_FAIL;
     }
 
@@ -222,7 +222,7 @@ pci_device_bar_read8(struct pci_device_bar_info *const bar,
     return
         bar->is_mmio ?
             mmio_read_8(bar->mmio->base + bar->index_in_mmio + offset) :
-            port_in8((port_t)(bar->port_range.front + offset));
+            port_in8((port_t)(bar->port_or_phys_range.front + offset));
 }
 
 uint16_t
@@ -236,7 +236,7 @@ pci_device_bar_read16(struct pci_device_bar_info *const bar,
     return
         bar->is_mmio ?
             mmio_read_16(bar->mmio->base + bar->index_in_mmio + offset) :
-            port_in16((port_t)(bar->port_range.front + offset));
+            port_in16((port_t)(bar->port_or_phys_range.front + offset));
 }
 
 uint32_t
@@ -250,7 +250,7 @@ pci_device_bar_read32(struct pci_device_bar_info *const bar,
     return
         bar->is_mmio ?
             mmio_read_32(bar->mmio->base + bar->index_in_mmio + offset) :
-            port_in32((port_t)(bar->port_range.front + offset));
+            port_in32((port_t)(bar->port_or_phys_range.front + offset));
 }
 
 uint64_t
@@ -272,7 +272,7 @@ pci_device_bar_read64(struct pci_device_bar_info *const bar,
     return
         (bar->is_mmio) ?
             mmio_read_64(bar->mmio->base + bar->index_in_mmio + offset) :
-            port_in64((port_t)(bar->port_range.front + offset));
+            port_in64((port_t)(bar->port_or_phys_range.front + offset));
 #endif /* defined(__x86_64__) */
 }
 
@@ -447,7 +447,7 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
             case PCI_SPEC_CAP_ID_POWER_MANAGEMENT:
                 kind = "power-management";
                 break;
-            case PCI_SPEC_CAP_ID_VENDOR_SPECIFIC: {
+            case PCI_SPEC_CAP_ID_VENDOR_SPECIFIC:
                 if (!array_append(&dev->vendor_cap_list, &cap_offset)) {
                     printk(LOGLEVEL_WARN,
                            "\t\tfailed to append to internal array\n");
@@ -456,7 +456,6 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
 
                 kind = "vendor-specific";
                 break;
-            }
             case PCI_SPEC_CAP_ID_PCI_X:
                 kind = "pci-x";
                 break;
@@ -662,12 +661,12 @@ parse_function(struct pci_domain *const domain,
                        "size: %" PRIu64 "\n",
                        bar_index,
                        bar->is_mmio ? "mmio" : "ports",
-                       RANGE_FMT_ARGS(bar->port_range),
+                       RANGE_FMT_ARGS(bar->port_or_phys_range),
                        bar->is_prefetchable ?
                         "prefetchable" : "not-prefetchable",
                        bar->is_mmio ?
                         bar->is_64_bit ? "64-bit, " : "32-bit, " : "",
-                       bar->port_range.size);
+                       bar->port_or_phys_range.size);
 
                 bar++;
             }
@@ -721,12 +720,12 @@ parse_function(struct pci_domain *const domain,
                        "size: %" PRIu64 "\n",
                        bar_index,
                        bar->is_mmio ? "mmio" : "ports",
-                       RANGE_FMT_ARGS(bar->port_range),
+                       RANGE_FMT_ARGS(bar->port_or_phys_range),
                        bar->is_prefetchable ?
                         "prefetchable" : "not-prefetchable",
                        bar->is_mmio ?
                         bar->is_64_bit ? "64-bit, " : "32-bit, " : "",
-                       bar->port_range.size);
+                       bar->port_or_phys_range.size);
 
                 bar++;
             }
@@ -768,7 +767,7 @@ parse_function(struct pci_domain *const domain,
     *info_out = info;
 
     list_add(&domain->device_list, &info_out->list_in_domain);
-    list_add(&device_list, &info_out->list_in_devices);
+    list_add(&g_device_list, &info_out->list_in_devices);
 }
 
 void
@@ -840,8 +839,8 @@ pci_add_pcie_domain(struct range bus_range,
     domain->bus_range = bus_range;
     domain->segment = segment;
 
-    list_add(&domain_list, &domain->list);
-    domain_count++;
+    list_add(&g_domain_list, &domain->list);
+    g_domain_count++;
 
     return domain;
 }
@@ -855,7 +854,7 @@ void pci_init_drivers() {
         struct pci_driver *const pci_driver = driver->pci;
         struct pci_device_info *device = NULL;
 
-        list_foreach(device, &device_list, list_in_devices) {
+        list_foreach(device, &g_device_list, list_in_devices) {
             if (pci_driver->match == PCI_DRIVER_MATCH_VENDOR) {
                 if (device->vendor_id == pci_driver->vendor) {
                     pci_driver->init(device);
@@ -909,7 +908,7 @@ void pci_init_drivers() {
 
 void pci_init() {
 #if defined(__x86_64__)
-    if (list_empty(&domain_list)) {
+    if (list_empty(&g_domain_list)) {
         struct pci_domain *const root_domain = kmalloc(sizeof(*root_domain));
         assert_msg(root_domain != NULL, "failed to allocate pci root domain");
 
@@ -930,7 +929,7 @@ void pci_init() {
     } else {
 #endif /* defined(__x86_64__) */
         struct pci_domain *domain = NULL;
-        list_foreach(domain, &domain_list, list) {
+        list_foreach(domain, &g_domain_list, list) {
             pci_parse_domain(domain);
         }
 #if defined(__x86_64__)

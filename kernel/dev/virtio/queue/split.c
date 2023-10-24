@@ -33,8 +33,16 @@ virtio_split_queue_init(struct virtio_device *const device,
         "virto-queue: used_pages allocation order needs to be increased");
 
     // The max possible size of the descriptor list is actually 8192 bytes.
-    struct page *const desc_pages =
-        alloc_pages(PAGE_STATE_USED, __ALLOC_ZERO, /*order=*/1);
+
+    struct page *desc_pages = NULL;
+    uint8_t desc_pages_order = 0;
+
+    if (sizeof(struct virtq_desc) * desc_count > PAGE_SIZE) {
+        desc_pages = alloc_pages(PAGE_STATE_USED, __ALLOC_ZERO, /*order=*/1);
+        desc_pages_order = 1;
+    } else {
+        desc_pages = alloc_page(PAGE_STATE_USED, __ALLOC_ZERO);
+    }
 
     if (desc_pages == NULL) {
         printk(LOGLEVEL_WARN,
@@ -47,7 +55,7 @@ virtio_split_queue_init(struct virtio_device *const device,
     // The max possible size of the descriptor list is actually 1030 bytes.
     struct page *const avail_page = alloc_page(PAGE_STATE_USED, __ALLOC_ZERO);
     if (avail_page == NULL) {
-        free_pages(desc_pages, /*order=*/1);
+        free_pages(desc_pages, desc_pages_order);
         printk(LOGLEVEL_WARN,
                "virtio-queue: failed to allocate avail page for queue at index "
                "%" PRIu16 "\n",
@@ -69,7 +77,7 @@ virtio_split_queue_init(struct virtio_device *const device,
 
     if (used_pages == NULL) {
         free_page(avail_page);
-        free_pages(desc_pages, /*order=*/1);
+        free_pages(desc_pages, desc_pages_order);
 
         printk(LOGLEVEL_WARN,
                "virtio-queue: failed to allocate used page for queue at index "
@@ -105,6 +113,8 @@ virtio_split_queue_init(struct virtio_device *const device,
     queue->desc_pages = desc_pages;
     queue->avail_page = avail_page;
     queue->used_pages = used_pages;
+
+    queue->desc_pages_order = desc_pages_order;
     queue->used_pages_order = used_pages_order;
 
     return true;

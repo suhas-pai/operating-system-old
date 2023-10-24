@@ -77,8 +77,43 @@ __optimize(3) uint64_t array_free_count(struct array array) {
     return gbuffer_free_space(array.gbuffer) / array.object_size;
 }
 
-__optimize(3) void *array_take(struct array *const array) {
+__optimize(3) void *array_take_data(struct array *const array) {
     return gbuffer_take_data(&array->gbuffer);
+}
+
+__optimize(3) void
+array_take_item(struct array *const array,
+                const uint32_t index,
+                void *const item)
+{
+    assert(index_in_bounds(index, array_item_count(*array)));
+
+    const uint64_t object_size = array->object_size;
+    const uint64_t byte_index = object_size * index;
+
+    const void *const src = gbuffer_at(array->gbuffer, byte_index);
+    memcpy(item, src, object_size);
+
+    const struct range remove_range = RANGE_STATIC(byte_index, object_size);
+    gbuffer_remove_range(&array->gbuffer, remove_range);
+}
+
+__optimize(3) void
+array_take_range(struct array *const array,
+                 const struct range range,
+                 void *const item)
+{
+    assert(index_range_in_bounds(range, array_item_count(*array)));
+
+    const uint64_t object_size = array->object_size;
+    const uint64_t byte_index = object_size * range.front;
+    const uint64_t range_size = object_size * range.size;
+
+    const void *const src = gbuffer_at(array->gbuffer, byte_index);
+    memcpy(item, src, range_size);
+
+    const struct range remove_range = RANGE_STATIC(byte_index, range_size);
+    gbuffer_remove_range(&array->gbuffer, remove_range);
 }
 
 __optimize(3) bool array_empty(const struct array array) {

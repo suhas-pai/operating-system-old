@@ -23,4 +23,4 @@
     void malloc_size(uint64_t size, uint64_t *out);
     void realloc(void *buffer, uint64_t size);
     void free(void *buffer);
-#endif /* BUILD_KERNEL */
+#endif /* defined(BUILD_KERNEL) */

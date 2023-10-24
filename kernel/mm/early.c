@@ -39,9 +39,8 @@ _Static_assert(sizeof(struct freepages_info) <= PAGE_SIZE,
 static struct list g_freepage_list = LIST_INIT(g_freepage_list);
 static struct list g_asc_freelist = LIST_INIT(g_asc_freelist);
 
-static uint64_t freepages_list_count = 0;
-static uint64_t total_free_pages = 0;
-static uint64_t total_free_pages_remaining = 0;
+static uint64_t g_total_free_pages = 0;
+static uint64_t g_total_free_pages_remaining = 0;
 
 __optimize(3) static void add_to_asc_list(struct freepages_info *const info) {
     struct freepages_info *iter = NULL;
@@ -67,17 +66,16 @@ __optimize(3) static void claim_pages(const struct mm_memmap *const memmap) {
 
     const uint64_t page_count = PAGE_COUNT(memmap->range.size);
 
-    total_free_pages += page_count;
-    total_free_pages_remaining += page_count;
+    g_total_free_pages += page_count;
+    g_total_free_pages_remaining += page_count;
 
     info->avail_page_count = page_count;
     info->total_page_count = page_count;
 
-    freepages_list_count++;
-    if (freepages_list_count != 1) {
-        struct freepages_info *prev =
-            list_tail(&g_freepage_list, struct freepages_info, list);
+    struct freepages_info *prev =
+        list_tail(&g_freepage_list, struct freepages_info, list);
 
+    if (&prev->list != &g_freepage_list) {
         /*
          * g_freepage_list must be in the ascending order of the physical
          * address. Try finding the appropriate place in the linked-list if
@@ -119,12 +117,9 @@ __optimize(3) static void claim_pages(const struct mm_memmap *const memmap) {
                 return;
             }
         }
-
-        list_add(&prev->list, &info->list);
-    } else {
-        list_add(&g_freepage_list, &info->list);
     }
 
+    list_add(&prev->list, &info->list);
     add_to_asc_list(info);
 }
 
@@ -150,7 +145,7 @@ __optimize(3) uint64_t early_alloc_page() {
         virt_to_phys(info) + (info->avail_page_count << PAGE_SHIFT);
 
     zero_page(phys_to_virt(free_page));
-    total_free_pages_remaining--;
+    g_total_free_pages_remaining--;
 
     return free_page;
 }
@@ -193,7 +188,7 @@ __optimize(3) uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
         virt_to_phys(info) + (info->avail_page_count << PAGE_SHIFT);
 
     zero_multiple_pages(phys_to_virt(free_page), alloc_amount);
-    total_free_pages_remaining -= alloc_amount;
+    g_total_free_pages_remaining -= alloc_amount;
 
     return free_page;
 }
@@ -298,7 +293,7 @@ __optimize(3) uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
     }
 
     zero_multiple_pages(phys_to_virt(free_page), alloc_amount);
-    total_free_pages_remaining -= alloc_amount;
+    g_total_free_pages_remaining -= alloc_amount;
 
     return free_page;
 }
@@ -368,7 +363,7 @@ void mm_early_init() {
 
     printk(LOGLEVEL_INFO,
            "mm: system has %" PRIu64 " usable pages\n",
-           total_free_pages);
+           g_total_free_pages);
 }
 
 __optimize(3) static inline void init_table_page(struct page *const page) {

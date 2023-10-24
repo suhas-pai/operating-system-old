@@ -59,12 +59,12 @@ void isr_init() {
 
     isr_set_vector(g_spur_vector,
                    spur_tick,
-                   &(struct arch_isr_info){ .ist = IST_NONE });
+                   &ARCH_ISR_INFO_NONE());
 
     idt_register_exception_handlers();
 }
 
-void
+__optimize(3) void
 isr_set_vector(const isr_vector_t vector,
                const isr_func_t handler,
                struct arch_isr_info *const info)
@@ -77,7 +77,7 @@ isr_set_vector(const isr_vector_t vector,
            vector);
 }
 
-void
+__optimize(3) void
 isr_assign_irq_to_cpu(struct cpu_info *const cpu,
                       const uint8_t irq,
                       const isr_vector_t vector,

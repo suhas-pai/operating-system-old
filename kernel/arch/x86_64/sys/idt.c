@@ -199,6 +199,6 @@ void idt_register_exception_handlers() {
     for (idt_vector_t vector = 0; vector != 0x20; vector++) {
         isr_set_vector(vector,
                        handle_exception,
-                       &(struct arch_isr_info){ .ist = IST_NONE });
+                       &ARCH_ISR_INFO_NONE());
     }
 }

@@ -15,8 +15,11 @@
 #include "walker.h"
 
 static uint64_t
-ptwalker_alloc_pgtable_cb(struct pt_walker *const walker, void *const cb_info) {
+ptwalker_alloc_pgtable_cb(struct pt_walker *const walker,
+                          const pgt_level_t level,
+                          void *const cb_info) {
     (void)walker;
+    (void)level;
     (void)cb_info;
 
     struct page *const table = alloc_table();
@@ -235,7 +238,7 @@ alloc_table_at_pte(struct pt_walker *const walker,
                    void *const alloc_pgtable_cb_info)
 {
     const uint64_t phys =
-        walker->alloc_pgtable(walker, alloc_pgtable_cb_info);
+        walker->alloc_pgtable(walker, level, alloc_pgtable_cb_info);
 
     if (phys == INVALID_PHYS) {
         return false;

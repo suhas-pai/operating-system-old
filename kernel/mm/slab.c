@@ -127,7 +127,10 @@ void *slab_alloc(struct slab_allocator *const alloc) {
     if (list_empty(&alloc->slab_head_list)) {
         page = alloc_slab_page(alloc);
         if (page == NULL) {
-            spin_release_with_irq(&alloc->lock, flag);
+            if (needs_lock) {
+                spin_release_with_irq(&alloc->lock, flag);
+            }
+
             return NULL;
         }
     } else {
@@ -185,7 +188,9 @@ void slab_free(void *const mem) {
             alloc->slab_count -= 1;
 
             free_pages(head, alloc->slab_order);
-            spin_release_with_irq(&alloc->lock, flag);
+            if (needs_lock) {
+                spin_release_with_irq(&alloc->lock, flag);
+            }
 
             return;
         }
@@ -212,7 +217,12 @@ __optimize(3) uint32_t slab_object_size(void *const mem) {
     }
 
     struct page *const page = virt_to_page(mem);
-    struct slab_allocator *const allocator = page->slab.allocator;
+    const enum page_state state = page_get_state(page);
 
+    assert(
+        __builtin_expect(state == PAGE_STATE_SLAB_HEAD ||
+                         state == PAGE_STATE_SLAB_TAIL, 1));
+
+    struct slab_allocator *const allocator = page->slab.allocator;
     return allocator->object_size;
 }
