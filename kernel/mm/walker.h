@@ -111,7 +111,7 @@ ptwalker_next_with_options(struct pt_walker *walker,
 void
 ptwalker_deref_from_level(struct pt_walker *walker,
                           pgt_level_t level,
-                          struct pageop *pageop);
+                          void *free_pgtable_cb_info);
 
 enum pt_walker_result
 ptwalker_fill_in_to(struct pt_walker *walker,

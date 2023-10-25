@@ -54,8 +54,8 @@ add_to_freelist_order_from_higher(struct page_zone *const zone,
         iter->freelist_tail.head = page;
     }
 
-    freelist->count++;
     zone->total_free += 1ull << freelist_order;
+    freelist->count++;
 }
 
 __optimize(3) static void

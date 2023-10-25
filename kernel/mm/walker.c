@@ -570,13 +570,16 @@ ptwalker_fill_in_to(struct pt_walker *const walker,
 __optimize(3) void
 ptwalker_deref_from_level(struct pt_walker *const walker,
                           pgt_level_t level,
-                          struct pageop *const pageop)
+                          void *free_pgtable_cb_info)
 {
     if (__builtin_expect(
             level < walker->level || level > walker->top_level, 0))
     {
         return;
     }
+
+    const ptwalker_free_pgtable_t free_pgtable = walker->free_pgtable;
+    assert(free_pgtable != NULL);
 
     pte_t *table = walker->tables[level - 1];
     for (; level <= walker->top_level; level++) {
@@ -590,7 +593,7 @@ ptwalker_deref_from_level(struct pt_walker *const walker,
             pte_write(table + walker->indices[level], /*value=*/0);
         }
 
-        list_add(&pageop->delayed_free, &pt->table.delayed_free_list);
+        free_pgtable(walker, pt, free_pgtable_cb_info);
     }
 
     walker->level = level;
