@@ -38,7 +38,7 @@ alloc_pages(enum page_state state, uint64_t alloc_flags, uint8_t order);
 struct page_zone;
 
 struct page *
-alloc_pages_in_zone(struct page_zone *zone,
+alloc_pages_from_zone(struct page_zone *zone,
                     enum page_state state,
                     uint64_t alloc_flags,
                     uint8_t order,

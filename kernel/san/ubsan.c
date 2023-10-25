@@ -34,7 +34,7 @@ __ubsan_handle_type_mismatch_v1(struct type_mismatch_info_v1 *const info,
                SOURCE_LOCATION_FMT_ARGS(&info->location),
                type_check_kind_list[info->type_check_kind],
                info->type->name);
-        return;
+        cpu_halt();
     }
 
     const uint64_t alignment = 1ull << info->log_alignment;

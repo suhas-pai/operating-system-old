@@ -64,20 +64,21 @@ static uint8_t mm_memmap_count = 0;
 // entire memmap-list, which is made up mostly of memmaps not mapped into the
 // structpage-table
 
-static struct mm_section mm_usable_list[255] = {0};
-static uint8_t mm_usable_count = 0;
+static struct page_section mm_page_section_list[255] = {0};
+static uint8_t mm_page_section_count = 0;
 
 static const void *rsdp = NULL;
 static const void *dtb = NULL;
 
 static int64_t boot_time = 0;
+static uint64_t section_mask = 0;
 
 __optimize(3) const struct mm_memmap *mm_get_memmap_list() {
     return mm_memmap_list;
 }
 
-__optimize(3) struct mm_section *mm_get_usable_list() {
-    return mm_usable_list;
+__optimize(3) struct page_section *mm_get_page_section_list() {
+    return mm_page_section_list;
 }
 
 __optimize(3) uint8_t mm_get_memmap_count() {
@@ -85,7 +86,7 @@ __optimize(3) uint8_t mm_get_memmap_count() {
 }
 
 __optimize(3) uint8_t mm_get_usable_count() {
-    return mm_usable_count;
+    return mm_page_section_count;
 }
 
 __optimize(3) const void *boot_get_rsdp() {
@@ -100,12 +101,38 @@ __optimize(3) int64_t boot_get_time() {
     return boot_time;
 }
 
-void boot_early_init() {
+__optimize(3) uint64_t mm_get_full_section_mask() {
+    return section_mask;
+}
+
+__optimize(3) void boot_early_init() {
     if (dtb_request.response == NULL || dtb_request.response->dtb_ptr == NULL) {
         printk(LOGLEVEL_WARN, "boot: device tree is missing\n");
     } else {
         dtb = dtb_request.response->dtb_ptr;
     }
+}
+
+__optimize(3) void
+page_section_init(struct page_section *const section,
+                  struct page_zone *const zone,
+                  const struct range range,
+                  const uint64_t pfn)
+{
+    section->zone = zone;
+    section->lock = SPINLOCK_INIT();
+    section->pfn = pfn;
+    section->range = range;
+    section->min_order = 0;
+    section->max_order = 0;
+    section->total_free = 0;
+
+    for (uint8_t i = 0; i != MAX_ORDER; i++) {
+        list_init(&section->freelist_list[i].page_list);
+        section->freelist_list[i].count = 0;
+    }
+
+    list_init(&section->zone_list);
 }
 
 void boot_init() {
@@ -175,9 +202,17 @@ void boot_init() {
         };
 
         if (memmap->type == LIMINE_MEMMAP_USABLE) {
-            mm_usable_list[usable_index].pfn = pfn;
-            mm_usable_list[usable_index].range =
-                mm_memmap_list[memmap_index].range;
+            struct page_section *const section =
+                mm_page_section_list + usable_index;
+            page_section_init(section,
+                            /*zone=*/NULL,
+                            mm_memmap_list[memmap_index].range,
+                            pfn);
+
+            for (uint8_t i = 0; i != MAX_ORDER; i++) {
+                list_init(&section->freelist_list[i].page_list);
+                section->freelist_list[i].count = 0;
+            }
 
             pfn += PAGE_COUNT(range.size);
             usable_index++;
@@ -187,11 +222,11 @@ void boot_init() {
     }
 
     mm_memmap_count = memmap_index;
-    mm_usable_count = usable_index;
+    mm_page_section_count = usable_index;
 
     printk(LOGLEVEL_INFO,
            "boot: there are %" PRIu8 " usable memmaps\n",
-           mm_usable_count);
+           mm_page_section_count);
 
     if (rsdp_request.response == NULL ||
         rsdp_request.response->address == NULL)
@@ -216,11 +251,11 @@ void boot_init() {
     printk_strftime("%c\n", &tm);
 }
 
-void boot_merge_usable_memmaps() {
-    for (uint64_t index = 1; index != mm_usable_count; index++) {
-        struct mm_section *const memmap = &mm_usable_list[index];
+__optimize(3) void boot_merge_usable_memmaps() {
+    for (uint64_t index = 1; index != mm_page_section_count; index++) {
+        struct page_section *const memmap = &mm_page_section_list[index];
         do {
-            struct mm_section *const prev_memmap = memmap - 1;
+            struct page_section *const prev_memmap = memmap - 1;
             const uint64_t prev_end = range_get_end_assert(prev_memmap->range);
 
             if (prev_end != memmap->range.front) {
@@ -231,42 +266,45 @@ void boot_merge_usable_memmaps() {
 
             // Remove the current memmap.
             const uint64_t move_amount =
-                (mm_usable_count - (index + 1)) * sizeof(struct mm_section);
+                (mm_page_section_count - (index + 1)) *
+                sizeof(struct page_section);
 
             memmove(memmap, memmap + 1, move_amount);
-            mm_usable_count--;
+            mm_page_section_count--;
 
-            if (index == mm_usable_count) {
+            if (index == mm_page_section_count) {
                 return;
             }
         } while (true);
     }
 }
 
-void boot_remove_section(struct mm_section *section) {
+__optimize(3) void boot_remove_section(struct page_section *const section) {
     const uint64_t length =
-        (uint64_t)((mm_usable_list + mm_usable_count) - (section + 1));
+        distance(section + 1, &mm_page_section_list[mm_page_section_count]);
 
     memmove(section, section + 1, length);
+    section_mask >>= 1;
 }
 
-struct mm_section *boot_add_section_at(struct mm_section *section) {
+__optimize(3)
+struct page_section *boot_add_section_at(struct page_section *const section) {
     const uint64_t length =
-        (uint64_t)((mm_usable_list + mm_usable_count) - section);
+        distance(section, &mm_page_section_list[mm_page_section_count]);
 
     memmove(section + 1, section, length);
-    mm_usable_count++;
+    mm_page_section_count++;
 
+    section_mask = section_mask << 1 | (1 << 0);
     return section;
 }
 
 __optimize(3) void boot_recalculate_pfns() {
-    uint64_t pfn = 0;
+    struct page_section *section = mm_page_section_list;
+    const struct page_section *const end =
+        &mm_page_section_list[mm_page_section_count];
 
-    struct mm_section *section = mm_usable_list;
-    const struct mm_section *const end = &mm_usable_list[mm_usable_count];
-
-    for (; section != end; section++) {
+    for (uint64_t pfn = 0; section != end; section++) {
         section->pfn = pfn;
         pfn += PAGE_COUNT(section->range.size);
     }

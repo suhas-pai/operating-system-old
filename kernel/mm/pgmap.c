@@ -382,8 +382,7 @@ map_normal(struct pt_walker *const walker,
                                                    alloc_pgtable_cb_info,
                                                    free_pgtable_cb_info);
 
-                    if (__builtin_expect(
-                            ptwalker_result != E_PT_WALKER_OK, 0))
+                    if (__builtin_expect(ptwalker_result != E_PT_WALKER_OK, 0))
                     {
                         goto panic;
                     }

@@ -8,7 +8,7 @@
 
 #include "growable_buffer.h"
 
-struct growable_buffer gbuffer_alloc(const uint32_t capacity) {
+__optimize(3) struct growable_buffer gbuffer_alloc(const uint32_t capacity) {
     uint32_t size = 0;
     const struct growable_buffer gbuffer = {
         .begin = malloc_size(capacity, &size),
@@ -19,7 +19,7 @@ struct growable_buffer gbuffer_alloc(const uint32_t capacity) {
     return gbuffer;
 }
 
-struct growable_buffer
+__optimize(3) struct growable_buffer
 gbuffer_alloc_copy(void *const data, const uint32_t size) {
     const struct growable_buffer gbuffer = gbuffer_alloc(size);
     if (gbuffer.begin != NULL) {
@@ -29,7 +29,7 @@ gbuffer_alloc_copy(void *const data, const uint32_t size) {
     return gbuffer;
 }
 
-struct growable_buffer
+__optimize(3) struct growable_buffer
 gbuffer_open(void *const buffer,
              const uint32_t used,
              const uint32_t capacity,
@@ -45,7 +45,7 @@ gbuffer_open(void *const buffer,
     return gbuffer;
 }
 
-struct growable_buffer
+__optimize(3) struct growable_buffer
 gbuffer_open_mbuffer(const struct mutable_buffer mbuffer, const bool is_alloc) {
     const struct growable_buffer gbuffer =
         gbuffer_open(mbuffer.begin,

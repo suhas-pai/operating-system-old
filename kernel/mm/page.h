@@ -106,4 +106,4 @@ void page_clear_flag(struct page *page, enum struct_page_flags flag);
 enum page_state page_get_state(const struct page *page);
 void page_set_state(struct page *page, enum page_state state);
 
-struct mm_section *page_to_mm_section(const struct page *page);
+struct page_section *page_to_section(const struct page *page);

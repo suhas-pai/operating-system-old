@@ -10,30 +10,16 @@ static struct page_zone zone_low4g = {
     .lock = SPINLOCK_INIT(),
     .name = "low4g",
 
-    .freelist_list = {},
+    .section_list = LIST_INIT(zone_low4g.section_list),
     .fallback_zone = NULL,
-
-    .min_order = MAX_ORDER,
 };
 
 static struct page_zone zone_default = {
     .lock = SPINLOCK_INIT(),
     .name = "default",
 
-    .freelist_list = {},
+    .section_list = LIST_INIT(zone_default.section_list),
     .fallback_zone = &zone_low4g,
-
-    .min_order = MAX_ORDER,
-};
-
-static struct page_zone zone_highmem = {
-    .lock = SPINLOCK_INIT(),
-    .name = "highmem",
-
-    .freelist_list = {},
-    .fallback_zone = &zone_default,
-
-    .min_order = MAX_ORDER,
 };
 
 __optimize(3) struct page_zone *phys_to_zone(const uint64_t phys) {
@@ -41,15 +27,11 @@ __optimize(3) struct page_zone *phys_to_zone(const uint64_t phys) {
         return &zone_low4g;
     }
 
-    if (phys >= gib(896)) {
-        return &zone_highmem;
-    }
-
     return &zone_default;
 }
 
 __optimize(3) struct page_zone *page_zone_iterstart() {
-    return &zone_highmem;
+    return &zone_default;
 }
 
 __optimize(3)
@@ -65,11 +47,4 @@ __optimize(3) struct page_zone *page_zone_low4g() {
     return &zone_low4g;
 }
 
-void pagezones_init() {
-    for_each_page_zone (zone) {
-        for (uint8_t i = 0; i != MAX_ORDER; i++) {
-            list_init(&zone->freelist_list[i].page_list);
-            zone->freelist_list[i].count = 0;
-        }
-    }
-}
+void pagezones_init() {}

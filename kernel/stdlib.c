@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #if defined(__riscv64)
@@ -220,15 +221,19 @@ __optimize(3) void *memcpy(void *dst, const void *src, unsigned long n) {
                                   void **const dst_out, \
                                   const void **const src_out) \
     {                                                                          \
-        int off = n - sizeof(type);                                            \
-        if (off >= 0) {                                                        \
+        if (n >= sizeof(type)) {                                               \
+            unsigned long off = n - sizeof(type);                              \
             do {                                                               \
-                ((type *)dst)[off] = ((const type *)src)[off];                 \
-                off -= (int)sizeof(type);                                      \
-            } while (off >= 0);                                                \
+                *((type *)(dst + off)) = *((const type *)(src + off));         \
+                if (off < sizeof(type)) {                                      \
+                    *dst_out = dst;                                            \
+                    *src_out = src;                                            \
                                                                                \
-            *dst_out = dst;                                                    \
-            *src_out = src;                                                    \
+                    return off;                                                \
+                }                                                              \
+                                                                               \
+                off -= sizeof(type);                                           \
+            } while (true);                                                    \
         }                                                                      \
                                                                                \
         return n;                                                              \

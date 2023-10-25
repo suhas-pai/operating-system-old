@@ -31,8 +31,7 @@ __optimize(3) bool spin_try_acquire(struct spinlock *const lock) {
     const uint32_t front = atomic_load(&lock->front);
 
     if (front == ticket) {
-        ticket++;
-        return atomic_compare_exchange_strong(&lock->back, &ticket, ticket);
+        return atomic_compare_exchange_strong(&lock->back, &ticket, ticket + 1);
     }
 
     return false;

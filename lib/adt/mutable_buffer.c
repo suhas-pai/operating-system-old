@@ -24,12 +24,12 @@ preprocess_for_append(struct mutable_buffer *const mbuffer,
     return ptr;
 }
 
-struct mutable_buffer
+__optimize(3) struct mutable_buffer
 mbuffer_open(void *const buffer, const uint32_t used, const uint32_t capacity) {
     return mbuffer_open_static(buffer, used, capacity);
 }
 
-struct mutable_buffer
+__optimize(3) struct mutable_buffer
 mbuffer_open_static(void *const buffer,
                     const uint32_t used,
                     const uint32_t capacity)

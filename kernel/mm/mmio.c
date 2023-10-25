@@ -133,11 +133,11 @@ vmap_mmio_low4g(const prot_t prot, const uint8_t order, const uint64_t flags) {
     }
 
     struct page *const page =
-        alloc_pages_in_zone(page_zone_low4g(),
-                            PAGE_STATE_USED,
-                            __ALLOC_ZERO,
-                            order,
-                            /*fallback=*/true);
+        alloc_pages_from_zone(page_zone_low4g(),
+                              PAGE_STATE_USED,
+                              __ALLOC_ZERO,
+                              order,
+                              /*fallback=*/true);
 
     if (page == NULL) {
         printk(LOGLEVEL_WARN,

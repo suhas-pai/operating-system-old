@@ -17,6 +17,6 @@ uint64_t early_alloc_page();
 uint64_t early_alloc_large_page(uint32_t amount);
 
 void
-early_free_pages_to_zone(struct page *page,
-                         struct page_zone *zone,
-                         uint8_t order);
+early_free_pages_from_section(struct page *page,
+                              struct page_section *section,
+                              uint8_t order);

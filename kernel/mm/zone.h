@@ -6,21 +6,14 @@
 #pragma once
 #include "page_alloc.h"
 
-struct page_freelist {
-    struct list page_list;
-    uint64_t count;
-};
-
 struct page_zone {
     struct spinlock lock;
     const char *name;
 
-    struct page_freelist freelist_list[MAX_ORDER];
+    struct list section_list;
     struct page_zone *const fallback_zone;
-    uint64_t total_free;
 
-    // Smallest non-empty order;
-    uint8_t min_order;
+    _Atomic uint64_t total_free;
 };
 
 struct page_zone *page_zone_iterstart();

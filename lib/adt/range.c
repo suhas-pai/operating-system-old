@@ -77,13 +77,19 @@ range_round_up(const struct range range,
                const uint64_t mult,
                struct range *const result_out)
 {
-    if (!round_up(range.front, mult, &result_out->front)) {
+    uint64_t front = 0;
+    uint64_t size = 0;
+
+    if (!round_up(range.front, mult, &front)) {
         return false;
     }
 
-    if (!round_up(range.size, mult, &result_out->size)) {
+    if (!round_up(range.size, mult, &size)) {
         return false;
     }
+
+    result_out->front = front;
+    result_out->size = size;
 
     return true;
 }

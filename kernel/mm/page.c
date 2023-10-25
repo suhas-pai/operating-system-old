@@ -5,6 +5,7 @@
 
 #include <stdatomic.h>
 #include "lib/memory.h"
+#include "lib/overflow.h"
 
 #include "page.h"
 
@@ -138,6 +139,6 @@ void page_set_state(struct page *const page, const enum page_state state) {
 }
 
 __optimize(3)
-struct mm_section *page_to_mm_section(const struct page *const page) {
-    return &mm_get_usable_list()[page->section];
+struct page_section *page_to_section(const struct page *const page) {
+    return &mm_get_page_section_list()[page->section];
 }

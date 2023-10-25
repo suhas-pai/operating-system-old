@@ -10,6 +10,8 @@
 #endif /* defined(__x86_64__) */
 
 #include "lib/adt/array.h"
+#include "lib/adt/bitmap.h"
+
 #include "cpu/isr.h"
 
 struct pci_config_space {
