@@ -35,7 +35,7 @@ void test_cont(struct bitmap *const bitmap, const uint64_t count) {
                     /*expected_value=*/false,
                     /*invert=*/true));
 
-    const struct range range = range_create(bit_index, count);
+    const struct range range = RANGE_INIT(bit_index, count);
 
     assert(bitmap_has(bitmap, range, true));
     bitmap_set_range(bitmap, range, false);
@@ -57,7 +57,7 @@ test_at_mult(struct bitmap *const bitmap,
                             /*expected_value=*/false,
                             /*set=*/true));
 
-    const struct range range = range_create(bit_index, count);
+    const struct range range = RANGE_INIT(bit_index, count);
 
     assert(bitmap_has(*bitmap, range, true));
     assert(bitmap_set(bitmap, range, false, true));
@@ -167,14 +167,14 @@ void check_bitmap(const uint64_t size) {
 
             assert(actual_unset_index != FIND_BIT_INVALID);
             const struct range unset_range =
-                range_create(unset_index, unset_count);
+                RANGE_INIT(unset_index, unset_count);
 
             assert(bitmap_has(&bitmap, unset_range, /*value=*/true));
         }
     }
     if (size > 2) {
         {
-            const struct range unset_range = range_create(12, 20);
+            const struct range unset_range = RANGE_INIT(12, 20);
 
             bitmap_set_all(&bitmap, /*value=*/true);
             bitmap_set_range(&bitmap, unset_range, /*value=*/false);
@@ -193,7 +193,7 @@ void check_bitmap(const uint64_t size) {
     }
     if (size > 7) {
         {
-            const struct range unset_range = range_create(56, 8);
+            const struct range unset_range = RANGE_INIT(56, 8);
 
             bitmap_set_all(&bitmap, /*value=*/true);
             bitmap_set_range(&bitmap, unset_range, /*value=*/false);

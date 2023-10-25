@@ -30,9 +30,7 @@ struct page *deref_page(struct page *page, struct pageop *pageop);
 // pages mapped as a large page.
 
 struct page *
-deref_large_page(struct page *page,
-                 struct pageop *pageop,
-                 pgt_level_t level);
+deref_large_page(struct page *page, struct pageop *pageop, pgt_level_t level);
 
 struct page *
 alloc_pages(enum page_state state, uint64_t alloc_flags, uint8_t order);

@@ -15,6 +15,8 @@
 #define PCI_BAR_COUNT_FOR_GENERAL 6
 #define PCI_BAR_COUNT_FOR_BRIDGE 2
 
+#define PCI_READ_FAIL (uint32_t)-1
+
 enum pci_spec_device_header_kind {
     PCI_SPEC_DEVHDR_KIND_GENERAL,
     PCI_SPEC_DEVHDR_KIND_PCI_BRIDGE,
@@ -56,6 +58,9 @@ enum pci_spec_device_command_register_flags {
     /*
      * If set to 1 the device can generate special cycles; otherwise, the device
      * can not generate special cycles.
+     *
+     * This bit was originally described in the [PCI]. Its functionality does
+     * not apply to PCI Express and the bit must be hardwired to 0b.
      */
 
     __PCI_DEVCMDREG_SPECIAL_CYCLES = 1ull << 3,
@@ -63,6 +68,12 @@ enum pci_spec_device_command_register_flags {
     /*
      * If set to 1 the device can respond to the Memory-Write-Invalidate
      * command; otherwise, the device's response is disabled.
+     *
+     * - This bit was originally described in the [PCI] and the
+     * [PCI-to-PCI-Bridge].
+     * Its functionality does not apply to PCI Express and the bit must be
+     * hardwired to 0b. For PCI Express to PCI/PCI-X Bridges, refer to the
+     * [PCIe-to-PCI-PCI-X-Bridge] for requirements for this register.
      */
 
     __PCI_DEVCMDREG_MEMWRITE_INVALIDATE = 1ull << 4,
@@ -71,6 +82,10 @@ enum pci_spec_device_command_register_flags {
      * If set to 1 the device does not respond to palette register writes and
      * will snoop the data; otherwise, the device will treat palette write
      * accesses like all other accesses.
+     *
+     * This bit was originally described in the [PCI] and the
+     * [PCI-to-PCI-Bridge]. Its functionality does not apply to PCI Express and
+     * the bit must be hardwired to 0b.
      */
 
     __PCI_DEVCMDREG_VGA_PALETTE_SNOOP = 1ull << 5,
@@ -111,12 +126,12 @@ enum pci_spec_device_status_flags {
     __PCI_DEVSTATUS_UDF_SUPPORT = 1ull << 6,
     __PCI_DEVSTATUS_FAST_BACKTOBACK = 1ull << 7,
     __PCI_DEVSTATUS_DATA_PARITY_DETECT = 1ull << 8,
-    __PCI_DEVSTATUS_DEVSEL_TIMING = 1ull << 9,
-    __PCI_DEVSTATUS_SIGNAL_TARGET_ABORT = 1ull << 10,
-    __PCI_DEVSTATUS_RECEIVED_TARGET_ABORT = 1ull << 11,
-    __PCI_DEVSTATUS_RECEIVED_MASTER_ABORT = 1ull << 12,
-    __PCI_DEVSTATUS_SIGNALED_SYSERR = 1ull << 13,
-    __PCI_DEVSTATUS_PARITY_ERR_DETECTED = 1ull << 14,
+    __PCI_DEVSTATUS_DEVSEL_TIMING = 0b11ull << 9,
+    __PCI_DEVSTATUS_SIGNAL_TARGET_ABORT = 1ull << 11,
+    __PCI_DEVSTATUS_RECEIVED_TARGET_ABORT = 1ull << 12,
+    __PCI_DEVSTATUS_RECEIVED_MASTER_ABORT = 1ull << 13,
+    __PCI_DEVSTATUS_SIGNALED_SYSERR = 1ull << 14,
+    __PCI_DEVSTATUS_PARITY_ERR_DETECTED = 1ull << 15,
 };
 
 enum pci_spec_devbar_memspace_kind {
@@ -154,6 +169,7 @@ struct pci_spec_device_info_base {
     uint8_t bist;
 } __packed;
 
+// Type 0
 struct pci_spec_device_info {
     struct pci_spec_device_info_base base;
 
@@ -176,6 +192,7 @@ struct pci_spec_device_info {
     char data[4032];
 } __packed;
 
+// Type 1
 struct pci_spec_pci_to_pci_bridge_device_info {
     struct pci_spec_device_info_base base;
 

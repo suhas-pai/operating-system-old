@@ -38,7 +38,7 @@ extern struct mmio_region *lapic_mmio_region;
 
 void apic_init(const uint64_t local_apic_base) {
     lapic_mmio_region =
-        vmap_mmio(range_create(local_apic_base, PAGE_SIZE),
+        vmap_mmio(RANGE_INIT(local_apic_base, PAGE_SIZE),
                   PROT_READ | PROT_WRITE,
                   /*flags=*/0);
 

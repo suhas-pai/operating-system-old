@@ -1455,7 +1455,7 @@ cpu_add_gic_interface(
     cpu->mpidr = intr->mpidr;
 
     cpu->cpu_interface_region =
-        vmap_mmio(range_create(intr->phys_base_address, PAGE_SIZE),
+        vmap_mmio(RANGE_INIT(intr->phys_base_address, PAGE_SIZE),
                   PROT_READ | PROT_WRITE,
                   /*flags=*/0);
 

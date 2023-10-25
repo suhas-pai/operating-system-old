@@ -45,4 +45,5 @@ struct rtc_cmos_info {
 
 void rtc_init();
 bool rtc_read_cmos_info(struct rtc_cmos_info *const info_out);
+
 struct tm tm_from_rtc_cmos_info(struct rtc_cmos_info *const info);

@@ -21,7 +21,7 @@ struct free_slab_object {
 
 bool
 slab_allocator_init(struct slab_allocator *const slab_alloc,
-                    uint32_t object_size_arg,
+                    const uint32_t object_size_arg,
                     const uint32_t alloc_flags,
                     const uint16_t flags)
 {

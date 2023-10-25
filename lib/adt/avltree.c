@@ -152,6 +152,7 @@ avlnode_print(struct avlnode *const node,
         if (parent->right == NULL) {
             print_sv_cb(SV_STATIC("\n"), cb_info);
             print_prefix_lines(current, print_sv_cb, cb_info, depth_level);
+
             print_sv_cb(SV_STATIC("└── "), cb_info);
             print_node_cb(NULL, cb_info);
         }
@@ -376,12 +377,7 @@ avltree_insert_at_loc(struct avltree *const tree,
                       struct avlnode **const link,
                       const avlnode_update_t update)
 {
-    insert_at_loc(tree,
-                  node,
-                  parent,
-                  link,
-                  update,
-                  /*added_node=*/NULL);
+    insert_at_loc(tree, node, parent, link, update, /*added_node=*/NULL);
 }
 
 __optimize(3) void

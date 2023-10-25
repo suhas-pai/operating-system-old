@@ -141,7 +141,7 @@ void boot_init() {
         const struct limine_memmap_entry *const memmap = *memmap_iter;
         struct range range = RANGE_EMPTY();
 
-        if (!range_align_out(range_create(memmap->base, memmap->length),
+        if (!range_align_out(RANGE_INIT(memmap->base, memmap->length),
                              /*boundary=*/PAGE_SIZE,
                              &range))
         {

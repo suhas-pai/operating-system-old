@@ -35,6 +35,29 @@ add_to_freelist_order(struct page_zone *const zone,
     zone->total_free += 1ull << freelist_order;
 }
 
+// Add pages from the tail pages of a higher order into a lower order
+__optimize(3) static void
+add_to_freelist_order_from_higher(struct page_zone *const zone,
+                                  const uint8_t freelist_order,
+                                  struct page *const page)
+{
+    page_set_state(page, PAGE_STATE_FREE_LIST_HEAD);
+
+    struct page_freelist *const freelist = &zone->freelist_list[freelist_order];
+    page->freelist_head.order = freelist_order;
+
+    list_init(&page->freelist_head.freelist);
+    list_add(&freelist->page_list, &page->freelist_head.freelist);
+
+    const struct page *const end = page + (1ull << freelist_order);
+    for (struct page *iter = page + 1; iter != end; iter++) {
+        iter->freelist_tail.head = page;
+    }
+
+    freelist->count++;
+    zone->total_free += 1ull << freelist_order;
+}
+
 __optimize(3) static void
 early_add_to_freelist_order(struct page_zone *const zone,
                             const uint8_t freelist_order,
@@ -299,7 +322,7 @@ alloc_pages_from_zone(struct page_zone *const zone,
         alloced_order--;
 
         struct page *const buddy_page = page + (1ull << alloced_order);
-        add_to_freelist_order(zone, alloced_order, buddy_page);
+        add_to_freelist_order_from_higher(zone, alloced_order, buddy_page);
     }
 
     if (zone->min_order > order) {
@@ -579,7 +602,7 @@ early_free_pages_to_zone(struct page *const page,
     early_add_to_freelist_order(zone, order, page);
 }
 
-void
+__optimize(3) void
 free_pages_to_zone(struct page *const page,
                    struct page_zone *const zone,
                    uint64_t amount)
@@ -638,9 +661,7 @@ void free_large_page_to_zone(struct page *head, struct page_zone *const zone) {
             }
         }
 
-        const uint64_t free_amount = (uint64_t)(iter - page);
-        free_pages_to_zone(page, zone, free_amount);
-
+        free_pages_to_zone(page, zone, (uint64_t)(iter - page));
         page = iter + 1;
     }
 

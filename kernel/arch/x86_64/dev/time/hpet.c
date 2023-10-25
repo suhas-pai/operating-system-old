@@ -80,7 +80,7 @@ void hpet_init(const struct acpi_hpet *const hpet) {
     }
 
     hpet_mmio =
-        vmap_mmio(range_create(hpet->base_address.address, PAGE_SIZE),
+        vmap_mmio(RANGE_INIT(hpet->base_address.address, PAGE_SIZE),
                   PROT_READ | PROT_WRITE,
                   /*flags=*/0);
 

@@ -96,7 +96,7 @@ ioapic_add(const uint8_t apic_id, const uint32_t base, const uint32_t gsib) {
         .arbid = apic_id,
         .gsi_base = gsib,
         .regs_mmio =
-            vmap_mmio(range_create(base, PAGE_SIZE),
+            vmap_mmio(RANGE_INIT(base, PAGE_SIZE),
                       PROT_READ | PROT_WRITE,
                       /*flags=*/0)
     };

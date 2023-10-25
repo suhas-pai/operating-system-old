@@ -136,8 +136,8 @@ static void init_pci_node(const void *const dtb, const int pci_offset) {
     }
 
     const struct range bus_range =
-        range_create(fdt32_to_cpu(bus_range_array[0]),
-                     fdt32_to_cpu(bus_range_array[1]));
+        RANGE_INIT(fdt32_to_cpu(bus_range_array[0]),
+                   fdt32_to_cpu(bus_range_array[1]));
 
     pci_add_pcie_domain(bus_range,
                         base_addr_reg.address,

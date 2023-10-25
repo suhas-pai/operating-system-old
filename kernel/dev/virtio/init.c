@@ -337,7 +337,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
         uint64_t offset = pci_read_virtio_cap_field(cap.offset);
         uint64_t length = pci_read_virtio_cap_field(cap.length);
 
-        const struct range index_range = range_create(offset, length);
+        const struct range index_range = RANGE_INIT(offset, length);
         const struct range io_range =
             bar->is_mmio ?
                 mmio_region_get_range(bar->mmio) : bar->port_or_phys_range;
@@ -388,8 +388,8 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                 cfg_kind = "notify-cfg";
 
                 notify_cfg_range =
-                    range_create((uint64_t)virt_device.pci.notify_queue_select,
-                                 length);
+                    RANGE_INIT((uint64_t)virt_device.pci.notify_queue_select,
+                               length);
 
                 break;
             }
@@ -408,7 +408,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                 break;
             case VIRTIO_PCI_CAP_DEVICE_CFG:
                 virt_device.pci.device_cfg =
-                    range_create((uint64_t)bar->mmio->base + offset, length);
+                    RANGE_INIT((uint64_t)bar->mmio->base + offset, length);
 
                 cfg_kind = "device-cfg";
                 break;
@@ -430,7 +430,7 @@ static void init_from_pci(struct pci_device_info *const pci_device) {
                 length |= (uint64_t)pci_read_virtio_cap_field(length_hi) << 32;
 
                 const struct virtio_device_shmem_region region = {
-                    .phys_range = range_create(offset, length),
+                    .phys_range = RANGE_INIT(offset, length),
                     .id = pci_read_virtio_cap_field(cap.id),
                     .mapped = false
                 };

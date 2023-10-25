@@ -244,7 +244,7 @@ void gic_dist_init(const struct acpi_madt_entry_gic_distributor *const dist) {
     }
 
     struct range mmio_range =
-        range_create(dist->phys_base_address, sizeof(struct gicd_registers));
+        RANGE_INIT(dist->phys_base_address, sizeof(struct gicd_registers));
 
     if (!range_align_out(mmio_range, PAGE_SIZE, &mmio_range)) {
         printk(LOGLEVEL_WARN,
@@ -315,7 +315,7 @@ gic_dist_add_msi(const struct acpi_madt_entry_gic_msi_frame *const frame) {
     }
 
     const struct range mmio_range =
-        range_create(frame->phys_base_address, PAGE_SIZE);
+        RANGE_INIT(frame->phys_base_address, PAGE_SIZE);
     struct mmio_region *const mmio =
         vmap_mmio(mmio_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 

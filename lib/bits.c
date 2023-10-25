@@ -41,7 +41,7 @@ get_range_of_lsb_one_bits(const uint64_t number,
 
     const uint64_t one_count = count_lsb_one_bits(number, first_bit_index);
 
-    struct range result = range_create(first_bit_index, one_count);
+    struct range result = RANGE_INIT(first_bit_index, one_count);
     uint64_t result_end = 0;
 
     if (range_get_end(result, &result_end)) {

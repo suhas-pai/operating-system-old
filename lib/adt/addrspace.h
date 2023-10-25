@@ -34,20 +34,14 @@ struct addrspace_node {
         .list = LIST_INIT(name.list) \
     })
 
-#define ADDRSPACE_NODE_INIT(name, addrspace) \
+#define ADDRSPACE_NODE_INIT(name, addrspace_) \
     ((struct addrspace_node){ \
-        .addrspace = addrspace,        \
+        .addrspace = (addrspace_),     \
         .avlnode = AVLNODE_INIT(),     \
         .list = LIST_INIT(name.list),  \
         .range = RANGE_EMPTY(),        \
         .largest_free_to_prev = 0      \
     })
-
-void addrspace_init(struct address_space *addrspace);
-
-void
-addrspace_node_init(struct address_space *addrspace,
-                    struct addrspace_node *node);
 
 #define addrspace_node_of(obj) \
     container_of((obj), struct addrspace_node, avlnode)

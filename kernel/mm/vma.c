@@ -37,8 +37,7 @@ vma_alloc(struct pagemap *const pagemap,
         return NULL;
     }
 
-    addrspace_node_init(&pagemap->addrspace, &vma->node);
-
+    vma->node = ADDRSPACE_NODE_INIT(vma->node, &pagemap->addrspace);
     vma->node.range = range;
     vma->cachekind = cachekind;
     vma->prot = prot;

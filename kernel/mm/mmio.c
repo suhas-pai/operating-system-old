@@ -62,7 +62,7 @@ map_mmio_region(const struct range phys_range,
         return NULL;
     }
 
-    addrspace_node_init(&mmio_space, &mmio->node);
+    mmio->node = ADDRSPACE_NODE_INIT(mmio->node, &mmio_space);
     mmio->node.range.size = phys_range.size + GUARD_PAGE_SIZE;
 
     const int flag = spin_acquire_with_irq(&mmio_space_lock);
@@ -82,7 +82,7 @@ map_mmio_region(const struct range phys_range,
         return NULL;
     }
 
-    const struct range virt_range = range_create(virt_addr, phys_range.size);
+    const struct range virt_range = RANGE_INIT(virt_addr, phys_range.size);
     const bool map_success =
         arch_make_mapping(&kernel_pagemap,
                           phys_range,
@@ -147,7 +147,7 @@ vmap_mmio_low4g(const prot_t prot, const uint8_t order, const uint64_t flags) {
     }
 
     const struct range phys_range =
-        range_create(page_to_phys(page), PAGE_SIZE * order);
+        RANGE_INIT(page_to_phys(page), PAGE_SIZE * order);
 
     struct mmio_region *const mmio = map_mmio_region(phys_range, prot, flags);
     if (mmio == NULL) {
@@ -235,5 +235,5 @@ bool vunmap_mmio(struct mmio_region *const region) {
 }
 
 struct range mmio_region_get_range(const struct mmio_region *const region) {
-    return range_create((uint64_t)region->base, region->size);
+    return RANGE_INIT((uint64_t)region->base, region->size);
 }

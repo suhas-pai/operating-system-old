@@ -70,7 +70,7 @@ find_multiple_unset(struct bitmap *const bitmap,
             if (current_range_zero_count + lsb_zero_count >= count) {          \
                 if (set) {                                                     \
                     bitmap_set_range(bitmap,                                   \
-                                     range_create(start_index, count),         \
+                                     RANGE_INIT(start_index, count),           \
                                      /*value=*/true);                          \
                 }                                                              \
                                                                                \
@@ -116,7 +116,7 @@ find_multiple_unset(struct bitmap *const bitmap,
                                                                                \
             if (set) {                                                         \
                 bitmap_set_range(bitmap,                                       \
-                                 range_create(start_index, count),             \
+                                 RANGE_INIT(start_index, count),               \
                                  /*value=*/true);                              \
             }                                                                  \
                                                                                \
@@ -176,7 +176,7 @@ find_multiple_set(struct bitmap *const bitmap,
             if (current_range_zero_count + lsb_zero_count >= count) {          \
                 if (unset) {                                                   \
                     bitmap_set_range(bitmap,                                   \
-                                     range_create(start_index, count),         \
+                                     RANGE_INIT(start_index, count),           \
                                      /*value=*/false);                         \
                 }                                                              \
                                                                                \
@@ -222,7 +222,7 @@ find_multiple_set(struct bitmap *const bitmap,
                                                                                \
             if (unset) {                                                       \
                 bitmap_set_range(bitmap,                                       \
-                                 range_create(start_index, count),             \
+                                 RANGE_INIT(start_index, count),               \
                                  /*value=*/false);                             \
             }                                                                  \
                                                                                \
@@ -387,7 +387,7 @@ find_unset_at_mult(struct bitmap *const bitmap,
             if (current_range_zero_count + lsb_zero_count >= count) {          \
                 if (set) {                                                     \
                     bitmap_set_range(bitmap,                                   \
-                                     range_create(start_index, count),         \
+                                     RANGE_INIT(start_index, count),           \
                                      /*value=*/true);                          \
                 }                                                              \
                                                                                \
@@ -418,7 +418,7 @@ find_unset_at_mult(struct bitmap *const bitmap,
                                    bad_iter)                                   \
         {                                                                      \
             struct range iter =                                                \
-                range_create(bit_index_of_ptr + bad_iter.front, bad_iter.size);\
+                RANGE_INIT(bit_index_of_ptr + bad_iter.front, bad_iter.size);  \
                                                                                \
             range_round_up_subrange(iter, mult, &iter);                        \
             if (iter.size < count) {                                           \
@@ -440,7 +440,7 @@ find_unset_at_mult(struct bitmap *const bitmap,
                                                                                \
             if (set) {                                                         \
                 bitmap_set_range(bitmap,                                       \
-                                 range_create(iter.front, count),              \
+                                 RANGE_INIT(iter.front, count),                \
                                  /*value=*/true);                              \
             }                                                                  \
                                                                                \
@@ -503,7 +503,7 @@ find_set_at_mult(struct bitmap *const bitmap,
             if (current_range_zero_count + lsb_zero_count >= count) {          \
                 if (unset) {                                                   \
                     bitmap_set_range(bitmap,                                   \
-                                     range_create(start_index, count),         \
+                                     RANGE_INIT(start_index, count),           \
                                      /*value=*/false);                         \
                 }                                                              \
                                                                                \
@@ -555,7 +555,7 @@ find_set_at_mult(struct bitmap *const bitmap,
                                                                                \
             if (unset) {                                                       \
                 bitmap_set_range(bitmap,                                       \
-                                 range_create(start_index, count),             \
+                                 RANGE_INIT(start_index, count),               \
                                  /*value=*/false);                             \
             }                                                                  \
                                                                                \

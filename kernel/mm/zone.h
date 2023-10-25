@@ -26,8 +26,6 @@ struct page_zone {
 struct page_zone *page_zone_iterstart();
 struct page_zone *page_zone_iternext(struct page_zone *prev);
 
-struct page;
-
 struct page_zone *page_to_zone(const struct page *page);
 struct page_zone *phys_to_zone(uint64_t phys);
 

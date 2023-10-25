@@ -19,8 +19,7 @@ arch_pcie_read(const struct pci_device_info *const device,
                const uint32_t offset,
                const uint8_t access_size)
 {
-    const struct range access_range = range_create(offset, access_size);
-    if (!index_range_in_bounds(access_range,
+    if (!index_range_in_bounds(RANGE_INIT(offset, access_size),
                                sizeof(struct pci_spec_device_info)))
     {
         printk(LOGLEVEL_WARN,
@@ -28,7 +27,7 @@ arch_pcie_read(const struct pci_device_info *const device,
                ", which falls outside pci-device's descriptor\n",
                access_size,
                offset);
-        return (uint32_t)-1;
+        return PCI_READ_FAIL;
     }
 
     switch (access_size) {
@@ -49,8 +48,7 @@ arch_pcie_write(const struct pci_device_info *const device,
                 const uint32_t value,
                 const uint8_t access_size)
 {
-    const struct range access_range = range_create(offset, access_size);
-    if (!index_range_in_bounds(access_range,
+    if (!index_range_in_bounds(RANGE_INIT(offset, access_size),
                                sizeof(struct pci_spec_device_info)))
     {
         printk(LOGLEVEL_WARN,

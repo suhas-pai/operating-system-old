@@ -67,7 +67,7 @@ split_large_page(struct pt_walker *const walker,
 
     curr_split->virt_addr = ptwalker_get_virt_addr(walker);
     curr_split->phys_range =
-        range_create(pte_to_phys(entry), PAGE_SIZE_AT_LEVEL(walker->level));
+        RANGE_INIT(pte_to_phys(entry), PAGE_SIZE_AT_LEVEL(walker->level));
 
     if (!options->is_in_early) {
         pageop_flush_pte_in_current_range(pageop,
@@ -879,7 +879,7 @@ pgmap_at(struct pagemap *const pagemap,
         return false;
     }
 
-    struct range virt_range = range_create(virt_addr, phys_range.size);
+    struct range virt_range = RANGE_INIT(virt_addr, phys_range.size);
     if (__builtin_expect(range_overflows(virt_range), 0)) {
         printk(LOGLEVEL_WARN,
                "pgmap_at(): virt-range goes beyond end of address-space\n");
@@ -949,7 +949,7 @@ pgmap_at(struct pagemap *const pagemap,
                                  options);
 
                 const struct range largepage_phys_range =
-                    range_create(curr_split.phys_range.front, offset);
+                    RANGE_INIT(curr_split.phys_range.front, offset);
                 const bool result =
                     pgmap_with_ptwalker(&walker,
                                         /*curr_split=*/NULL,
@@ -1064,7 +1064,7 @@ pgunmap_at(struct pagemap *const pagemap,
                 pgmap_with_ptwalker(&walker,
                                     /*curr_split=*/NULL,
                                     &pageop,
-                                    range_create(pte_to_phys(entry), map_size),
+                                    RANGE_INIT(pte_to_phys(entry), map_size),
                                     virt_range.front + offset,
                                     map_options);
 

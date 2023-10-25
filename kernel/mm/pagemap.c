@@ -35,7 +35,7 @@ __hidden struct pagemap kernel_pagemap = {
             .higher_root = higher_root
         };
 
-        addrspace_init(&result.addrspace);
+        result.addrspace = ADDRSPACE_INIT(result.addrspace);
         refcount_init(&result.refcount);
 
         return result;
@@ -46,7 +46,7 @@ __hidden struct pagemap kernel_pagemap = {
             .root = root,
         };
 
-        addrspace_init(&result.addrspace);
+        result.addrspace = ADDRSPACE_INIT(result.addrspace);
         refcount_init(&result.refcount);
 
         return result;
@@ -83,7 +83,7 @@ pagemap_find_space_and_add_vma(struct pagemap *const pagemap,
 
     const bool map_result =
         arch_make_mapping(pagemap,
-                          range_create(phys_addr, vma->node.range.size),
+                          RANGE_INIT(phys_addr, vma->node.range.size),
                           vma->node.range.front,
                           vma->prot,
                           vma->cachekind,
@@ -116,7 +116,7 @@ pagemap_add_vma(struct pagemap *const pagemap,
     flag = spin_acquire_with_irq(&vma->lock);
     const bool map_result =
         arch_make_mapping(pagemap,
-                          range_create(phys_addr, vma->node.range.size),
+                          RANGE_INIT(phys_addr, vma->node.range.size),
                           vma->node.range.front,
                           vma->prot,
                           vma->cachekind,

@@ -8,19 +8,14 @@
 #include "lib/overflow.h"
 #include "lib/util.h"
 
-__optimize(3)
-struct range range_create(const uint64_t front, const uint64_t size) {
-    return RANGE_STATIC(front, size);
-}
-
 __optimize(3) struct range range_create_upto(const uint64_t size) {
-    return RANGE_STATIC(0, size);
+    return RANGE_INIT(0, size);
 }
 
 __optimize(3)
 struct range range_create_end(const uint64_t front, const uint64_t end) {
     assert(front <= end);
-    return RANGE_STATIC(front, (end - front));
+    return RANGE_INIT(front, (end - front));
 }
 
 __optimize(3) bool
@@ -48,19 +43,19 @@ struct range range_align_in(const struct range range, const uint64_t boundary) {
         return RANGE_EMPTY();
     }
 
-    return RANGE_STATIC(front, align_down(range.size, boundary));
+    return RANGE_INIT(front, align_down(range.size, boundary));
 }
 
 __optimize(3)
 struct range range_from_index(const struct range range, const uint64_t index) {
     assert(range_has_index(range, index));
-    return RANGE_STATIC(range.front + index, range.size - index);
+    return RANGE_INIT(range.front + index, range.size - index);
 }
 
 __optimize(3)
 struct range range_from_loc(const struct range range, const uint64_t loc) {
     assert(range_has_loc(range, loc));
-    return RANGE_STATIC(loc, range.size - (loc - range.front));
+    return RANGE_INIT(loc, range.size - (loc - range.front));
 }
 
 __optimize(3) bool
@@ -73,7 +68,7 @@ range_align_out(const struct range range,
         return false;
     }
 
-    *result_out = RANGE_STATIC(align_down(range.front, boundary), size);
+    *result_out = RANGE_INIT(align_down(range.front, boundary), size);
     return true;
 }
 

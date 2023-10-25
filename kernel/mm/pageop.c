@@ -102,7 +102,7 @@ pageop_setup_for_address(struct pageop *const pageop, const uint64_t virt) {
     }
 
     pageop_finish(pageop);
-    pageop->flush_range = range_create(virt, PAGE_SIZE);
+    pageop->flush_range = RANGE_INIT(virt, PAGE_SIZE);
 }
 
 void

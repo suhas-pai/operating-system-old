@@ -8,23 +8,6 @@
 
 #include "addrspace.h"
 
-void addrspace_init(struct address_space *const addrspace) {
-    avltree_init(&addrspace->avltree);
-    list_init(&addrspace->list);
-}
-
-void
-addrspace_node_init(struct address_space *const addrspace,
-                    struct addrspace_node *const node)
-{
-    avlnode_init(&node->avlnode);
-    list_init(&node->list);
-
-    node->addrspace = addrspace;
-    node->range = RANGE_EMPTY();
-    node->largest_free_to_prev = 0;
-}
-
 struct addrspace_node *addrspace_node_prev(struct addrspace_node *const node) {
     assert(node->list.prev != NULL);
     if (node->list.prev == &node->addrspace->list) {
@@ -73,7 +56,7 @@ travserse_tree(const struct address_space *const addrspace,
 
         const uint64_t aligned_front = align_up_assert(prev_end, align);
 
-        const struct range aligned_range = range_create(aligned_front, size);
+        const struct range aligned_range = RANGE_INIT(aligned_front, size);
         const struct range hole_range =
             range_create_end(prev_end, node->range.front);
 
@@ -159,7 +142,7 @@ find_from_start(const struct address_space *const addrspace,
 {
     if (addrspace->avltree.root == NULL) {
         const uint64_t aligned_front = align_up_assert(in_range.front, align);
-        const struct range aligned_range = range_create(aligned_front, size);
+        const struct range aligned_range = RANGE_INIT(aligned_front, size);
 
         if (!range_has(in_range, aligned_range)) {
             return ADDRSPACE_INVALID_ADDR;

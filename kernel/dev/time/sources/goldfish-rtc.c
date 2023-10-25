@@ -86,7 +86,7 @@ bool goldfish_rtc_init_from_dtb(const void *const dtb, const int nodeoff) {
         return false;
     }
 
-    const struct range phys_range = range_create(base_addr_reg.address, size);
+    const struct range phys_range = RANGE_INIT(base_addr_reg.address, size);
     struct mmio_region *const mmio =
         vmap_mmio(phys_range, PROT_READ | PROT_WRITE, /*flags=*/0);
 

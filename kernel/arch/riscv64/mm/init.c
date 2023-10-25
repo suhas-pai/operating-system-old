@@ -3,6 +3,7 @@
  * © suhas pai
  */
 
+#include "lib/adt/range.h"
 #include "lib/align.h"
 #include "lib/size.h"
 
@@ -303,7 +304,7 @@ map_into_kernel_pagemap(const struct range phys_range,
     printk(LOGLEVEL_INFO,
            "mm: mapped " RANGE_FMT " to " RANGE_FMT "\n",
            RANGE_FMT_ARGS(phys_range),
-           RANGE_FMT_ARGS(range_create(virt_addr, phys_range.size)));
+           RANGE_FMT_ARGS(RANGE_INIT(virt_addr, phys_range.size)));
 }
 
 static void setup_kernel_pagemap(uint64_t *const kernel_memmap_size_out) {
@@ -375,26 +376,26 @@ static void fill_kernel_pagemap_struct(const uint64_t kernel_memmap_size) {
 
     struct vm_area *const null_area =
         vma_alloc(&kernel_pagemap,
-                  range_create(0, PAGE_SIZE),
+                  range_create_upto(PAGE_SIZE),
                   PROT_NONE,
                   VMA_CACHEKIND_NO_CACHE);
 
     // This range was never mapped, but is still reserved.
     struct vm_area *const mmio =
         vma_alloc(&kernel_pagemap,
-                  range_create(VMAP_BASE, (VMAP_END - VMAP_BASE)),
+                  RANGE_INIT(VMAP_BASE, (VMAP_END - VMAP_BASE)),
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_MMIO);
 
     struct vm_area *const kernel =
         vma_alloc(&kernel_pagemap,
-                  range_create(KERNEL_BASE, kernel_memmap_size),
+                  RANGE_INIT(KERNEL_BASE, kernel_memmap_size),
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_DEFAULT);
 
     struct vm_area *const hhdm =
         vma_alloc(&kernel_pagemap,
-                  range_create(HHDM_OFFSET, gib(64)),
+                  RANGE_INIT(HHDM_OFFSET, gib(64)),
                   PROT_READ | PROT_WRITE,
                   VMA_CACHEKIND_DEFAULT);
 

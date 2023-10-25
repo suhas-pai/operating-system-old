@@ -96,7 +96,7 @@ pci_bar_parse_size(struct pci_device_info *const dev,
     }
 
     // We use port range to temporarily store the phys range.
-    info->port_or_phys_range = range_create(base_addr, size);
+    info->port_or_phys_range = RANGE_INIT(base_addr, size);
     info->is_present = true;
 
     return E_PARSE_BAR_OK;
@@ -290,7 +290,7 @@ validate_cap_offset(struct array *const prev_cap_offsets,
     }
 
     const struct range cap_range =
-        range_create(cap_offset, sizeof(struct pci_spec_capability));
+        RANGE_INIT(cap_offset, sizeof(struct pci_spec_capability));
 
     if (!range_has_index_range(rangeof_field(struct pci_spec_device_info, data),
                                cap_range))
@@ -311,7 +311,7 @@ validate_cap_offset(struct array *const prev_cap_offsets,
         }
 
         const struct range range =
-            range_create(*iter, sizeof(struct pci_spec_capability));
+            RANGE_INIT(*iter, sizeof(struct pci_spec_capability));
 
         if (range_has_loc(range, cap_offset)) {
             printk(LOGLEVEL_WARN,
@@ -333,7 +333,7 @@ static void pci_parse_capabilities(struct pci_device_info *const dev) {
     uint8_t cap_offset =
         pci_read(dev, struct pci_spec_device_info, capabilities_offset);
 
-    if (cap_offset == 0 || cap_offset == (uint8_t)-1) {
+    if (cap_offset == 0 || cap_offset == (uint8_t)PCI_READ_FAIL) {
         printk(LOGLEVEL_INFO,
                "\t\thas no capabilities, but pci-device is marked as having "
                "some\n");
@@ -555,7 +555,7 @@ parse_function(struct pci_domain *const domain,
     const uint16_t vendor_id =
         pci_read(&info, struct pci_spec_device_info_base, vendor_id);
 
-    if (vendor_id == (uint16_t)-1) {
+    if (vendor_id == (uint16_t)PCI_READ_FAIL) {
         return;
     }
 
@@ -823,8 +823,7 @@ pci_add_pcie_domain(struct range bus_range,
     list_init(&domain->device_list);
 
     const struct range config_space_range =
-        range_create(base_addr,
-                     align_up_assert(bus_range.size << 20, PAGE_SIZE));
+        RANGE_INIT(base_addr, align_up_assert(bus_range.size << 20, PAGE_SIZE));
 
     domain->mmio =
         vmap_mmio(config_space_range, PROT_READ | PROT_WRITE, /*flags=*/0);
@@ -916,7 +915,7 @@ void pci_init() {
         const uint32_t dev_0_first_dword =
             pci_read(&dev_0, struct pci_spec_device_info_base, vendor_id);
 
-        if (dev_0_first_dword == (uint32_t)-1) {
+        if (dev_0_first_dword == PCI_READ_FAIL) {
             printk(LOGLEVEL_WARN,
                    "pci: failed to scan pci bus. aborting init\n");
             return;

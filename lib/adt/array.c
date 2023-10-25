@@ -30,7 +30,7 @@ void array_remove_index(struct array *const array, const uint32_t index) {
     const uint64_t byte_index = check_mul_assert(index, array->object_size);
     const uint64_t end = check_add_assert(byte_index, array->object_size);
 
-    gbuffer_remove_range(&array->gbuffer, range_create(byte_index, end));
+    gbuffer_remove_range(&array->gbuffer, RANGE_INIT(byte_index, end));
 }
 
 __optimize(3)
@@ -94,7 +94,7 @@ array_take_item(struct array *const array,
     const void *const src = gbuffer_at(array->gbuffer, byte_index);
     memcpy(item, src, object_size);
 
-    const struct range remove_range = RANGE_STATIC(byte_index, object_size);
+    const struct range remove_range = RANGE_INIT(byte_index, object_size);
     gbuffer_remove_range(&array->gbuffer, remove_range);
 }
 
@@ -112,7 +112,7 @@ array_take_range(struct array *const array,
     const void *const src = gbuffer_at(array->gbuffer, byte_index);
     memcpy(item, src, range_size);
 
-    const struct range remove_range = RANGE_STATIC(byte_index, range_size);
+    const struct range remove_range = RANGE_INIT(byte_index, range_size);
     gbuffer_remove_range(&array->gbuffer, remove_range);
 }
 

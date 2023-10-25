@@ -150,49 +150,6 @@ __optimize(3) uint64_t early_alloc_page() {
     return free_page;
 }
 
-__optimize(3) uint64_t early_alloc_multiple_pages(const uint64_t alloc_amount) {
-    if (__builtin_expect(list_empty(&g_asc_freelist), 0)) {
-        printk(LOGLEVEL_ERROR, "mm: ran out of free-pages\n");
-        return INVALID_PHYS;
-    }
-
-    struct freepages_info *info = NULL;
-    list_foreach(info, &g_asc_freelist, asc_list) {
-        if (info->avail_page_count >= alloc_amount) {
-            break;
-        }
-    }
-
-    if (__builtin_expect(&info->list == &g_asc_freelist, 0)) {
-        return INVALID_PHYS;
-    }
-
-    // Take the last several pages out of the list, because the first page
-    // stores the freepage_info struct.
-
-    info->avail_page_count -= alloc_amount;
-    if (info->avail_page_count == 0) {
-        list_delete(&info->list);
-        list_delete(&info->asc_list);
-    } else  {
-        const struct freepages_info *const prev =
-            list_prev_safe(info, asc_list, &g_asc_freelist);
-
-        if (prev != NULL && prev->avail_page_count > info->avail_page_count) {
-            list_remove(&info->asc_list);
-            add_to_asc_list(info);
-        }
-    }
-
-    const uint64_t free_page =
-        virt_to_phys(info) + (info->avail_page_count << PAGE_SHIFT);
-
-    zero_multiple_pages(phys_to_virt(free_page), alloc_amount);
-    g_total_free_pages_remaining -= alloc_amount;
-
-    return free_page;
-}
-
 __optimize(3) uint64_t early_alloc_large_page(const uint32_t alloc_amount) {
     if (__builtin_expect(list_empty(&g_asc_freelist), 0)) {
         printk(LOGLEVEL_ERROR, "mm: ran out of free-pages\n");
@@ -649,7 +606,7 @@ __optimize(3) static uint64_t free_all_pages() {
 
         done:
             const struct range freed_range =
-                range_create(phys, total_in_zone << PAGE_SHIFT);
+                RANGE_INIT(phys, total_in_zone << PAGE_SHIFT);
 
             printk(LOGLEVEL_INFO,
                    "mm: freed %" PRIu64 " pages at " RANGE_FMT " to zone %s\n",

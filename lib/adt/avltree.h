@@ -42,9 +42,6 @@ typedef int (*avlnode_compare_key_t)(struct avlnode *theirs, void *key);
 typedef void (*avlnode_update_t)(struct avlnode *node);
 typedef void (*avlnode_added_node_t)(struct avlnode *node);
 
-void avltree_init(struct avltree *tree);
-void avlnode_init(struct avlnode *node);
-
 void avlnode_merge(struct avlnode *left, struct avlnode *right);
 
 bool
