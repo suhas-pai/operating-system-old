@@ -57,10 +57,7 @@ void isr_init() {
     // Setup Spurious Interrupt
     g_spur_vector = isr_alloc_vector();
 
-    isr_set_vector(g_spur_vector,
-                   spur_tick,
-                   &ARCH_ISR_INFO_NONE());
-
+    isr_set_vector(g_spur_vector, spur_tick, &ARCH_ISR_INFO_NONE());
     idt_register_exception_handlers();
 }
 

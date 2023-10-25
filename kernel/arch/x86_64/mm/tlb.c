@@ -21,10 +21,7 @@ void tlb_flush_pageop(struct pageop *const pageop) {
     struct page *page = NULL;
     struct page *tmp = NULL;
 
-    list_foreach_mut(page,
-                     tmp,
-                     &pageop->delayed_free,
-                     table.delayed_free_list)
+    list_foreach_mut(page, tmp, &pageop->delayed_free, table.delayed_free_list)
     {
         list_delete(&page->table.delayed_free_list);
         free_page(page);

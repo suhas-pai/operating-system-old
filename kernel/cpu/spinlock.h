@@ -19,10 +19,11 @@ struct spinlock {
         .back = 0 \
     })
 
-void spinlock_init(struct spinlock *lock);
-
 void spin_acquire(struct spinlock *lock);
 void spin_release(struct spinlock *lock);
 
 int spin_acquire_with_irq(struct spinlock *lock);
 void spin_release_with_irq(struct spinlock *lock, int flag);
+
+bool spin_try_acquire(struct spinlock *lock);
+bool spin_try_acquire_with_irq(struct spinlock *lock, int *flag_out);

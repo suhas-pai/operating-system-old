@@ -20,7 +20,6 @@ struct refcount {
 #define REFCOUNT_CREATE_MAX() ((struct refcount){ .count = REFCOUNT_MAX })
 
 void refcount_init(struct refcount *ref);
-void refcount_init_max(struct refcount *ref);
 
 void refcount_increment(struct refcount *ref, int32_t amount);
 bool refcount_decrement(struct refcount *ref, int32_t amount);

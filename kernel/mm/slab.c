@@ -19,6 +19,8 @@ struct free_slab_object {
     uint32_t next;
 };
 
+#define MIN_OBJ_PER_SLAB 4
+
 bool
 slab_allocator_init(struct slab_allocator *const slab_alloc,
                     const uint32_t object_size_arg,
@@ -34,18 +36,17 @@ slab_allocator_init(struct slab_allocator *const slab_alloc,
         return false;
     }
 
-    spinlock_init(&slab_alloc->lock);
     list_init(&slab_alloc->slab_head_list);
 
+    slab_alloc->lock = SPINLOCK_INIT();
     slab_alloc->object_size = object_size;
     slab_alloc->free_obj_count = 0;
     slab_alloc->alloc_flags = alloc_flags;
     slab_alloc->flags = flags;
 
     uint16_t order = 0;
-    const uint8_t min_obj_per_slab = 4;
+    const uint64_t min_size_for_slab = object_size * MIN_OBJ_PER_SLAB;
 
-    const uint64_t min_size_for_slab = object_size * min_obj_per_slab;
     for (; (PAGE_SIZE << order) < min_size_for_slab; order++) {}
 
     slab_alloc->slab_order = order;

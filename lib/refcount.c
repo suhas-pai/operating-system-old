@@ -12,10 +12,6 @@ __optimize(3) void refcount_init(struct refcount *const ref) {
     ref->count = 1;
 }
 
-__optimize(3) void refcount_init_max(struct refcount *const ref) {
-    ref->count = REFCOUNT_MAX;
-}
-
 __optimize(3)
 void refcount_increment(struct refcount *const ref, const int32_t amount) {
     const int32_t old =

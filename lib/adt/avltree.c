@@ -27,17 +27,6 @@ void avlnode_verify(struct avlnode *const node, struct avlnode *const parent) {
 #endif /* defined(BUILD_TEST ) */
 }
 
-__optimize(3) void avltree_init(struct avltree *const tree) {
-    tree->root = NULL;
-}
-
-__optimize(3) void avlnode_init(struct avlnode *const node) {
-    node->height = 0;
-    node->left = NULL;
-    node->right = NULL;
-    node->parent = NULL;
-}
-
 __optimize(3) static struct avlnode *
 go_up_parents(struct avlnode *node, uint32_t *const depth_level_in) {
     struct avlnode *parent = node->parent;

@@ -589,6 +589,10 @@ __optimize(3) static uint64_t free_all_pages() {
                 avail_in_zone -= freed_count;
 
                 if (avail_in_zone == 0) {
+                    if (zone->min_order > (uint8_t)jorder) {
+                        zone->min_order = (uint8_t)jorder;
+                    }
+
                     break;
                 }
 

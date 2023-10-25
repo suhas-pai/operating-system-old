@@ -10,11 +10,6 @@
 
 #include "spinlock.h"
 
-__optimize(3) void spinlock_init(struct spinlock *const lock) {
-    lock->front = 0;
-    lock->back = 0;
-}
-
 __optimize(3) void spin_acquire(struct spinlock *const lock) {
     const uint32_t ticket = atomic_fetch_add(&lock->back, 1);
     while (true) {
@@ -29,6 +24,18 @@ __optimize(3) void spin_acquire(struct spinlock *const lock) {
 
 __optimize(3) void spin_release(struct spinlock *const lock) {
     atomic_fetch_add(&lock->front, 1);
+}
+
+__optimize(3) bool spin_try_acquire(struct spinlock *const lock) {
+    uint32_t ticket = atomic_load(&lock->back);
+    const uint32_t front = atomic_load(&lock->front);
+
+    if (front == ticket) {
+        ticket++;
+        return atomic_compare_exchange_strong(&lock->back, &ticket, ticket);
+    }
+
+    return false;
 }
 
 __optimize(3) int spin_acquire_with_irq(struct spinlock *const lock) {
@@ -46,4 +53,21 @@ void spin_release_with_irq(struct spinlock *const lock, const int flag) {
     if (flag != 0) {
         enable_all_interrupts();
     }
+}
+
+__optimize(3) bool
+spin_try_acquire_with_irq(struct spinlock *const lock, int *const flag_out) {
+    const bool irqs_enabled = are_interrupts_enabled();
+    disable_all_interrupts();
+
+    if (!spin_try_acquire(lock)) {
+        if (irqs_enabled) {
+            enable_all_interrupts();
+        }
+
+        return false;
+    }
+
+    *flag_out = irqs_enabled;
+    return true;
 }

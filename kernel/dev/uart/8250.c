@@ -193,7 +193,7 @@ uart8250_init(const port_t base,
     // Set scratchpad
     set_reg(base, info, UART_SCR_OFFSET, 0x00);
 
-    spinlock_init(&info->lock);
+    info->lock = SPINLOCK_INIT();
 
     info->term.emit_ch = uart8250_send_char;
     info->term.emit_sv = uart8250_send_sv;

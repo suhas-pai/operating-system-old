@@ -31,8 +31,8 @@ add_to_freelist_order(struct page_zone *const zone,
         iter->freelist_tail.head = page;
     }
 
-    freelist->count++;
     zone->total_free += 1ull << freelist_order;
+    freelist->count++;
 }
 
 // Add pages from the tail pages of a higher order into a lower order
@@ -78,9 +78,6 @@ early_add_to_freelist_order(struct page_zone *const zone,
     }
 
     zone->total_free += 1ull << freelist_order;
-    if (zone->min_order > freelist_order) {
-        zone->min_order = freelist_order;
-    }
 }
 
 // Setup pages that just came off the freelist. This setup needs to be as quick

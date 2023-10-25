@@ -33,7 +33,6 @@ virtio_split_queue_init(struct virtio_device *const device,
         "virto-queue: used_pages allocation order needs to be increased");
 
     // The max possible size of the descriptor list is actually 8192 bytes.
-
     struct page *desc_pages = NULL;
     uint8_t desc_pages_order = 0;
 
